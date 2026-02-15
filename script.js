@@ -52,7 +52,9 @@ if (typeof firebase !== 'undefined') {
                     // Additional fields mapping
                     gallery: ev.gallery || [],
                     mode: ev.type === 'online' ? 'Online' : 'Offline', // simple heuristic if valid
-                    type: ev.type
+                    type: ev.type,
+                    status: ev.status || 'Approved', // Map status from DB
+                    isLive: false // Database events are not 'scraped live'
                 });
             });
             console.log("Loaded " + MOCK_EVENTS.length + " events from Firebase.");
@@ -761,7 +763,8 @@ async function fetchKIITEvents() {
                         image: 'assets/logo_final.png', // Fallback
                         price: 'Free',
                         link: link,
-                        isLive: true
+                        isLive: true,
+                        status: 'Approved' // Live events are intrinsically approved
                     });
                 }
             }
@@ -1808,8 +1811,11 @@ const Views = {
                     ${(() => {
             if (State.calendarView === 'list') {
                 const today = new Date().toISOString().split('T')[0];
-                const upcoming = MOCK_EVENTS.filter(e => e.date >= today);
-                const past = MOCK_EVENTS.filter(e => e.date < today);
+                // UNIFIED FILTER: Status must be Approved (case-insensitive for safety)
+                const approvedEvents = MOCK_EVENTS.filter(e => (e.status || '').toLowerCase() === 'approved');
+
+                const upcoming = approvedEvents.filter(e => e.date >= today);
+                const past = approvedEvents.filter(e => e.date < today);
 
                 return `
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
