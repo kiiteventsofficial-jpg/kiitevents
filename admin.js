@@ -1024,7 +1024,7 @@ if (adminEventForm) {
                 price: price,
                 image: finalImage,
                 images: [finalImage],
-                organizer: document.getElementById('eventOrganizer').value,
+                organizer: organizers.length > 0 ? organizers[0] : '',
                 organizers: organizers,
                 contact: contacts.length > 0 ? contacts[0] : null,
                 contacts: contacts,
