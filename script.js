@@ -17,56 +17,127 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 // Note: We don't strictly need storage ref here if we aren't uploading, but good to have if needed later.
 
 // --- DATA ---
-let MOCK_EVENTS = [
-    // Default events cleared as per request.
-    // Events will now only appear when added by an organizer via the dashboard.
-];
+window.ALL_EVENTS = []; // Single Source of Truth
+let MOCK_EVENTS = [];
 
 // Load events from Firebase Realtime DB (Public View)
 if (typeof firebase !== 'undefined') {
     const dbRef = firebase.database().ref("events");
+
+    // 1. Initial Load & Value Updates
     dbRef.on("value", (snapshot) => {
-        const data = snapshot.val();
-        // Clear MOCK_EVENTS of dynamic events (keep static if any? Assuming all should come from DB now)
-        // Let's reset MOCK_EVENTS to empty or static only. 
-        // For this task, we assume MOCK_EVENTS should reflect DB content.
+        const data = snapshot.val() || {};
+
+        // Map data to window.ALL_EVENTS
+        window.ALL_EVENTS = Object.keys(data).map(id => ({
+            id,
+            ...data[id],
+            title: data[id].title || data[id].name || 'Untitled Event',
+            date: data[id].fullDate || data[id].date || new Date().toISOString(),
+            status: 'Approved' // Forced for display authority
+        }));
+
+        // Keep MOCK_EVENTS in sync for other components (Calendar, Details, etc.)
         MOCK_EVENTS.length = 0;
+        MOCK_EVENTS.push(...window.ALL_EVENTS);
 
-        if (data) {
-            Object.values(data).forEach(ev => {
-                MOCK_EVENTS.push({
-                    id: ev.id || 'evt_' + Math.random().toString(36).substr(2, 9),
-                    title: ev.title || ev.name || 'Untitled Event',
-                    description: ev.description || ev.desc || '',
-                    date: ev.fullDate || ev.date || new Date().toISOString().split('T')[0],
-                    time: ev.time || 'All Day',
-                    venue: ev.venue || 'TBA',
-                    category: ev.category || 'General',
-                    organizer: ev.organizer || ev.society || 'KIIT', // Fallback
-                    society: ev.society,
-                    image: ev.imageUrl || ev.image || 'assets/logo_final.png', // Priority to new imageUrl
-                    images: ev.images || [],
-                    price: ev.price || 'Free',
-                    link: ev.link || '#',
-                    createdBy: ev.createdBy,
-                    // Additional fields mapping
-                    gallery: ev.gallery || [],
-                    mode: ev.type === 'online' ? 'Online' : 'Offline', // simple heuristic if valid
-                    type: ev.type,
-                    status: ev.status || 'Approved', // Map status from DB
-                    isLive: false // Database events are not 'scraped live'
-                });
-            });
-            console.log("Loaded " + MOCK_EVENTS.length + " events from Firebase.");
-        }
+        console.log("🔥 ABSOLUTE SYNC:", window.ALL_EVENTS);
 
-        // Re-render App
+        // Definitively render to Homepage
+        forceRenderEvents();
+
+        // Legacy support for App.render if needed by other components
         if (typeof App !== 'undefined' && App.render) {
             App.render();
         }
     });
+
+    // 2. Immediate Deletion Sync
+    dbRef.on("child_removed", (snap) => {
+        window.ALL_EVENTS = window.ALL_EVENTS.filter(e => e.id !== snap.key);
+        MOCK_EVENTS.length = 0;
+        MOCK_EVENTS.push(...window.ALL_EVENTS);
+        forceRenderEvents();
+    });
 } else {
     console.warn("Firebase not loaded in script.js");
+}
+
+// DEFINITIVE RENDER FUNCTION (HARD RULE)
+function forceRenderEvents() {
+    const containers = [
+        document.getElementById('events-grid'),
+        document.getElementById('upcoming-events'),
+        document.querySelector('.events-grid')
+    ];
+
+    containers.forEach(container => {
+        if (!container) return;
+
+        container.innerHTML = "";
+
+        if (!window.ALL_EVENTS.length) {
+            container.innerHTML = `
+                <div class="col-span-full text-center py-20 bg-white/5 rounded-2xl border border-white/5 border-dashed">
+                    <div class="text-6xl mb-4 opacity-30">📅</div>
+                    <h3 class="text-xl font-bold text-white/50 mb-2">No Upcoming Events</h3>
+                    <p class="text-slate-500 text-sm">Stay tuned! Events added by organizers will appear here.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // APPLY FILTERS & SEARCH
+        let displayList = [...window.ALL_EVENTS];
+
+        // 1. Search Query
+        if (State.homeSearch) {
+            const query = State.homeSearch.toLowerCase();
+            displayList = displayList.filter(ev =>
+                ev.title.toLowerCase().includes(query) ||
+                ev.description?.toLowerCase().includes(query) ||
+                ev.organizer?.toLowerCase().includes(query)
+            );
+        }
+
+        // 2. Category Filter
+        if (State.filters?.category && State.filters.category !== 'All') {
+            displayList = displayList.filter(ev => ev.category === State.filters.category);
+        }
+
+        // 3. Price Filter
+        if (State.filters?.price && State.filters.price !== 'All') {
+            displayList = displayList.filter(ev => ev.price === State.filters.price);
+        }
+
+        // NO RESULTS UI
+        if (!displayList.length) {
+            container.innerHTML = `
+                <div class="col-span-full text-center py-20 bg-white/5 rounded-3xl border border-white/5 border-dashed">
+                    <div class="text-6xl mb-4 opacity-30">🔍</div>
+                    <h3 class="text-xl font-bold text-white/50 mb-2">No Matches Found</h3>
+                    <p class="text-slate-500 text-sm">Try adjusting your filters or search keywords.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // CALENDAR OR GRID
+        if (State.calendarView === 'calendar') {
+            container.classList.remove('grid', 'md:grid-cols-2');
+            container.innerHTML = Components.Calendar(displayList);
+        } else {
+            container.classList.add('grid', 'md:grid-cols-2');
+            container.innerHTML = displayList.map(ev => {
+                try {
+                    return Components.EventCard(ev);
+                } catch (err) {
+                    console.error("Render Error for event:", ev, err);
+                    return "";
+                }
+            }).join('');
+        }
+    });
 }
 /* Fix: MOCK_EVENTS check */
 
@@ -1377,7 +1448,7 @@ const Components = {
         // If it starts with 'img_', it expects a blob but if missing in map, it might be broken.
         // But for legacy data (assets/...), it works fine.
 
-        const clickAction = event.isLive ? `window.open('${event.link}', '_blank')` : `Router.push('/event/${event.id}')`;
+        const clickAction = `Router.push('/event/${event.id}')`;
 
         return `
 <div class="bg-card group relative rounded-2xl overflow-hidden flex flex-col h-full hover:shadow-[0_0_40px_rgba(37,99,235,0.2)] event-card border border-white/5 cursor-pointer transition-transform duration-200 hover:-translate-y-1"
@@ -1670,14 +1741,14 @@ const Components = {
                 
                 <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     ${selectedEvents.length > 0 ? selectedEvents.map(e => `
-                        <a href="${e.link}" target="_blank" class="block bg-white/5 hover:bg-white/10 p-3 rounded-xl transition-all group border border-transparent hover:border-blue-500/30">
+                        <div onclick="Router.push('/event/${e.id}')" class="block bg-white/5 hover:bg-white/10 p-3 rounded-xl transition-all group border border-transparent hover:border-blue-500/30 cursor-pointer">
                             <div class="text-xs font-bold text-blue-400 mb-1">${e.time}</div>
                             <h5 class="font-bold text-white mb-1 leading-tight group-hover:text-blue-300">${e.title}</h5>
                             <div class="text-xs text-gray-500 flex items-center justify-between">
                                 <span>${e.category}</span>
                                 <span class="bg-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300">View →</span>
                             </div>
-                        </a>
+                        </div>
                     `).join('') : `
                         <div class="text-center py-8 text-gray-500">
                             <i class="fa-regular fa-calendar-xmark text-3xl mb-2 opacity-50"></i>
@@ -1737,45 +1808,34 @@ const Views = {
 </header>
 <!-- Search and Filtering -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20">
-    <div class="bg-surface-dark/20 border border-white/10 p-6 rounded-2xl shadow-2xl backdrop-blur-xl">
+    <div class="bg-[#1a202c]/60 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl">
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-center">
             <div class="lg:col-span-1 relative">
                 <span class="material-icons-round absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">search</span>
-                <input class="w-full bg-background-dark/50 border-white/5 rounded-xl py-3 pl-12 pr-4 text-white focus:ring-primary focus:border-primary placeholder:text-slate-500 transition-all" placeholder="Search events..." type="text" oninput="window.updateHomeSearch(this.value)" value="${State.homeSearch || ''}">
+                <input class="w-full bg-black/40 border-white/5 rounded-xl py-3 pl-12 pr-4 text-white focus:ring-primary focus:border-primary placeholder:text-slate-500 transition-all font-medium" 
+                       placeholder="Search events..." type="text" oninput="window.updateHomeSearch(this.value)" value="${State.homeSearch || ''}">
             </div>
             
-            <!-- DROPDOWN FILTERS (Master Prompt) -->
             <div class="lg:col-span-3 flex flex-wrap items-center gap-4">
                  <span class="text-slate-400 text-sm font-medium mr-2">Filters:</span>
 
-                 <!-- Category Dropdown -->
                  <div class="relative group">
-                    <select class="appearance-none bg-white/5 border border-white/10 text-white py-2 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-white/10 transition-all text-sm font-medium" onchange="window.toggleFilter(this.value, 'category')">
-                        <option value="All" class="bg-surface-dark text-white">All Events</option>
-                        <option value="Cultural" class="bg-surface-dark text-white">Cultural</option>
-                        <option value="Technical" class="bg-surface-dark text-white">Technical</option>
-                        <option value="Sports" class="bg-surface-dark text-white">Sports</option>
-                        <option value="Fest" class="bg-surface-dark text-white">Fest</option>
-                        <option value="Workshop" class="bg-surface-dark text-white">Workshop</option>
+                    <select class="appearance-none bg-white/5 border border-white/10 text-white py-2.5 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-white/10 transition-all text-sm font-semibold" onchange="window.toggleFilter(this.value, 'category')">
+                        <option value="All" class="bg-[#1a202c]">All Events</option>
+                        <option value="Cultural" class="bg-[#1a202c]">Cultural</option>
+                        <option value="Technical" class="bg-[#1a202c]">Technical</option>
+                        <option value="Sports" class="bg-[#1a202c]">Sports</option>
+                        <option value="Fest" class="bg-[#1a202c]">Fest</option>
+                        <option value="Workshop" class="bg-[#1a202c]">Workshop</option>
                     </select>
                     <span class="material-icons-round absolute right-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none text-sm">expand_more</span>
                  </div>
 
-                 <!-- Price Dropdown -->
                  <div class="relative group">
-                    <select class="appearance-none bg-white/5 border border-white/10 text-white py-2 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-white/10 transition-all text-sm font-medium" onchange="window.toggleFilter(this.value, 'price')">
-                        <option value="All" class="bg-surface-dark text-white">Any Price</option>
-                        <option value="Free" class="bg-surface-dark text-white">Free</option>
-                        <option value="Paid" class="bg-surface-dark text-white">Paid</option>
-                    </select>
-                    <span class="material-icons-round absolute right-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none text-sm">expand_more</span>
-                 </div>
-                 
-                 <!-- Society Dropdown (Future Ready) -->
-                 <div class="relative group">
-                    <select class="appearance-none bg-white/5 border border-white/10 text-white py-2 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-white/10 transition-all text-sm font-medium" onchange="window.toggleFilter(this.value, 'society')">
-                        <option value="All" class="bg-surface-dark text-white">All Societies</option>
-                        ${MOCK_SOCIETIES.map(s => `<option value="${s.id}" class="bg-surface-dark text-white">${s.name}</option>`).join('')}
+                    <select class="appearance-none bg-white/5 border border-white/10 text-white py-2.5 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-white/10 transition-all text-sm font-semibold" onchange="window.toggleFilter(this.value, 'price')">
+                        <option value="All" class="bg-[#1a202c]">Any Price</option>
+                        <option value="Free" class="bg-[#1a202c]">Free</option>
+                        <option value="Paid" class="bg-[#1a202c]">Paid</option>
                     </select>
                     <span class="material-icons-round absolute right-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none text-sm">expand_more</span>
                  </div>
@@ -1783,108 +1843,60 @@ const Views = {
         </div>
     </div>
 </section>
-        <!-- Main Content Grid (Solid Dark Background) -->
-        <main class="relative z-10 py-24 bg-background" id="events-feed">
-            <!-- Removed Canvas Container to let Hero Background show through -->
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div class="flex flex-col lg:flex-row gap-12">
-            <!-- Events Feed -->
-            <div class="flex-grow">
-                <div class="flex justify-between items-end mb-12">
-                    <div>
-                        <h2 class="text-4xl font-bold text-white mb-3 tracking-tight">Upcoming Events</h2>
-                        <p class="text-slate-400 text-lg">Discover what's happening around campus</p>
-                    </div>
-                    <!-- Minimalist View Toggle -->
-                    <div class="flex bg-white/5 rounded-lg p-1 border border-white/10 backdrop-blur-md">
-                        <button onclick="window.toggleEventView('list')" class="px-4 py-2 rounded-md text-sm font-medium transition-all ${State.calendarView === 'list' ? 'bg-primary/20 text-primary shadow-sm' : 'text-slate-400 hover:text-white'}">
-                            <span class="material-icons-round text-base align-middle mr-1">grid_view</span> Grid
-                        </button>
-                        <button onclick="window.toggleEventView('calendar')" class="px-4 py-2 rounded-md text-sm font-medium transition-all ${State.calendarView === 'calendar' ? 'bg-primary/20 text-primary shadow-sm' : 'text-slate-400 hover:text-white'}">
-                            <span class="material-icons-round text-base align-middle mr-1">calendar_month</span> Calendar
-                        </button>
-                    </div>
+<!-- Main Layout -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10" id="events-feed">
+    <div class="flex flex-col lg:flex-row gap-12">
+        <!-- Events Feed -->
+        <div class="flex-1">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
+                <div>
+                    <h2 class="text-4xl font-black text-white mb-2 leading-none tracking-tight">Upcoming Events</h2>
+                    <p class="text-slate-400 font-medium">Synced instantly from KIIT Official Database</p>
                 </div>
                 
-                <div class="min-h-[500px]">
-                    ${(() => {
-            if (State.calendarView === 'list') {
-                const today = new Date().toISOString().split('T')[0];
-                // UNIFIED FILTER: Status must be Approved (case-insensitive for safety)
-                const approvedEvents = MOCK_EVENTS.filter(e => (e.status || '').toLowerCase() === 'approved');
-
-                const upcoming = approvedEvents.filter(e => e.date >= today);
-                const past = approvedEvents.filter(e => e.date < today);
-
-                return `
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
-                                    ${upcoming.length > 0 ? upcoming.map(event => Components.EventCard(event)).join('') : `
-                                        <div class="col-span-1 md:col-span-2 text-center py-20 bg-white/5 rounded-2xl border border-white/5 border-dashed align-center w-full">
-                                            <div class="text-6xl mb-4 opacity-30 text-center">📅</div>
-                                            <h3 class="text-xl font-bold text-white/50 mb-2">No Upcoming Events</h3>
-                                            <p class="text-slate-500 text-sm mb-4">Stay tuned! Events added by organizers will appear here.</p>
-                                            <a href="https://kiit.ac.in/event/" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-primary text-sm font-semibold transition-all border border-white/10 hover:border-primary/30">
-                                                Check Official KIIT Events Page <i class="fa-solid fa-arrow-right"></i>
-                                            </a>
-                                        </div>
-                                    `}
-                                </div>
-                                
-                                ${past.length > 0 ? `
-                                    <div class="mt-16 mb-8 pt-8 border-t border-white/10">
-                                        <h2 class="text-3xl font-bold text-white mb-6 tracking-tight opacity-80">Past Events</h2>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in opacity-70 grayscale-[0.5] hover:grayscale-0 transition-all duration-500">
-                                            ${past.map(event => Components.EventCard(event)).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                            `;
-            } else {
-                return `
-                                <div class="animate-fade-in bg-surface-dark/50 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-                                     ${Components.Calendar(MOCK_EVENTS)}
-                                </div>
-                            `;
-            }
-        })()}
+                <div class="flex bg-white/5 p-1 rounded-xl border border-white/10 backdrop-blur-md">
+                    <button onclick="window.toggleEventView('list')" class="px-5 py-2 rounded-lg text-sm font-bold transition-all ${State.calendarView === 'list' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white'}">
+                        <span class="material-icons-round text-lg align-middle mr-2">grid_view</span> Grid
+                    </button>
+                    <button onclick="window.toggleEventView('calendar')" class="px-5 py-2 rounded-lg text-sm font-bold transition-all ${State.calendarView === 'calendar' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white'}">
+                        <span class="material-icons-round text-lg align-middle mr-2">calendar_month</span> Calendar
+                    </button>
                 </div>
             </div>
             
-            <!-- Sidebar: Society Spotlight -->
-            <aside class="w-full lg:w-80 flex-shrink-0 animate-fade-in delay-200">
-                <div class="sticky top-24 space-y-8">
-                    <!-- Societies Widget -->
-                    <div class="glass-card rounded-2xl p-6">
-                        <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                            <span class="material-icons-round text-primary">groups</span>
-                            Society Spotlight
-                        </h3>
-                        <div class="space-y-6">
-                            ${MOCK_SOCIETIES.slice(0, 5).map(s => Components.SidebarSociety(s)).join('')}
-                        </div>
-                        <button class="w-full mt-8 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 text-sm font-bold hover:bg-white/10 transition-all group" onclick="Router.push('/societies')">
-                            Know About KIIT Societies <span class="inline-block transition-transform group-hover:translate-x-1">→</span>
-                        </button>
-                    </div>
-                    
-                    <!-- Newsletter / Reminder -->
-                    <div class="register-card rounded-2xl p-6 text-white overflow-hidden relative shadow-lg shadow-primary/20">
-                         <div class="relative z-10">
-                            <h3 class="text-lg font-bold mb-2">Never miss an event</h3>
-                            <p class="text-sm text-white/80 mb-6 leading-relaxed">Get weekly updates on the best campus events delivered to your inbox.</p>
-                            <div class="space-y-3">
-                                <input id="home-email-input" class="w-full bg-white/20 border-white/30 rounded-lg py-2.5 px-4 text-white placeholder:text-white/60 focus:ring-0 focus:border-white/50 transition-colors" placeholder="Email address" type="email">
-                                <button class="w-full bg-white text-primary font-bold py-2.5 rounded-lg text-sm shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all" onclick="window.handleHomeSubscribe()">
-                                    Subscribe Now
-                                </button>
-                            </div>
-                        </div>
-                        <div class="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+            <div class="min-h-[600px] grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in" id="events-grid">
+                <!-- Injection Target -->
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <aside class="w-full lg:w-80 flex-shrink-0">
+            <div class="sticky top-24 space-y-8">
+                <div class="bg-[#1a202c]/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 shadow-2xl">
+                    <h3 class="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                        <span class="w-2 h-8 bg-primary rounded-full"></span>
+                        Society Spotlight
+                    </h3>
+                    <div class="space-y-6">
+                        ${MOCK_SOCIETIES.slice(0, 5).map(s => Components.SidebarSociety(s)).join('')}
                     </div>
                 </div>
-            </aside>
-        </div>
+
+                <!-- Registration/CTA Card -->
+                <div class="relative rounded-3xl p-8 overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-900 group-hover:scale-105 transition-transform duration-700"></div>
+                    <div class="relative z-10">
+                        <h3 class="text-2xl font-bold text-white mb-3">Host your event?</h3>
+                        <p class="text-blue-100/80 mb-8 text-sm leading-relaxed">Join the central KIIT community. Get your society events published globally.</p>
+                        <button class="w-full bg-white text-blue-600 font-bold py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all" onclick="window.location.href='auth.html'">
+                            Register Society
+                        </button>
+                    </div>
+                    <div class="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+                </div>
+            </div>
+        </aside>
     </div>
 </main>
 
@@ -2439,6 +2451,7 @@ window.handleSubscribe = (e) => {
 
 // --- Main App Logic ---
 const App = {
+    state: { view: 'events' }, // 🔥 FORCE VIEW STATE FOR RENDERING
     init: () => {
         App.render();
         window.addEventListener('popstate', App.render);
@@ -2459,6 +2472,7 @@ const App = {
             setTimeout(() => {
                 window.init3DBackground();
                 window.initHeroAnimations();
+                forceRenderEvents(); // 🔥 Ensure events render after structure is in DOM
             }, 100);
         }
         else if (State.route === '/societies') {
