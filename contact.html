@@ -42,6 +42,22 @@
                 emailjs.init("UHUMTXW2XboEoX9B5");
             })();
     </script>
+    <style>
+        .contact-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1.6fr;
+            gap: 2.5rem;
+            align-items: start;
+            width: 100%;
+        }
+
+        @media (max-width: 1024px) {
+            .contact-wrapper {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-background text-white antialiased min-h-screen flex flex-col font-body">
@@ -59,6 +75,11 @@
         </div>
 
         <div class="max-w-7xl mx-auto">
+            <button onclick="window.location.href='index.html'"
+                class="mb-6 text-sm text-slate-400 flex items-center gap-2 hover:text-white transition-colors group">
+                <span class="material-icons-round transition-transform group-hover:-translate-x-1">arrow_back</span>
+                Back to Home
+            </button>
             <div class="text-center mb-16 animate-fade-in-up">
                 <h1
                     class="text-4xl md:text-5xl font-bold font-display mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
@@ -70,24 +91,30 @@
                 </p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+            <div class="contact-wrapper">
 
                 <!-- Contact Info -->
                 <div
-                    class="bg-surface-dark border border-white/10 rounded-2xl p-8 shadow-xl hover:border-primary/30 transition-all duration-300">
-                    <h2 class="text-2xl font-bold text-white mb-6 font-display">Contact Information</h2>
+                    class="bg-surface-dark border border-white/5 rounded-3xl p-8 shadow-2xl shadow-primary/5 hover:border-primary/20 transition-all duration-500 relative overflow-hidden group/info">
+                    <div
+                        class="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10 group-hover/info:bg-primary/10 transition-colors">
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-8 font-display tracking-tight">Contact Information</h2>
 
-                    <div class="space-y-6">
-                        <div class="flex items-start gap-4">
+                    <div class="space-y-8">
+                        <div class="flex items-start gap-5">
                             <div
                                 class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                                 <i class="fa-solid fa-envelope"></i>
                             </div>
                             <div>
-                                <h3 class="text-white font-semibold">Email Us</h3>
+                                <h3 class="text-white font-semibold flex items-center gap-2">
+                                    Email Us
+                                    <span class="w-1 h-1 rounded-full bg-primary/50"></span>
+                                </h3>
                                 <p class="text-slate-400 text-sm mt-1">For general queries and support</p>
                                 <a href="mailto:kiiteventsofficial@gmail.com"
-                                    class="text-blue-400 hover:text-blue-300 transition-colors font-medium mt-1 inline-block">
+                                    class="text-primary-light hover:text-white transition-all font-medium mt-1.5 inline-block border-b border-primary/20 hover:border-white/40">
                                     kiiteventsofficial@gmail.com
                                 </a>
                             </div>
@@ -95,58 +122,63 @@
 
                     </div>
                 </div>
-            </div>
 
-            <!-- Contact Form -->
-            <div
-                class="bg-surface-dark border border-white/10 rounded-2xl p-8 shadow-xl relative overflow-hidden group hover:border-primary/30 transition-all duration-300">
+                <!-- Contact Form -->
                 <div
-                    class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10 group-hover:bg-primary/10 transition-colors">
+                    class="bg-surface-dark border border-white/5 rounded-3xl p-8 shadow-2xl shadow-primary/5 relative overflow-hidden group hover:border-primary/20 transition-all duration-500">
+                    <div
+                        class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10 group-hover:bg-primary/10 transition-colors">
+                    </div>
+
+                    <h2 class="text-2xl font-bold text-white mb-8 font-display tracking-tight">Send a Message</h2>
+
+                    <form id="contact-form" onsubmit="window.sendEmail(event)" class="space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm text-slate-300 font-semibold tracking-wide ml-1">Name</label>
+                                <input type="text" name="user_name" placeholder="Your Name" required
+                                    class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-3.5 text-white placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 outline-none transition-all hover:bg-black/50 hover:border-white/10">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm text-slate-300 font-semibold tracking-wide ml-1">Email</label>
+                                <input type="email" name="user_email" placeholder="your@email.com" required
+                                    class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-3.5 text-white placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 outline-none transition-all hover:bg-black/50 hover:border-white/10">
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm text-slate-300 font-semibold tracking-wide ml-1">Subject</label>
+                            <div class="relative group/select">
+                                <select name="subject"
+                                    class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-3.5 text-white placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 outline-none transition-all hover:bg-black/50 hover:border-white/10 appearance-none cursor-pointer">
+                                    <option value="General Inquiry">General Inquiry</option>
+                                    <option value="Event Collaboration">Event Collaboration</option>
+                                    <option value="Technical Support">Technical Support</option>
+                                    <option value="Feedback">Feedback</option>
+                                </select>
+                                <div
+                                    class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-500 group-focus-within/select:text-primary transition-colors">
+                                    <span class="material-icons-round">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm text-slate-300 font-semibold tracking-wide ml-1">Message</label>
+                            <textarea name="message" rows="5" placeholder="How can we help you?" required
+                                class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-3.5 text-white placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 outline-none transition-all hover:bg-black/50 hover:border-white/10 resize-none"></textarea>
+                        </div>
+
+                        <button id="submitBtn" type="submit"
+                            class="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 transform hover:-translate-y-0.5 transition-all duration-200 mt-2 flex items-center justify-center gap-2">
+                            <span>Send Message</span>
+                            <span id="loadingSpinner"
+                                class="hidden animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full"></span>
+                        </button>
+                    </form>
                 </div>
 
-                <h2 class="text-2xl font-bold text-white mb-6 font-display">Send a Message</h2>
-
-                <form id="contact-form" onsubmit="window.sendEmail(event)" class="space-y-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label class="text-sm text-slate-400 font-medium">Name</label>
-                            <input type="text" name="user_name" placeholder="Your Name" required
-                                class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all hover:bg-black/30">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-sm text-slate-400 font-medium">Email</label>
-                            <input type="email" name="user_email" placeholder="your@email.com" required
-                                class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all hover:bg-black/30">
-                        </div>
-                    </div>
-
-                    <div class="space-y-1">
-                        <label class="text-sm text-slate-400 font-medium">Subject</label>
-                        <select name="subject"
-                            class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all hover:bg-black/30 appearance-none">
-                            <option value="General Inquiry">General Inquiry</option>
-                            <option value="Event Collaboration">Event Collaboration</option>
-                            <option value="Technical Support">Technical Support</option>
-                            <option value="Feedback">Feedback</option>
-                        </select>
-                    </div>
-
-                    <div class="space-y-1">
-                        <label class="text-sm text-slate-400 font-medium">Message</label>
-                        <textarea name="message" rows="4" placeholder="How can we help you?" required
-                            class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all hover:bg-black/30 resize-none"></textarea>
-                    </div>
-
-                    <button id="submitBtn" type="submit"
-                        class="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 transform hover:-translate-y-0.5 transition-all duration-200 mt-2 flex items-center justify-center gap-2">
-                        <span>Send Message</span>
-                        <span id="loadingSpinner"
-                            class="hidden animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full"></span>
-                    </button>
-                </form>
             </div>
-
-        </div>
         </div>
     </main>
 
