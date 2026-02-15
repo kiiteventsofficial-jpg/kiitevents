@@ -315,12 +315,16 @@ eventForm.addEventListener("submit", async e => {
         createdBy: user.email
     };
 
+    // Read ID from hidden input
+    const submissionId = document.getElementById('editEventId')?.value || editingEventId;
+
     // Save to Firebase (Global Path)
-    if (editingEventId) {
+    if (submissionId) {
         // Update existing
-        await firebase.database().ref("events").child(editingEventId).update(eventData);
+        await firebase.database().ref("events").child(submissionId).update(eventData);
         alert('Event Updated!');
         editingEventId = null;
+        if (document.getElementById('editEventId')) document.getElementById('editEventId').value = '';
         document.querySelector('.publish-btn').textContent = 'Publish Event';
     } else {
         // Create new
@@ -406,6 +410,7 @@ async function renderEvents() {
 // CANCEL EDIT
 function cancelEdit() {
     editingEventId = null;
+    if (document.getElementById('editEventId')) document.getElementById('editEventId').value = '';
     document.querySelector('.publish-btn').textContent = 'PUBLISH EVENT';
     eventForm.reset();
     imagePreview.hidden = true;
@@ -423,6 +428,8 @@ window.editEvent = async function (id) {
     if (!ev) return;
 
     editingEventId = id;
+    if (document.getElementById('editEventId')) document.getElementById('editEventId').value = id;
+
     const submitBtn = document.querySelector('.publish-btn');
     submitBtn.textContent = 'UPDATE EVENT';
 
