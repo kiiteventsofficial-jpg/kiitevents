@@ -1379,7 +1379,7 @@ const Components = {
       </div>
 
       <!-- Mobile Menu Overlay (FIXED POS, FULL SCREEN) -->
-      <div id="mobileMenu" class="mobile-menu fixed top-0 right-0 bottom-0 left-0 bg-[#050b18] z-[99999] transform translate-x-full transition-transform duration-300 md:hidden flex flex-col pt-24 px-6 pb-8 overflow-y-auto h-screen w-screen">
+      <div id="mobileMenu" class="mobile-menu fixed top-0 right-0 bg-[#050b18] z-[99999] transform translate-x-full transition-transform duration-300 md:hidden flex flex-col pt-20 px-6 pb-8 overflow-y-auto max-h-[85vh] w-80">
            
            <!-- Mobile menu close button -->
             <button
@@ -1518,7 +1518,7 @@ const Components = {
     },
 
     SidebarSociety: (society) => `
-    <div class="flex items-center gap-4 group cursor-pointer" onclick="window.open('${society.website || '#'}', '_blank')">
+    <div class="flex items-center gap-4 group cursor-pointer" onclick="window.openSocietyModal('${society.id}')">
         <div class="w-12 h-12 rounded-xl bg-surface-dark-light border border-white/5 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all overflow-hidden">
              ${society.image && !society.image.includes('placeholder')
             ? `<img src="${society.image}" class="w-full h-full object-cover">`
