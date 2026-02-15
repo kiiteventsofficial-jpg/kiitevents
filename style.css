@@ -1783,9 +1783,12 @@ button {
     @media (max-width: 768px) {
         #mobileMenu {
             position: fixed !important;
-            inset: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
+            top: 0 !important;
+            right: 0 !important;
+            width: 320px !important;
+            max-width: 90vw !important;
+            height: fit-content !important;
+            max-height: 85vh !important;
             background-color: #050b18 !important;
             /* Solid dark background */
             z-index: 99999 !important;
@@ -1804,4 +1807,15 @@ button {
             transform: translateX(100%) !important;
         }
     }
+}
+
+/* Event Card Height Fix */
+.event-card {
+    max-height: 420px;
+    overflow: hidden;
+}
+
+.event-card img {
+    max-height: 200px;
+    object-fit: cover;
 }
