@@ -1958,10 +1958,12 @@ const Views = {
                     <div class="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-900 group-hover:scale-105 transition-transform duration-700"></div>
                     <div class="relative z-10">
                         <h3 class="text-2xl font-bold text-white mb-3">Host your event?</h3>
-                        <p class="text-blue-100/80 mb-8 text-sm leading-relaxed">Join the central KIIT community. Get your society events published globally.</p>
-                        <button class="w-full bg-white text-blue-600 font-bold py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all" onclick="window.location.href='auth.html'">
-                            Register Society
-                        </button>
+                        <p class="text-blue-100/80 mb-8 text-sm leading-relaxed">Subscribe for more updates. Get your society events published globally.</p>
+                        <a href="subscribe.html" class="block w-full">
+                            <button class="w-full bg-white text-blue-600 font-bold py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+                                Subscribe Now
+                            </button>
+                        </a>
                     </div>
                     <div class="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
                 </div>
