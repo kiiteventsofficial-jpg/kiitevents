@@ -1,0 +1,1338 @@
+﻿/* Inherit Organizer Styles as Base */
+@import url('organizer.css');
+
+/* --- ADMIN SPECIFIC OVERRIDES --- */
+
+body {
+    background: radial-gradient(circle at top center, #1e1b4b, #0f172a, #000000);
+}
+
+.admin-dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+    background: radial-gradient(circle at top center, #1e1b4b, #0f172a, #000000);
+}
+
+.admin-sidebar {
+    width: 280px;
+    background: #0f172a;
+    /* Deep dark navy from screenshot */
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 9999;
+}
+
+.admin-sidebar .logo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 20px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.admin-sidebar .logo:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-sidebar .logo .logo-text {
+    color: white;
+    font-size: 1.4rem;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    margin: 0;
+}
+
+.sidebar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.sidebar-chevron {
+    color: #4b5563;
+    font-size: 20px;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
+}
+
+.sidebar-chevron:hover {
+    color: white;
+    transform: scale(1.1);
+}
+
+.menu-toggle-btn {
+    background: #3b82f6;
+    /* Bright blue from screenshot */
+    border: none;
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transition: all 0.2s ease;
+}
+
+.menu-toggle-btn:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.admin-sidebar .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    background: none;
+    border: none;
+    width: 100%;
+    font-family: inherit;
+    text-align: left;
+    font-size: 1rem;
+    outline: none;
+}
+
+.admin-sidebar .nav-item:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.admin-sidebar .nav-item.active {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.03));
+    color: #818cf8;
+    /* Bright indigo from screenshot */
+    border-left-color: #6366f1;
+    box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.08);
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    color: #f87171;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: auto;
+    border: none;
+    background: none;
+    width: 100%;
+    font-family: inherit;
+    text-align: left;
+    font-size: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.logout-btn:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+}
+
+.admin-sidebar .nav-item .material-icons-round {
+    font-size: 22px;
+}
+
+.admin-sidebar .nav-item.active .material-icons-round {
+    color: #818cf8;
+}
+
+.admin-avatar {
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.admin-badge {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    letter-spacing: 1px;
+}
+
+/* --- DATA TABLES --- */
+.table-container {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    margin-top: 1.5rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+}
+
+.data-table th {
+    background: rgba(15, 23, 42, 0.6);
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.data-table td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.data-table tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* --- ACTION BUTTONS IN TABLE --- */
+.action-btn-sm {
+    padding: 6px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: #94a3b8;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn-sm:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.action-btn-sm.delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.action-btn-sm.block:hover {
+    background: rgba(234, 179, 8, 0.2);
+    color: #facc15;
+}
+
+.action-btn-sm.approve:hover {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+/* --- DASHBOARD GRID --- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+@media (max-width: 900px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.card {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 1.5rem;
+    height: 100%;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    color: white;
+    margin: 0 0 1rem 0;
+    font-weight: 600;
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.log-item {
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 2px solid #6366f1;
+}
+
+.log-item .time {
+    display: block;
+    font-size: 0.7rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.quick-actions .action-buttons {
+    display: grid;
+    gap: 1rem;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.action-btn span {
+    color: #60a5fa;
+}
+
+/* --- SETTINGS TOGGLES --- */
+.settings-card {
+    background: rgba(30, 41, 59, 0.4);
+    border-radius: 16px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.setting-label {
+    display: block;
+    color: white;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.setting-desc {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+/* Switch Toggle */
+.switch-toggle {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+}
+
+.switch-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #3b82f6;
+}
+
+input:checked+.slider:before {
+    transform: translateX(24px);
+}
+
+/* --- SEARCH BAR --- */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50px;
+    padding: 8px 16px;
+    width: 300px;
+}
+
+.search-bar input {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0 0 0 8px;
+    height: auto;
+}
+
+.search-bar input:focus {
+    box-shadow: none;
+    background: transparent;
+}
+
+.search-bar span {
+    color: #64748b;
+}
+
+/* --- TABS --- */
+.tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: white;
+}
+
+.tab-btn.active {
+    color: #60a5fa;
+    border-bottom-color: #60a5fa;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+/* --- SIDEBAR TOGGLE & COLLAPSED STATE --- */
+
+.sidebar-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    /* Push to right */
+}
+
+.sidebar-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* Collapsed Sidebar */
+.admin-sidebar.collapsed {
+    width: 80px;
+}
+
+.admin-sidebar.collapsed .logo-text,
+.admin-sidebar.collapsed .nav-text,
+.admin-sidebar.collapsed .logout-text {
+    display: none;
+}
+
+.admin-sidebar.collapsed .logo {
+    justify-content: center;
+    padding: 1.5rem 0.5rem;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.admin-sidebar.collapsed .sidebar-toggle-btn {
+    margin: 0;
+    transform: rotate(180deg);
+}
+
+.admin-sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+.admin-sidebar.collapsed .nav-item span.material-icons-round {
+    margin: 0;
+    font-size: 24px;
+}
+
+.admin-sidebar.collapsed .logout-btn {
+    justify-content: center;
+}
+
+.admin-sidebar.collapsed .logout-btn span {
+    margin: 0;
+}
+
+/* --- ADD ADMIN MODAL STYLES --- */
+.modal-section {
+    margin-bottom: 25px;
+}
+
+.modal-subtitle {
+    color: #e2e8f0;
+    font-size: 1rem;
+    margin-bottom: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 8px;
+}
+
+.input-label {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 12px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.modal-input:focus {
+    border-color: #6366f1;
+    background: rgba(15, 23, 42, 0.8);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* Permission Grid & Cards */
+.permissions-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.perm-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    transition: background 0.2s;
+}
+
+.perm-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.perm-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px 0;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.checkbox-label:hover {
+    color: white;
+}
+
+.checkbox-label input[type="checkbox"] {
+    accent-color: #6366f1;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Credentials Box */
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 1px solid #6366f1;
+    color: #6366f1;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 42px;
+}
+
+.btn-secondary:hover {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.crypto-note {
+    font-size: 0.75rem;
+    color: #a5b4fc;
+    margin-top: 10px;
+    opacity: 0.8;
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+    .row.form-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    .permissions-grid-container {
+        grid-template-columns: 1fr;
+    }
+
+    .password-wrapper {
+        flex-wrap: wrap;
+    }
+
+    .password-wrapper input {
+        width: 100%;
+    }
+}
+
+/* --- FIX: MOBILE DASHBOARD LAYOUT (MANDATORY) --- */
+@media (max-width: 768px) {
+
+    /* 1. Sidebar -> Mobile Overlay (MOST IMPORTANT) */
+    .admin-sidebar {
+        position: fixed !important;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        width: 260px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 10000;
+        background: #0f172a;
+        /* Ensure background is solid */
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .admin-sidebar.active {
+        /* Using .active to match existing JS toggle logic */
+        transform: translateX(0);
+    }
+
+    /* Sidebar Overlay */
+    .sidebar-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 9998;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+
+    .admin-sidebar.active~.sidebar-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* 2. Main Dashboard -> Full Width on Mobile */
+    .main-content {
+        /* Mapped from .admin-main */
+        margin-left: 0 !important;
+        padding: 80px 16px 20px 16px;
+        /* Top padding for header */
+        width: 100%;
+        min-height: 100vh;
+    }
+
+    /* 3. Header / Hamburger -> Clean & Non-Overlapping */
+    .top-bar {
+        /* Mapped from .admin-header */
+        height: auto;
+        min-height: 56px;
+        padding: 0;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        gap: 12px;
+    }
+
+    /* Ensure Hamburger is visible and positioned correctly */
+    .mobile-sidebar-toggle {
+        display: flex !important;
+        top: 20px;
+        right: 16px;
+        z-index: 9990;
+        /* Below sidebar, above content */
+    }
+
+    .top-bar h2 {
+        font-size: 1.25rem;
+        max-width: 80%;
+        /* Prevent overlap with hamburger */
+    }
+
+    .user-profile {
+        display: none;
+        /* Hide profile on mobile header to save space, or make compact */
+    }
+
+    /* 4. Dashboard Cards -> Mobile Friendly */
+    .dashboard-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        /* Stack vertically */
+        gap: 12px;
+    }
+
+    .card,
+    .stat-card {
+        /* Mapped from .dashboard-card */
+        padding: 16px;
+        border-radius: 14px;
+        width: 100%;
+    }
+
+    .card h3,
+    .stat-card h3 {
+        font-size: 14px;
+    }
+
+    .stat-number {
+        /* Mapped from .value */
+        font-size: 26px;
+    }
+
+    /* 5. Tables (User Management) -> Scroll Safe */
+    .table-container {
+        /* Mapped from .table-wrapper */
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table {
+        min-width: 600px;
+    }
+
+    /* 6. Forms & Modals */
+    .modal {
+        padding: 0 !important;
+        align-items: flex-start !important;
+        /* Start from top */
+    }
+
+    .glass-form {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100vh;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        padding: 16px !important;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .section-title {
+        margin-top: 40px;
+        /* Space for close button */
+        font-size: 1.5rem !important;
+    }
+
+    /* Adjust Close details */
+    .glass-form>button[onclick^="close"] {
+        top: 10px !important;
+        right: 10px !important;
+        z-index: 20;
+        background: rgba(0, 0, 0, 0.5) !important;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Form Inputs Mobile Comfort */
+    input,
+    select,
+    textarea,
+    .modal-input {
+        font-size: 16px !important;
+        /* Prevent iOS zoom */
+        min-height: 48px !important;
+    }
+
+    .row.form-row {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px !important;
+    }
+
+    /* Ensure inputs in rows take full width */
+    .row.form-row .form-group,
+    .row.form-row input,
+    .row.form-row select {
+        width: 100% !important;
+    }
+
+    /* Fix 5: Permission Grid */
+    .permissions-grid-container {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+    }
+
+    .perm-card {
+        padding: 16px !important;
+    }
+
+    /* Fix 6: Floating Menu & Close Button */
+    .mobile-sidebar-toggle {
+        top: 14px;
+        right: 14px;
+        z-index: 10002 !important;
+    }
+
+    /* Modal Close Button Position */
+    .modal button[onclick^="close"] {
+        top: 12px !important;
+        right: 12px !important;
+        background: rgba(0, 0, 0, 0.6) !important;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+
+    /* Fix 7: Prevent Horizontal Scroll */
+    body {
+        overflow-x: hidden;
+        width: 100%;
+    }
+}
+
+/* --- NEW ADD ADMIN MODAL POLISH --- */
+
+/* 1. Modal Container */
+.glass-form-polished {
+    background: rgba(15, 23, 42, 0.95);
+    /* Darker, solid-ish background */
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px !important;
+    /* Softer styling */
+    padding: 32px !important;
+    /* Increased breathing room */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    max-width: 680px !important;
+}
+
+/* 2. Header Hierarchy */
+.modal-header-improved {
+    margin-bottom: 28px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 20px;
+}
+
+.modal-title-large {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+}
+
+.modal-desc-soft {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin: 0;
+    opacity: 0.9;
+}
+
+/* 3. Inputs & Form Groups */
+.form-group-spaced {
+    margin-bottom: 20px;
+}
+
+.input-label-spaced {
+    display: block;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.modal-input-soft {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Softer border */
+    border-radius: 10px;
+    padding: 14px 16px;
+    /* Taller inputs */
+    color: white;
+    font-size: 1rem;
+    width: 100%;
+    transition: all 0.2s ease;
+}
+
+.modal-input-soft:focus {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    outline: none;
+}
+
+/* 4. Role Selection Cards */
+.role-selection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.role-option-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.role-option-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+/* Selected States using :has (Progressive enhancement, fallback is radio accent) */
+.role-option-card:has(input:checked) {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+}
+
+.role-option-card.super-option:has(input:checked) {
+    background: rgba(236, 72, 153, 0.08);
+    border-color: #ec4899;
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.1);
+}
+
+.role-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.role-title {
+    font-weight: 600;
+    color: white;
+    font-size: 0.95rem;
+}
+
+.role-desc {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+/* 5. Permission Cards Refined */
+.perm-card-polished {
+    background: rgba(15, 23, 42, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 18px;
+    /* More padding */
+    height: 100%;
+}
+
+.perm-header-polished {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* 6. Credentials Section */
+.credentials-section-polished {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 10px;
+}
+
+.gen-password-input {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: #818cf8 !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+/* 7. CTA Button */
+.cta-btn-large {
+    width: 100%;
+    padding: 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-top: 32px;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.cta-btn-large:hover {
+    background: linear-gradient(135deg, #4338ca, #4f46e5);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* --- MOBILE REFINEMENTS FOR ADD ADMIN MODAL (MANDATORY FIXES) --- */
+@media (max-width: 768px) {
+
+    /* 1. Full Screen Sheet Layout */
+    #addAdminModal {
+        padding: 0 !important;
+        align-items: flex-end !important;
+        background: rgba(0, 0, 0, 0.95) !important;
+        overflow-y: hidden !important;
+        /* Handle scroll in inner div */
+    }
+
+    #addAdminModal .glass-form-polished {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        padding: 20px 20px 80px 20px !important;
+        overflow-y: auto !important;
+        display: flex;
+        flex-direction: column;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 2. Header Hierarchy & Close Button (X) */
+    #addAdminModal .glass-form-polished>button[onclick^="close"] {
+        top: 110px !important;
+        right: 20px !important;
+        width: 44px !important;
+        height: 44px !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        z-index: 50 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: absolute !important;
+    }
+
+    #addAdminModal .glass-form-polished>button[onclick^="close"] span {
+        font-size: 26px !important;
+        color: white !important;
+    }
+
+    .modal-header-improved {
+        margin-top: 40px;
+        /* Space for close button */
+        padding-bottom: 24px;
+        margin-bottom: 24px;
+    }
+
+    .modal-title-large {
+        font-size: 1.75rem !important;
+    }
+
+    .modal-desc-soft {
+        font-size: 0.9rem !important;
+        opacity: 0.7;
+    }
+
+    /* 3. Role Cards - Stack Vertical */
+    .role-selection-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    .role-option-card {
+        padding: 16px !important;
+        border-radius: 12px !important;
+        min-height: auto !important;
+        width: 100% !important;
+    }
+
+    /* 4. Permissions - Reducing visual noise */
+    .permissions-grid-container {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    .perm-card-polished {
+        padding: 16px !important;
+    }
+
+    .perm-header-polished {
+        margin-bottom: 10px !important;
+        font-size: 0.95rem !important;
+    }
+
+    .checkbox-label {
+        font-size: 0.95rem !important;
+        padding: 8px 0 !important;
+        /* Better touch target */
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 20px !important;
+        height: 20px !important;
+    }
+
+    /* 5. Inputs & Spacing */
+    .form-group-spaced {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    .form-group {
+        width: 100% !important;
+    }
+
+    .modal-input-soft {
+        font-size: 16px !important;
+        padding: 14px !important;
+    }
+
+    /* 6. Credentials & CTA */
+    .credentials-section-polished {
+        padding: 24px 20px !important;
+        margin-bottom: 20px;
+    }
+
+    .password-wrapper {
+        display: flex !important;
+        flex-flow: row wrap !important;
+        gap: 12px !important;
+    }
+
+    .gen-password-input {
+        width: 100% !important;
+        order: 1;
+        margin-bottom: 4px;
+    }
+
+    .btn-secondary {
+        flex: 2 !important;
+        order: 2;
+        height: 48px !important;
+    }
+
+    .password-wrapper .icon-btn {
+        flex: 1 !important;
+        order: 3;
+        height: 48px !important;
+        border-radius: 8px !important;
+    }
+
+    .cta-btn-large {
+        padding: 18px !important;
+        font-size: 1.1rem !important;
+        margin-bottom: 80px !important;
+        /* Ensure visibility above potential bottom nav or just safe area */
+        position: relative;
+        z-index: 10;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+}
+
+
+
+/* PERMANENT SAFETY PATCH — ensure sidebar always receives pointer events */
+.admin-sidebar,
+.sidebar,
+.organizer-sidebar,
+#sidebar,
+.left-nav {
+    position: relative;
+    /* keep layout same; use fixed if your UI needs it */
+    z-index: 2147483647 !important;
+    /* make it top-most */
+    pointer-events: auto !important;
+}
+
+/* Defensive: stop full-screen overlays from stealing clicks.
+   This targets common overlay/backdrop classes — expand list if needed. */
+.overlay,
+.backdrop,
+.modal-backdrop,
+.page-overlay,
+.sidebar-overlay,
+.fullscreen-overlay,
+.site-backdrop,
+.global-backdrop {
+    pointer-events: none !important;
+    z-index: 900 !important;
+}
+
+/* If you use a canvas for visuals, ensure it's under the UI */
+#global-3d-canvas,
+canvas {
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+/* Ensure sidebar buttons and nav items are responsive */
+.admin-sidebar button,
+.admin-sidebar .nav-item,
+.admin-sidebar .logout-btn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Ensure all interactive elements in sidebar respond to clicks */
+.admin-sidebar button:hover,
+.admin-sidebar .nav-item:hover {
+    pointer-events: auto !important;
+}
+/* Modal Navigation Interactivity Fix */
+.modal { pointer-events: none !important; }
+.modal .glass-form, .modal .glass-form-polished, .modal .event-modal-content { pointer-events: auto !important; }

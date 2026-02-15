@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>College Events Hub | Subscribe</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#257bf4",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101722",
+                        "surface-dark": "#1e293b",
+                        "surface-dark-light": "#334155"
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Specific Styles for Subscribe Page to match 'Views.Subscribe' but standalone */
+        .subscribe-view {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background-color: #0B0B0B;
+            overflow: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 10s infinite ease-in-out;
+            z-index: 0;
+        }
+
+        .blob-1 {
+            top: -10%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: #2563eb;
+        }
+
+        .blob-2 {
+            bottom: -10%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: #06b6d4;
+            animation-delay: 2s;
+        }
+
+        .blob-3 {
+            top: 40%;
+            left: 40%;
+            width: 300px;
+            height: 300px;
+            background-color: #7c3aed;
+            animation-delay: 4s;
+            opacity: 0.2;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(20px, -20px);
+            }
+        }
+
+        .auth-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            color: white;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(37, 99, 244, 0.1);
+            color: #257bf4;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 28px;
+            border: 1px solid rgba(37, 99, 244, 0.2);
+        }
+
+        .auth-card h2 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            margin-left: 4px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 15px;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #257bf4;
+            box-shadow: 0 0 0 4px rgba(37, 99, 244, 0.1);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .subscribe-btn {
+            width: 100%;
+            background: #257bf4;
+            color: white;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .subscribe-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px -10px rgba(37, 99, 244, 0.5);
+        }
+
+        .subscribe-btn:active {
+            transform: translateY(0);
+        }
+
+        .back-home-btn {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+            z-index: 20;
+        }
+
+        .back-home-btn:hover {
+            color: white;
+        }
+
+        /* Checkbox Style */
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            text-align: left;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #257bf4;
+            cursor: pointer;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            color: #cbd5e1;
+            user-select: none;
+        }
+
+        .disclaimer {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body class="bg-[#0B0B0B]">
+
+    <div class="subscribe-view">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+
+        <a href="index.html" class="back-home-btn">
+            <span class="material-icons-round">arrow_back</span>
+            Back to Home
+        </a>
+
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="header-icon">
+                    <span class="material-icons-round">mark_email_unread</span>
+                </div>
+                <h2>Stay in the Loop</h2>
+                <p class="subtitle">Get the latest campus events, society news, and exclusive updates delivered to your
+                    inbox.</p>
+
+                <form id="subscribeForm">
+                    <div class="input-group">
+                        <label>Email Address</label>
+                        <input type="email" id="email" placeholder="rollno@kiit.ac.in" required />
+                    </div>
+
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="weeklyUpdates" checked>
+                        <label for="weeklyUpdates" class="checkbox-label">Send me weekly campus highlights</label>
+                    </div>
+
+                    <button type="submit" class="subscribe-btn" id="subBtn">
+                        Subscribe Now
+                        <span class="material-icons-round" style="font-size: 18px;">arrow_forward</span>
+                    </button>
+                </form>
+
+                <p class="disclaimer">By subscribing, you agree to receive weekly newsletters. No spam, ever.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Parse URL Query Param
+            const urlParams = new URLSearchParams(window.location.search);
+            const emailParam = urlParams.get('email');
+
+            if (emailParam) {
+                document.getElementById('email').value = emailParam;
+            }
+
+            // 2. Form Submission Logic
+            const form = document.getElementById('subscribeForm');
+            const btn = document.getElementById('subBtn');
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const email = document.getElementById('email').value.trim();
+                const weekly = document.getElementById('weeklyUpdates').checked;
+
+                if (!email) {
+                    alert('Please enter a valid email.');
+                    return;
+                }
+
+                // Simple Email Regex Validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+
+                // UI Loading State
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="material-icons-round animate-spin">sync</span> Subscribing...';
+                btn.style.opacity = '0.8';
+                btn.disabled = true;
+
+                setTimeout(() => {
+                    // 3. Store in localStorage
+                    let subscribers = JSON.parse(localStorage.getItem('subscribers')) || [];
+
+                    // Check for duplicates
+                    const exists = subscribers.find(s => s.email === email);
+
+                    if (!exists) {
+                        subscribers.push({
+                            email: email,
+                            preferences: { weekly: weekly },
+                            subscribedAt: new Date().toISOString(),
+                            source: "homepage", // or "subscribe_page"
+                            active: true
+                        });
+                        localStorage.setItem('subscribers', JSON.stringify(subscribers));
+
+                        btn.innerHTML = '<span class="material-icons-round">check_circle</span> Subscribed!';
+                        btn.style.background = 'linear-gradient(135deg, #10b981, #059669)'; // Success Green
+
+                        // Success Toast/Alert
+                        setTimeout(() => {
+                            // alert("You’re subscribed! 🎉 Weekly updates will be sent.");
+                            // Optional: Reset form or redirect
+                            document.querySelector('.auth-card').innerHTML = `
+                                <div class="header-icon" style="color:#10b981; border-color:rgba(16,185,129,0.2); background:rgba(16,185,129,0.1);">
+                                    <span class="material-icons-round">check_circle</span>
+                                </div>
+                                <h2>You're Subscribed! 🎉</h2>
+                                <p class="subtitle" style="margin-bottom:10px;">Weekly updates will be sent to <strong>${email}</strong>.</p>
+                                <button onclick="window.location.href='index.html'" class="subscribe-btn" style="background:#1e293b; border:1px solid rgba(255,255,255,0.1);">Back to Home</button>
+                             `;
+                        }, 800);
+
+                    } else {
+                        btn.innerHTML = 'Already Subscribed';
+                        btn.style.background = '#f59e0b'; // Warning Orange
+                        setTimeout(() => {
+                            alert("You are already subscribed with this email!");
+                            btn.innerHTML = originalText;
+                            btn.style.background = '#257bf4';
+                            btn.disabled = false;
+                            btn.style.opacity = '1';
+                        }, 1000);
+                    }
+
+                }, 1000); // Fake delay for smooth UX
+            });
+        });
+    </script>
+</body>
+
+</html>

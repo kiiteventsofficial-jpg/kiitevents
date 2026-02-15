@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Dashboard | KIIT Events</title>
+    <link rel="stylesheet" href="organizer.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="student-dashboard-wrapper">
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-sidebar-toggle" onclick="toggleSidebar()">
+            <span class="material-icons-round">menu</span>
+        </button>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="material-icons-round">campaign</span>
+                <h2>Organizer Panel</h2>
+            </div>
+            <nav>
+                <a href="javascript:void(0)" class="nav-item active" onclick="showSection('overview')">
+                    <span class="material-icons-round">dashboard</span> Overview
+                </a>
+                <a href="javascript:void(0)" class="nav-item" onclick="showSection('create')">
+                    <span class="material-icons-round">add_circle</span> Create Event
+                </a>
+                <a href="javascript:void(0)" class="nav-item" onclick="showSection('my-events')">
+                    <span class="material-icons-round">event_note</span> My Events
+                </a>
+                <!-- Added Back to Home Button -->
+                <a href="javascript:void(0)" class="nav-item" onclick="goBack()"
+                    style="margin-top: auto; margin-bottom: 0.5rem; color: #9ca3af;">
+                    <span class="material-icons-round">arrow_back</span> Go Back
+                </a>
+                <a href="index.html" class="nav-item" style="margin-bottom: 1rem;">
+                    <span class="material-icons-round">home</span> Back to Home
+                </a>
+            </nav>
+            <a href="javascript:void(0)" class="logout-btn" onclick="logout()">
+                <span class="material-icons-round">logout</span> Logout
+            </a>
+        </aside>
+
+        <!-- Mobile Overlay -->
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h2 id="pageTitle">Organizer Dashboard</h2>
+                <div class="user-profile">
+                    <div class="user-avatar" id="orgInitial">O</div>
+                    <span id="orgName">Society Organizer</span>
+                </div>
+            </header>
+
+            <!-- OVERVIEW SECTION -->
+            <section id="overviewSection" class="content-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Events</h3>
+                        <p class="stat-number" id="totalEventsCount">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Active Events</h3>
+                        <p class="stat-number" id="activeEventsCount">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Next Event</h3>
+                        <p class="stat-number text-sm" style="font-size: 1.2rem; margin-top: 10px;"
+                            id="nextOrgEventDate">None</p>
+                    </div>
+                </div>
+
+                <h3 class="section-title" style="margin-top: 2rem;">Recent Activity</h3>
+                <div class="events-grid" id="recentActivity">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
+            <!-- CREATE EVENT SECTION -->
+            <section id="createSection" class="content-section" style="display: none;">
+                <div class="create-event-section">
+                    <h3 class="section-title">New Event Details</h3>
+                    <form id="eventForm" class="event-form">
+                        <input type="text" id="eventName" placeholder="Event Name" required>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; color:#94a3b8; margin-bottom:8px; font-size:0.9rem;">Event
+                                Description</label>
+                            <div id="eventDesc"
+                                style="min-height: 120px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; color: white; overflow-y: auto;"
+                                contenteditable="true"></div>
+                        </div>
+
+                        <div class="row form-row">
+                            <input type="date" id="eventDate" required>
+                            <input type="time" id="eventTime" required>
+                        </div>
+
+                        <div class="row form-row">
+                            <select id="eventType">
+                                <option value="free">Free</option>
+                                <option value="paid">Paid</option>
+                            </select>
+                            <input type="number" id="eventPrice" placeholder="Price (₹)" disabled>
+                        </div>
+
+                        <input type="text" id="eventSociety" placeholder="Society Name" required style="display:none;">
+                        <!-- Hidden, using organizers array now -->
+
+                        <!-- Organizers Section -->
+                        <div style="margin-bottom: 20px;">
+                            <label
+                                style="display:block; color:#94a3b8; margin-bottom:8px; font-size:0.9rem;">Organizers</label>
+                            <div id="organizerContainer">
+                                <!-- Dynamic Rows -->
+                            </div>
+                            <button type="button" id="addOrganizerBtn"
+                                style="color:var(--primary); font-size:0.9rem; margin-top:8px; display:flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer;">
+                                <span class="material-icons-round" style="font-size:1.1rem;">add</span> Add another
+                                organizer
+                            </button>
+                        </div>
+
+                        <input type="text" id="eventVenue" placeholder="Venue / Online Link">
+
+                        <div class="row form-row">
+                            <select id="eventCategory">
+                                <option>Technical</option>
+                                <option>Cultural</option>
+                                <option>Sports</option>
+                                <option>Social</option>
+                            </select>
+                            <input type="number" id="maxParticipants" placeholder="Max Participants">
+                        </div>
+
+                        <!-- Contacts Section -->
+                        <div style="margin-bottom: 20px;">
+                            <label
+                                style="display:block; color:#94a3b8; margin-bottom:8px; font-size:0.9rem;">Contacts</label>
+                            <div id="contactContainer">
+                                <!-- Dynamic Rows -->
+                            </div>
+                            <button type="button" id="addContactBtn"
+                                style="color:var(--primary); font-size:0.9rem; margin-top:8px; display:flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer;">
+                                <span class="material-icons-round" style="font-size:1.1rem;">add</span> Add another
+                                contact
+                            </button>
+                        </div>
+
+                        <input type="url" id="registrationLink" placeholder="Registration Link (optional)">
+
+                        <!-- IMAGE UPLOAD -->
+                        <div class="image-upload">
+                            <label>Event Banner</label>
+                            <input type="file" id="eventImage" accept="image/*">
+                            <img id="imagePreview" hidden>
+                        </div>
+
+                        <button type="submit" class="publish-btn">Publish Event</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- MY EVENTS SECTION -->
+            <section id="myEventsSection" class="content-section" style="display: none;">
+                <h3 class="section-title">Manage Your Events</h3>
+                <div id="myEvents" class="events-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+    <script src="storage.js"></script>
+    <script src="organizer.js"></script>
+</body>
+
+</html>
