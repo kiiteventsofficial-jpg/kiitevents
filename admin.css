@@ -1,4 +1,4 @@
-﻿/* Inherit Organizer Styles as Base */
+/* Inherit Organizer Styles as Base */
 @import url('organizer.css');
 
 /* --- ADMIN SPECIFIC OVERRIDES --- */
@@ -1333,6 +1333,15 @@ canvas {
 .admin-sidebar .nav-item:hover {
     pointer-events: auto !important;
 }
+
 /* Modal Navigation Interactivity Fix */
-.modal { pointer-events: none !important; }
-.modal .glass-form, .modal .glass-form-polished, .modal .event-modal-content { pointer-events: auto !important; }
+.modal {
+    pointer-events: none !important;
+    z-index: 2147483647 !important;
+}
+
+.modal .glass-form,
+.modal .glass-form-polished,
+.modal .event-modal-content {
+    pointer-events: auto !important;
+}
