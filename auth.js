@@ -270,7 +270,7 @@ const firebaseConfig = {
     authDomain: "database-d2671.firebaseapp.com",
     databaseURL: "https://database-d2671-default-rtdb.firebaseio.com",
     projectId: "database-d2671",
-    storageBucket: "database-d2671.appspot.com",
+    storageBucket: "database-d2671.firebasestorage.app",
     messagingSenderId: "556803189291",
     appId: "1:556803189291:web:03b042e8f6005e9ade986e",
     measurementId: "G-LDCH4W4YQ0"
