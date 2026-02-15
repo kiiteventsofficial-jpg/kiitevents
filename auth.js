@@ -111,11 +111,7 @@ document.getElementById("authForm").addEventListener("submit", e => {
             }
         }
     } else if (selectedRole === 'Student') {
-        // STRICT STUDENT REGEX
-        if (!STUDENT_EMAIL_REGEX.test(email)) {
-            alert("Access Restricted: Please use your official KIIT student email (e.g. rollno@kiit.ac.in).");
-            return;
-        }
+        // Allow any email – domain restriction removed
     }
 
     // --- STEP 2: CREDENTIAL VALIDATION ---
@@ -388,24 +384,11 @@ window.completeGoogleLogin = async function (firebaseUser) {
         return;
     }
 
-    // 3. Check Student (Regex)
-    if (STUDENT_EMAIL_REGEX.test(email)) {
-        role = 'Student';
-        finalizeLogin({
-            name, email, role, type: 'REGULAR', permissions: [], joined: new Date().toISOString(), provider, photoURL: firebaseUser.photoURL
-        });
-    }
-    // 4. Deny Access
-    else {
-        if (KIIT_EMAIL_REGEX.test(email)) {
-            alert("Access Denied: Google Login restricted to Students and Admins.");
-        } else {
-            alert("Access Denied: Only Kiit Emails allowed for students. Admins must be registered in the system.");
-        }
-
-        const googleBtn = document.querySelector('.google-btn');
-        if (googleBtn) googleBtn.innerHTML = `<img src="assets/google.svg" alt="Google"> Sign in with Google`;
-    }
+    // 3. Default to Student for any email (after admin checks)
+    role = 'Student';
+    finalizeLogin({
+        name, email, role, type: 'REGULAR', permissions: [], joined: new Date().toISOString(), provider, photoURL: firebaseUser.photoURL
+    });
 }
 
 function finalizeLogin(appUser) {
