@@ -1819,3 +1819,62 @@ button {
     max-height: 200px;
     object-fit: cover;
 }
+
+/* Universal Back Button Styling */
+.back-button {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    z-index: 9999;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.back-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* --- Responsive Filter Controls --- */
+.filter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .filter-controls {
+        flex-direction: row;
+        align-items: center;
+        width: auto;
+    }
+}
+
+.filter-controls .relative.group {
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .filter-controls .relative.group {
+        width: auto;
+    }
+}
+
+.filter-controls select {
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .filter-controls select {
+        width: auto;
+    }
+}
