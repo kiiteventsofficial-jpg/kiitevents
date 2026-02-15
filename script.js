@@ -1458,7 +1458,7 @@ const Components = {
      data-society="${event.organizer}"
      data-saved="${isSaved}">
     <!-- Image Section with Gradient Overlay -->
-    <div class="relative h-56 overflow-hidden event-card-image-container">
+    <div class="relative h-48 overflow-hidden event-card-image-container">
         <img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out" src="${displayImage}" alt="${event.title}">
         
         <!-- Premium Date Badge (Floating) -->
@@ -1484,7 +1484,18 @@ const Components = {
 
     <!-- Content Section -->
     <div class="p-6 flex flex-col flex-grow relative">
-        <h3 class="text-xl font-bold text-white mb-3 group-hover:text-primary-light transition-colors leading-tight line-clamp-2 text-shadow-sm">${event.title}</h3>
+        <h3 class="text-xl font-bold text-white mb-1 group-hover:text-primary-light transition-colors leading-tight line-clamp-1 text-shadow-sm">${event.title}</h3>
+        
+        <!-- Society Name -->
+        <div class="flex items-center gap-1.5 text-primary-light text-[10px] font-bold uppercase tracking-wider mb-2">
+            <span class="material-icons-round text-xs">groups</span>
+            <span class="truncate">${event.organizer || 'Society'}</span>
+        </div>
+
+        <!-- Event Description (Added for Visibility) -->
+        <p class="text-slate-400 text-xs leading-relaxed line-clamp-2 mb-4 flex-grow">
+            ${event.description || 'Join us for this exciting event at KIIT! Click to view full details and registration info.'}
+        </p>
         
         <div class="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
             <div class="flex items-center gap-2 text-slate-400 text-xs font-medium">
