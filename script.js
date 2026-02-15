@@ -1451,7 +1451,7 @@ const Components = {
         const clickAction = `Router.push('/event/${event.id}')`;
 
         return `
-<div class="bg-card group relative rounded-2xl overflow-hidden flex flex-col h-full hover:shadow-[0_0_40px_rgba(37,99,235,0.2)] event-card border border-white/5 cursor-pointer transition-transform duration-200 hover:-translate-y-1"
+<div class="bg-card group relative rounded-2xl overflow-hidden flex flex-col hover:shadow-[0_0_40px_rgba(37,99,235,0.2)] event-card border border-white/5 cursor-pointer transition-transform duration-200 hover:-translate-y-1"
      onclick="${clickAction.replace(/"/g, '&quot;')}"
      data-category="${event.category}"
      data-price="${isFree ? 'free' : 'paid'}"
@@ -1493,7 +1493,7 @@ const Components = {
         </div>
 
         <!-- Event Description (Added for Visibility) -->
-        <p class="text-slate-400 text-xs leading-relaxed line-clamp-2 mb-4 flex-grow">
+        <p class="text-slate-400 text-xs leading-relaxed line-clamp-2 mb-4">
             ${event.description || 'Join us for this exciting event at KIIT! Click to view full details and registration info.'}
         </p>
         
