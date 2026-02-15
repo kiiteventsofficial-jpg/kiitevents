@@ -896,7 +896,8 @@ const State = {
             return null;
         }
     })(),
-    selectedFilters: ['Cultural', 'Technical', 'Sports', 'Fest', 'Workshop'] // Default all checked
+    selectedFilters: ['Cultural', 'Technical', 'Sports', 'Fest', 'Workshop'], // Default all checked
+    filters: { category: 'All', price: 'All', society: 'All' }
 };
 
 // Initialize Image Map (Async)
@@ -1850,6 +1851,59 @@ const Views = {
                     </select>
                     <span class="material-icons-round absolute right-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none text-sm">expand_more</span>
                  </div>
+
+                 <div class="relative group">
+                    <select class="appearance-none bg-white/5 border border-white/10 text-white py-2.5 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-white/10 transition-all text-sm font-semibold" onchange="window.toggleFilter(this.value, 'society')">
+                        <option value="All" class="bg-[#1a202c]">All Societies</option>
+                        <option value="Fed KIIT" class="bg-[#1a202c]">Fed KIIT</option>
+                        <option value="KIIT E-Cell" class="bg-[#1a202c]">KIIT E-Cell</option>
+                        <option value="USC KIIT" class="bg-[#1a202c]">USC KIIT</option>
+                        <option value="K-1000" class="bg-[#1a202c]">K-1000</option>
+                        <option value="IEEE CTSOC KIIT" class="bg-[#1a202c]">IEEE CTSOC KIIT</option>
+                        <option value="IoT Lab KIIT" class="bg-[#1a202c]">IoT Lab KIIT</option>
+                        <option value="CyberVault KIIT" class="bg-[#1a202c]">CyberVault KIIT</option>
+                        <option value="KITPD2S" class="bg-[#1a202c]">KITPD2S</option>
+                        <option value="AISOC KIIT" class="bg-[#1a202c]">AISOC KIIT</option>
+                        <option value="MLSA KIIT" class="bg-[#1a202c]">MLSA KIIT</option>
+                        <option value="Google Developer Group (GDG) KIIT" class="bg-[#1a202c]">Google Developer Group (GDG) KIIT</option>
+                        <option value="Coding Ninjas KIIT Chapter" class="bg-[#1a202c]">Coding Ninjas KIIT Chapter</option>
+                        <option value="GeeksforGeeks KIIT Chapter" class="bg-[#1a202c]">GeeksforGeeks KIIT Chapter</option>
+                        <option value="KIIT Model UN Society" class="bg-[#1a202c]">KIIT Model UN Society</option>
+                        <option value="Qutopia" class="bg-[#1a202c]">Qutopia</option>
+                        <option value="Korus" class="bg-[#1a202c]">Korus</option>
+                        <option value="Kalliope" class="bg-[#1a202c]">Kalliope</option>
+                        <option value="Kronicle" class="bg-[#1a202c]">Kronicle</option>
+                        <option value="Khwaab" class="bg-[#1a202c]">Khwaab</option>
+                        <option value="KIIT Automobile Society" class="bg-[#1a202c]">KIIT Automobile Society</option>
+                        <option value="Apogeio" class="bg-[#1a202c]">Apogeio</option>
+                        <option value="KIIT Robotics Society" class="bg-[#1a202c]">KIIT Robotics Society</option>
+                        <option value="Keurig" class="bg-[#1a202c]">Keurig</option>
+                        <option value="Kreative Eye" class="bg-[#1a202c]">Kreative Eye</option>
+                        <option value="Kartavya" class="bg-[#1a202c]">Kartavya</option>
+                        <option value="Kamakshi" class="bg-[#1a202c]">Kamakshi</option>
+                        <option value="KIIT International Students Society" class="bg-[#1a202c]">KIIT International Students Society</option>
+                        <option value="Khwahishein" class="bg-[#1a202c]">Khwahishein</option>
+                        <option value="KIIT Film Society" class="bg-[#1a202c]">KIIT Film Society</option>
+                        <option value="Kalakaar" class="bg-[#1a202c]">Kalakaar</option>
+                        <option value="Konnexions" class="bg-[#1a202c]">Konnexions</option>
+                        <option value="K-Konnect" class="bg-[#1a202c]">K-Konnect</option>
+                        <option value="KIIT Wordsmith" class="bg-[#1a202c]">KIIT Wordsmith</option>
+                        <option value="Kzarshion" class="bg-[#1a202c]">Kzarshion</option>
+                        <option value="Kraya Kuber" class="bg-[#1a202c]">Kraya Kuber</option>
+                        <option value="Kimaya" class="bg-[#1a202c]">Kimaya</option>
+                        <option value="Society for Civil Engineering" class="bg-[#1a202c]">Society for Civil Engineering</option>
+                        <option value="NCC" class="bg-[#1a202c]">NCC</option>
+                        <option value="NSS" class="bg-[#1a202c]">NSS</option>
+                        <option value="Youth Red Cross KIIT" class="bg-[#1a202c]">Youth Red Cross KIIT</option>
+                        <option value="TEDX-KU" class="bg-[#1a202c]">TEDX-KU</option>
+                        <option value="KIIT Animal & Environment Welfare Society" class="bg-[#1a202c]">KIIT Animal & Environment Welfare Society</option>
+                        <option value="KIIT Electrical Society" class="bg-[#1a202c]">KIIT Electrical Society</option>
+                        <option value="Enactus" class="bg-[#1a202c]">Enactus</option>
+                        <option value="Kraftovity" class="bg-[#1a202c]">Kraftovity</option>
+                        <option value="SPIC MACAY" class="bg-[#1a202c]">SPIC MACAY</option>
+                    </select>
+                    <span class="material-icons-round absolute right-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none text-sm">expand_more</span>
+                 </div>
             </div>
         </div>
     </div>
@@ -2524,6 +2578,12 @@ const App = {
         }
 
         App.updateNav();
+
+        // Universal Back Button Visibility Logic
+        const universalBackBtn = document.getElementById('universal-back-btn');
+        if (universalBackBtn) {
+            universalBackBtn.style.display = (State.route === '/') ? 'none' : 'flex';
+        }
     },
 
     updateNav: () => {
