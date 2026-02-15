@@ -1828,8 +1828,8 @@ const Views = {
                        placeholder="Search events..." type="text" oninput="window.updateHomeSearch(this.value)" value="${State.homeSearch || ''}">
             </div>
             
-            <div class="lg:col-span-3 flex flex-wrap items-center gap-4">
-                 <span class="text-slate-400 text-sm font-medium mr-2">Filters:</span>
+            <div class="lg:col-span-3 filter-controls">
+                 <span class="text-slate-400 text-sm font-medium">Filters:</span>
 
                  <div class="relative group">
                     <select class="appearance-none bg-white/5 border border-white/10 text-white py-2.5 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-white/10 transition-all text-sm font-semibold" onchange="window.toggleFilter(this.value, 'category')">
