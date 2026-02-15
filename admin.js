@@ -934,10 +934,13 @@ if (adminEventForm) {
         console.log("Form Submitted! Processing...");
 
         try {
-            // SAFE GET VALUE Helper
+            // SAFE GET VALUE Helper (already present)
             const getVal = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
 
-            // 1. Safe Access to Fields
+            // SAFE CHECKED HELPER (add this)
+            const getChecked = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
+
+            // 1. Basic fields
             const name = getVal('eventName');
             const descEl = document.getElementById('eventDescEditor');
             const desc = descEl ? descEl.innerHTML : '';
@@ -951,27 +954,34 @@ if (adminEventForm) {
                 return;
             }
 
-            // Collect Contacts
-            const contacts = [...document.querySelectorAll('.contact-row')].map(row => ({
-                name: row.querySelector('.contact-name').value,
-                info: row.querySelector('.contact-info').value
-            })).filter(c => c.name || c.info);
+            // 2. Mode & venue – use getVal for all
+            const mode = getVal('eventMode');
+            const venue = getVal('eventVenue');
+            const meetingLink = getVal('eventMeetingLink');
 
-            // Collect Organizers
+            // 3. Audience & capacity
+            const audience = getVal('eventAudience');
+            const maxParticipants = getVal('eventMaxParticipants') || 'Unlimited';
+
+            // 4. Price & category
+            const type = getVal('eventType');
+            const price = type === 'paid' ? getVal('eventPrice') : 'Free';
+            const category = getVal('eventCategory');
+
+            // 5. Toggles – use getChecked
+            const isFeatured = getChecked('toggleFeatured');
+            const allowShare = getChecked('toggleShare');
+
+            // 6. Contact rows
+            const contacts = [...document.querySelectorAll('.contact-row')].map(row => ({
+                name: row.querySelector('.contact-name')?.value,
+                info: row.querySelector('.contact-info')?.value
+            })).filter(c => c.name && c.info);
+
+            // 7. Collect Organizers
             const organizers = [...document.querySelectorAll('.organizer-input')]
                 .map(i => i.value)
                 .filter(Boolean);
-
-            const mode = document.getElementById('eventMode').value;
-            const venue = getVal('eventVenue');
-            const meetingLink = getVal('eventMeetingLink');
-            const audience = document.getElementById('eventAudience').value;
-            const maxParticipants = document.getElementById('eventMaxParticipants').value || 'Unlimited';
-            const type = document.getElementById('eventType').value;
-            const price = type === 'paid' ? document.getElementById('eventPrice').value : 'Free';
-            const category = document.getElementById('eventCategory').value;
-            const isFeatured = document.getElementById('toggleFeatured').checked;
-            const allowShare = document.getElementById('toggleShare').checked;
 
             // 2. Image Handling (Cloudinary)
             let finalImage = 'assets/logo_final.png';
