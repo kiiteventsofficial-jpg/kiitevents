@@ -1891,6 +1891,11 @@ const Views = {
                     </h3>
                     <div class="space-y-6">
                         ${MOCK_SOCIETIES.slice(0, 5).map(s => Components.SidebarSociety(s)).join('')}
+                        <div class="flex justify-end mt-2">
+                            <button onclick="Router.push('/societies')" class="text-slate-400/50 hover:text-primary transition-colors cursor-pointer group p-1" title="All Societies">
+                                <span class="material-icons-round text-xl group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
