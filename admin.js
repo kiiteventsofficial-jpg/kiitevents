@@ -574,7 +574,12 @@ window.editEvent = function (id) {
     const ev = events.find(e => e.id === id);
     if (!ev) return;
 
+    // Switch to section
+    showSection('events');
+
     editingEventId = id;
+    if (document.getElementById('editEventId')) document.getElementById('editEventId').value = id;
+
     showAddEventModal();
 
     // Update Modal Title & Button
@@ -606,9 +611,29 @@ window.editEvent = function (id) {
     setVal('eventRegLink', ev.link);
     setVal('eventRegDeadline', ev.regDeadline);
 
-    if (ev.contact) {
-        setVal('contactName', ev.contact.name);
-        setVal('contactInfo', ev.contact.info);
+    // Populate Contact (Multiple Rows Handling)
+    // Populate Contact (Multiple Rows Handling)
+    const contactContainer = document.getElementById('contactContainer');
+    if (contactContainer && ev.contacts && ev.contacts.length > 0) {
+        contactContainer.innerHTML = '';
+        ev.contacts.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'contact-row';
+            div.style.display = 'flex';
+            div.style.gap = '10px';
+            div.style.marginBottom = '10px';
+            div.innerHTML = `
+                <input type="text" placeholder="Name & Role" class="contact-name" value="${c.name || ''}">
+                <input type="text" placeholder="Email / Phone" class="contact-info" value="${c.info || ''}">
+            `;
+            contactContainer.appendChild(div);
+        });
+    } else if (contactContainer && ev.contact) {
+        // Fallback for single contact
+        const nameInput = contactContainer.querySelector('.contact-name');
+        const infoInput = contactContainer.querySelector('.contact-info');
+        if (nameInput) nameInput.value = ev.contact.name || '';
+        if (infoInput) infoInput.value = ev.contact.info || '';
     }
 
     setVal('eventOrganizer', ev.organizer);
@@ -657,6 +682,7 @@ window.closeAddEventModal = function () {
     // Reset State
     uploadedImages = [];
     editingEventId = null; // Important reset
+    if (document.getElementById('editEventId')) document.getElementById('editEventId').value = '';
     document.getElementById('imagePreviewContainer').innerHTML = '';
     document.querySelector('#publishBtn').textContent = 'Publish Event'; // Reset button text
     document.querySelector('#addEventModal h3').textContent = 'Create New Event'; // Reset title
@@ -1037,9 +1063,12 @@ if (adminEventForm) {
                 createdBy: currentUser.email
             };
 
-            if (editingEventId) {
+            // Read ID from hidden input (more robust than global variable)
+            const submissionId = document.getElementById('editEventId')?.value || editingEventId;
+
+            if (submissionId) {
                 // UPDATE EXISTING IN FIREBASE
-                await firebase.database().ref("events").child(editingEventId).update(eventData);
+                await firebase.database().ref("events").child(submissionId).update(eventData);
                 alert('Event Updated Successfully!');
                 logAction(`Updated event: ${name}`);
             } else {
@@ -1283,49 +1312,17 @@ window.closeAddAdminModal = function () {
 // Alias for Quick Action Button
 window.promptAddAdmin = window.showAddAdminModal;
 
-// --- PASSWORD GENERATION LOGIC ---
-window.generateStrongPassword = function () {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
-    const length = 16;
-    let password = "";
-    // Ensure at least one of each type
-    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ".charAt(Math.floor(Math.random() * 26));
-    password += "abcdefghijklmnopqrstuvwxyz".charAt(Math.floor(Math.random() * 26));
-    password += "0123456789".charAt(Math.floor(Math.random() * 10));
-    password += "!@#$%^&*()_+".charAt(Math.floor(Math.random() * 12));
+// Note: Password generation is now handled securely on the backend.
+// Super Admins no longer see or handle plain passwords.
 
-    for (let i = 4; i < length; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
 
-    // Shuffle
-    password = password.split('').sort(() => 0.5 - Math.random()).join('');
-
-    document.getElementById('generatedPassword').value = password;
-};
-
-window.copyPassword = function () {
-    const passField = document.getElementById('generatedPassword');
-    if (!passField.value) return;
-
-    passField.select();
-    navigator.clipboard.writeText(passField.value).then(() => {
-        const btn = document.querySelector('.icon-btn');
-        if (btn) {
-            const original = btn.innerHTML;
-            btn.innerHTML = '<span class="material-icons-round" style="color: #4ade80;">check</span>';
-            setTimeout(() => btn.innerHTML = original, 2000);
-        }
-    });
-};
-
-// Add Admin Form Submission (SECURE FLOW)
+// Add Admin Form Submission (SECURE BACKEND FLOW)
 const addAdminForm = document.getElementById('addAdminForm');
 if (addAdminForm) {
     addAdminForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // STRICT CHECK: Only specific emails can add admins
+        // 1. Authorization Check
         if (!SUPER_ADMINS.includes(currentUser.email)) {
             alert("Access Denied: Only Super Admins can add new admins.");
             return;
@@ -1333,148 +1330,49 @@ if (addAdminForm) {
 
         const name = document.getElementById('newAdminName').value.trim();
         const email = document.getElementById('newAdminEmail').value.trim().toLowerCase();
-        const password = document.getElementById('generatedPassword').value;
         const roleValue = document.querySelector('input[name="adminRole"]:checked').value;
 
-        // 1. Validate Input
-        if (!password) {
-            alert("Please generate a secure password before creating the admin.");
-            return;
-        }
-
-        // 2. Determine Permissions & Type
+        // 2. Permissions Logic
         let permissions = [];
-        let type = 'LIMITED';
-
         if (roleValue === 'Super Admin') {
-            type = 'SUPERUSER';
             permissions = ['ALL'];
         } else {
             const checkboxes = document.querySelectorAll('#addAdminForm input[type="checkbox"]:checked');
             permissions = Array.from(checkboxes).map(cb => cb.value);
         }
 
-        // 3. Create Admin Object
-        const newAdmin = {
-            name: name,
-            email: email,
-            password: password,
-            role: 'Admin',
-            type: type,
-            permissions: permissions,
-            status: 'Active',
-            joined: new Date().toISOString(),
-            createdBy: currentUser.email
-        };
-
-        const finishAddAdmin = async (admin, isLocal) => {
-            // --- SEND EMAIL USING EMAILJS ---
-            let emailSent = false;
-            try {
-                const templateParams = {
-                    to_email: admin.email,
-                    to_name: admin.name,
-                    password: admin.password,
-                    login_url: window.location.origin + '/auth.html',
-                    role: roleValue,
-                    from_name: 'KIIT Events Admin'
-                };
-
-                await emailjs.send(
-                    'service_2x99ioj',    // Live Service ID
-                    'template_kzsjqpf',   // Live Template ID
-                    templateParams
-                );
-                console.log('Email sent successfully');
-                emailSent = true;
-            } catch (emailError) {
-                console.error('Email sending failed:', emailError);
-                // Detail the error text if available for easier troubleshooting
-                admin.emailError = emailError.text || emailError.message || 'Unknown Network Error';
-            }
-
-            // --- SUCCESS FLOW ---
-            if (emailSent) {
-                alert(`SUCCESS: ${roleValue} Created ${isLocal ? '(Offline Mode)' : ''}!\n\nAn email with login credentials has been sent to ${admin.email}.`);
-            } else {
-                // Clipboard Fallback if Email Fails
-                const emailBody = `
-SUBJECT: Welcome to KIIT Events - Admin Access
-
-Hello ${admin.name},
-
-You have been granted Administrator access to the KIIT Events Platform.
-
-**Role:** ${roleValue}
-**Login URL:** ${window.location.origin}/auth.html
-
-**Your Credentials:**
-Email: ${admin.email}
-Access Key: ${admin.password}
-
-Please log in and change your password.
-                `.trim();
-
-                navigator.clipboard.writeText(emailBody).then(() => {
-                    alert(`Admin created ${isLocal ? '(Offline Mode)' : ''}, but email could not be sent.\n\nError: ${admin.emailError || 'Service Unreachable'}\n\nCredentials have been COPIED to your clipboard instead.`);
-                }).catch(() => {
-                    alert(`Admin created, but email failed (${admin.emailError || 'Service Unreachable'}). Please manually share these credentials:\n\nEmail: ${admin.email}\nPassword: ${admin.password}`);
-                });
-            }
-
-            closeAddAdminModal();
-            addAdminForm.reset();
-            document.getElementById('generatedPassword').value = "";
-            renderUsers();
-            renderStats();
-        };
-
-        // 4. Persistence with Fallback Logic
-        const useLocalStorageOnly = async () => {
-            if (users.find(u => u.email === email)) {
-                alert("User with this email already exists in local storage.");
-                return;
-            }
-            users.push(newAdmin);
-            await saveData();
-            logAction(`Created ${type} (LOCAL): ${email}`);
-            await finishAddAdmin(newAdmin, true);
-        };
-
-        // Execution Path
-        if (!navigator.onLine || !db) {
-            console.warn("Client is offline or DB not initialized. Falling back to local storage.");
-            await useLocalStorageOnly();
-            return;
-        }
+        // 3. UI Loading State
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="material-icons-round animate-spin">sync</span> Creating...';
 
         try {
-            const docRef = db.collection('admins').doc(email);
-            const doc = await docRef.get();
+            // 4. Call Secure Backend Firebase Function
+            const createAdminFn = firebase.functions().httpsCallable('createAdmin');
+            const result = await createAdminFn({
+                email,
+                name,
+                role: roleValue,
+                permissions
+            });
 
-            if (doc.exists) {
-                alert("User with this email already exists in Database.");
-                return;
+            if (result.data.success) {
+                alert(result.data.message);
+                closeAddAdminModal();
+                addAdminForm.reset();
+                if (typeof renderUsers === 'function') renderUsers();
+                if (typeof renderStats === 'function') renderStats();
+            } else {
+                throw new Error(result.data.message || 'CreationFailed');
             }
-
-            if (SUPER_ADMINS.includes(email)) {
-                alert("This email is reserved as a Master Super Admin.");
-                return;
-            }
-
-            // Write to Firestore
-            await docRef.set(newAdmin);
-
-            // Sync Locally
-            users.push(newAdmin);
-            saveData();
-            logAction(`Created ${type}: ${email}`);
-
-            await finishAddAdmin(newAdmin, false);
 
         } catch (error) {
-            console.error("Firestore Error, falling back:", error);
-            await useLocalStorageOnly();
+            console.error("Backend Admin Creation Error:", error);
+            alert(`Error: ${error.message || 'Operation failed. Please ensure you are online and Firebase is initialized.'}`);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
         }
     });
 }
