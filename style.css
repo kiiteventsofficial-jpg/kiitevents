@@ -312,14 +312,18 @@ button {
     }
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 1024px) {
-    .event-page-layout {
-        grid-template-columns: 1fr;
-    }
+/* Sidebar Sticky Logic */
+.event-sidebar {
+    position: sticky;
+    top: 6rem;
+    height: fit-content;
+    z-index: 10;
+}
 
+@media (max-width: 1024px) {
     .event-sidebar {
         position: static;
+        margin-top: 2rem;
     }
 }
 
@@ -1877,4 +1881,173 @@ button {
     .filter-controls select {
         width: auto;
     }
+}
+
+/* --- Event Card UI Fix --- */
+.event-card-description {
+    display: none !important;
+}
+
+/* --- Clean Modern Event Description UI (Image-Matched) --- */
+.description-card-container {
+    background-color: var(--card);
+    border-radius: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 2.5rem;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        border-color 0.3s ease;
+    position: relative;
+    cursor: default;
+}
+
+.description-card-container:hover {
+    transform: translateY(-4px);
+    box-shadow:
+        0 20px 25px -5px rgba(0, 0, 0, 0.2),
+        0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.description-card-body {
+    padding: 0;
+}
+
+@media (max-width: 1024px) {
+    .description-card-container {
+        padding: 1.5rem;
+        border-radius: 1rem;
+    }
+}
+
+/* Heading Hierarchy & Color Palette */
+.description-heading-main {
+    color: #38bdf8 !important;
+    /* Accent Color 1: Cyan */
+    font-size: 1.5rem !important;
+    font-weight: 800 !important;
+    margin-top: 2rem !important;
+    margin-bottom: 1.25rem !important;
+    letter-spacing: -0.02em !important;
+    display: block;
+}
+
+.description-heading-main:first-child {
+    margin-top: 0 !important;
+}
+
+.description-heading-sub {
+    color: #60a5fa !important;
+    /* Accent Color 2: Light Blue */
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    margin-top: 1.75rem !important;
+    margin-bottom: 0.75rem !important;
+    line-height: 1.4 !important;
+}
+
+.description-text {
+    color: #9ca3af !important;
+    /* Neutral Readable Color */
+    font-size: 1rem !important;
+    line-height: 1.7 !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Emphasized Phrases */
+.description-text strong,
+.description-list-item strong {
+    color: #ffffff !important;
+    /* Highlight Color */
+    font-weight: 700 !important;
+}
+
+.description-list-item {
+    color: #9ca3af !important;
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0.4rem !important;
+    padding-left: 1rem !important;
+    position: relative;
+    list-style: none;
+}
+
+.description-list-item::before {
+    content: "•";
+    color: #3b82f6;
+    /* Blue bullet */
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+/* Collapsible Content */
+.collapsible-content {
+    position: relative;
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out;
+}
+
+.collapsible-content.collapsed {
+    max-height: 320px;
+}
+
+.collapsible-content.expanded {
+    max-height: 5000px;
+}
+
+/* Matching the image's dark card style for Additional Info */
+.grid .bg-white\/5 {
+    background-color: #1e293b !important;
+    /* Lighter than deep bg, matches image */
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.grid .bg-white\/5:hover {
+    background-color: #334155 !important;
+}
+
+/* Gradient Fade Mask */
+.content-fade {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(to top, var(--background) 10%, transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.collapsed .content-fade {
+    opacity: 1;
+}
+
+/* Toggle Button */
+.editorial-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    margin-top: 1rem;
+}
+
+.editorial-toggle-btn:hover {
+    color: #ffffff;
+}
+
+.chevron-icon {
+    font-size: 1.1rem;
+    transition: transform 0.3s ease;
 }
