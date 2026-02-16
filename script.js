@@ -1139,6 +1139,27 @@ window.toggleFilterDropdown = () => {
     }
 };
 
+window.toggleEventDescription = () => {
+    const content = document.getElementById('expandableDescription');
+    const btn = document.getElementById('descriptionToggle');
+    if (!content || !btn) return;
+
+    const isCollapsed = content.classList.contains('collapsed');
+
+    if (isCollapsed) {
+        content.classList.remove('collapsed');
+        content.classList.add('expanded');
+        btn.querySelector('span:first-child').innerText = 'Show less';
+        btn.querySelector('.chevron-icon').innerText = '︿';
+    } else {
+        content.classList.remove('expanded');
+        content.classList.add('collapsed');
+        btn.querySelector('span:first-child').innerText = 'Show more';
+        btn.querySelector('.chevron-icon').innerText = '›';
+        content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+};
+
 window.applyFilter = (filter, label) => {
     const labelEl = document.getElementById('currentFilterLabel');
     if (labelEl) labelEl.innerText = label;
@@ -1485,18 +1506,17 @@ const Components = {
 
     <!-- Content Section -->
     <div class="p-6 flex flex-col flex-grow relative">
-        <h3 class="text-xl font-bold text-white mb-1 group-hover:text-primary-light transition-colors leading-tight line-clamp-1 text-shadow-sm">${event.title}</h3>
+        <h3 class="text-xl font-bold text-white mb-2 group-hover:text-primary-light transition-colors leading-tight line-clamp-2 text-shadow-sm">${event.title}</h3>
         
-        <!-- Society Name -->
-        <div class="flex items-center gap-1.5 text-primary-light text-[10px] font-bold uppercase tracking-wider mb-2">
-            <span class="material-icons-round text-xs">groups</span>
-            <span class="truncate">${event.organizer || 'Society'}</span>
+        <!-- Society Name & Category -->
+        <div class="flex items-center gap-3 mt-auto">
+            <div class="flex items-center gap-1.5 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                <span class="material-icons-round text-xs">groups</span>
+                <span class="truncate max-w-[100px]">${event.organizer || 'Society'}</span>
+            </div>
+            <div class="w-1 h-1 rounded-full bg-white/10"></div>
+            <div class="text-[10px] font-bold text-primary uppercase tracking-widest">${event.category}</div>
         </div>
-
-        <!-- Event Description (Added for Visibility) -->
-        <p class="text-slate-400 text-xs leading-relaxed line-clamp-2 mb-4">
-            ${event.description || 'Join us for this exciting event at KIIT! Click to view full details and registration info.'}
-        </p>
         
         <div class="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
             <div class="flex items-center gap-2 text-slate-400 text-xs font-medium">
@@ -1786,6 +1806,46 @@ const Router = {
 };
 
 // --- VIEWS ---
+// Helper to detect and format subheadings and paragraphs in event description
+const formatEventDescription = (text) => {
+    if (!text) return "";
+
+    // If it already has structured HTML (like <p>), return as is
+    if (text.includes('<p>') || text.includes('<br')) return text;
+
+    return text.split('\n').map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return "";
+
+        // Detect Bullet points
+        if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+            const bulletText = trimmed.substring(1).trim();
+            return `<li class="description-list-item">${bulletText}</li>`;
+        }
+
+        // Subheading Heuristics
+        const isShort = trimmed.length < 60;
+        const isImportantLabel = /^(Event Overview|Event Structure|Focus Areas|Evaluation Criteria|Eligibility & Team Guidelines|Key Highlights|Organizing Body|Conclusion):?$/i.test(trimmed);
+        const endsWithColon = trimmed.endsWith(':');
+
+        // Match Section Headings vs Subheadings
+        if (isShort && (isImportantLabel || endsWithColon || /^[A-Z][A-Za-z0-9\s–-]*$/.test(trimmed) && !trimmed.endsWith('.'))) {
+            const cleanText = trimmed.replace(/:$/, '');
+            const hasSeparator = ["Event Structure", "Eligibility", "Key Highlights", "Organizing Body", "Conclusion"].some(kw => trimmed.includes(kw));
+
+            // Use MAIN for important labels, SUB for others
+            const headingClass = isImportantLabel ? 'description-heading-main' : 'description-heading-sub';
+
+            return `
+                ${hasSeparator ? '<hr class="border-white/10 my-6">' : ''}
+                <h4 class="${headingClass}">${cleanText}</h4>
+            `;
+        }
+
+        return `<p class="description-text">${trimmed}</p>`;
+    }).join("");
+};
+
 const Views = {
     Home: () => `
     <!-- Hero Section (Background Image Only Here) -->
@@ -2141,54 +2201,64 @@ const Views = {
                                 ${ev.featured ? '<span class="flex items-center gap-1 text-yellow-400"><span class="material-icons-round text-base">star</span> Featured</span>' : ''}
                             </div>
                             
-                            <div class="prose prose-invert max-w-none text-slate-300">
-                                <h3 class="text-white font-bold text-xl mb-3 flex items-center gap-2"><span class="material-icons-round text-primary">description</span> About the Event</h3>
-                                <div class="event-description">
-                                    ${ev.description}
+                            <div class="description-card-container mb-12">
+                                <h3 class="description-heading-main flex items-center gap-3 !mt-0 !mb-6">
+                                    <span class="material-icons-round text-primary text-3xl">description</span> About the Event
+                                </h3>
+                                <div class="description-card-body">
+                                    <div id="expandableDescription" class="collapsible-content collapsed">
+                                        <div class="description-inner">
+                                            ${formatEventDescription(ev.description)}
+                                        </div>
+                                        <div class="content-fade"></div>
+                                    </div>
+                                    <div class="flex justify-center mt-6">
+                                        <button id="descriptionToggle" onclick="window.toggleEventDescription()" class="editorial-toggle-btn">
+                                            <span>Show more</span>
+                                            <span class="chevron-icon">›</span>
+                                        </button>
+                                    </div>
                                 </div>
+                            </div>
                                 
-                                <h3 class="text-white font-bold text-xl mb-3 flex items-center gap-2"><span class="material-icons-round text-primary">info</span> Additional Information</h3>
-                                <div class="grid sm:grid-cols-2 gap-4 mb-8">
-                                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                                        <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Target Audience</div>
-                                        <div class="text-white font-medium">${ev.audience || 'Open for All'}</div>
-                                    </div>
-                                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                                        <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Max Participants</div>
-                                        <div class="text-white font-medium">${ev.maxParticipants || 'Unlimited'}</div>
-                                    </div>
-                                     <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                                        <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Event Mode</div>
-                                        <div class="text-white font-medium flex items-center gap-2">
-                                            <span class="material-icons-round text-sm">${ev.mode === 'Online' ? 'wifi' : 'place'}</span> ${ev.mode || 'Offline'}
-                                        </div>
-                                    </div>
-                                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                                    <div class="event-contact-card">
-                                        <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Organizers</div>
-                                        <div id="eventOrganizers" class="mb-4">
-                                            ${ev.organizers && ev.organizers.length > 0
-                ? ev.organizers.map(o => `<span class="organizer-chip">${o}</span>`).join('')
-                : (ev.society ? `<span class="organizer-chip">${ev.society}</span>` : 'N/A')}
-                                        </div>
+                            <h3 class="text-white font-bold text-xl mb-6 flex items-center gap-3">
+                                <span class="material-icons-round text-primary text-2xl">info</span> Additional Information
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+                                <!-- Card 1: Target Audience -->
+                                <div class="bg-white/5 p-5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2">Target Audience</div>
+                                    <div class="text-white font-semibold text-lg">${ev.targetAudience || 'Open for All'}</div>
+                                </div>
 
-                                        <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Contact</div>
-                                        <div id="eventContacts">
-                                            ${ev.contacts && ev.contacts.length > 0
-                ? ev.contacts.map(c => `
-                                                    <div class="contact-chip">
-                                                        <span class="material-icons-round text-sm">person</span>
-                                                        <strong>${c.name}</strong>
-                                                        <span class="opacity-75">| ${c.info}</span>
-                                                    </div>
-                                                `).join('')
-                : (ev.contact ?
-                    (typeof ev.contact === 'object'
-                        ? `<div class="contact-chip"><span class="material-icons-round text-sm">person</span><strong>${ev.contact.name}</strong><span class="opacity-75">| ${ev.contact.info}</span></div>`
-                        : `<div class="contact-chip">${ev.contact}</div>`)
-                    : 'N/A')}
-                                        </div>
+                                <!-- Card 2: Max Participants -->
+                                <div class="bg-white/5 p-5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2">Max Participants</div>
+                                    <div class="text-white font-semibold text-lg">${ev.max || 'Unlimited'}</div>
+                                </div>
+
+                                <!-- Card 3: Event Mode -->
+                                <div class="bg-white/5 p-5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2">Event Mode</div>
+                                    <div class="flex items-center gap-2 text-white font-semibold text-lg">
+                                        <span class="material-icons-round text-blue-400 text-sm">location_on</span>
+                                        ${ev.mode || 'Offline'}
                                     </div>
+                                </div>
+
+                                <!-- Card 4: Organizers & Contacts -->
+                                <div class="bg-white/5 p-5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                                    <div class="mb-4">
+                                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2">Organizers</div>
+                                        <div class="text-white font-semibold">${ev.organizers && ev.organizers.length > 0 ? ev.organizers.join(', ') : (ev.organizer || 'Society')}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2">Contact</div>
+                                        <div class="text-white text-sm">
+                                            ${ev.contacts && ev.contacts.length > 0
+                ? ev.contacts.map(c => `<div>${c.name} ${c.info ? `| ${c.info}` : ''}</div>`).join('')
+                : (ev.contact ? (typeof ev.contact === 'object' ? `${ev.contact.name} | ${ev.contact.info}` : ev.contact) : 'N/A')}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
