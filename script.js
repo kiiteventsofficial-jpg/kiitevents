@@ -22,7 +22,8 @@ let MOCK_EVENTS = [];
 
 // Load events from Firebase Realtime DB (Public View)
 if (typeof firebase !== 'undefined') {
-    const dbRef = firebase.database().ref("events");
+    // Optimized Query: Order by date and limit to first 40 (Upcoming)
+    const dbRef = firebase.database().ref("events").orderByChild("fullDate").limitToFirst(40);
 
     // 1. Initial Load & Value Updates
     dbRef.on("value", (snapshot) => {
@@ -1481,7 +1482,7 @@ const Components = {
      data-saved="${isSaved}">
     <!-- Image Section with Gradient Overlay -->
     <div class="relative h-48 overflow-hidden event-card-image-container">
-        <img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out" src="${displayImage}" alt="${event.title}">
+        <img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out" src="${displayImage}" alt="${event.title}" loading="lazy">
         
         <!-- Premium Date Badge (Floating) -->
         <div class="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 shadow-lg group-hover:border-primary/50 transition-colors">
@@ -1805,14 +1806,105 @@ const Router = {
     }
 };
 
-// --- VIEWS ---
+// Generate a unique palette based on Event ID or Title
+const generateEventPalette = (id = "default") => {
+    const isFlagship = id.toLowerCase().includes('dark') || id === 'featured';
+
+    // Generate a unique palette based on Event ID or Title
+    const generateEventPalette = (id = "default") => {
+        // FINAL APPROVED DESIGN COLORS (BLUE GRADIENT THEME)
+        const flagshipPalette = {
+            primary: "#3b82f6",    // Royal Blue (Title & Icon)
+            secondary: "#60a5fa",  // Sky Blue
+            accent1: "#22d3ee",    // Cyan
+            accent2: "#818cf8",    // Indigo
+            accent3: "#c084fc",    // Purple
+            neutral: "#ffffff",    // Pure White Base
+            hover: "#ffffff"
+        };
+
+        // Always use the blue flagship palette for all events
+        return `
+        --desc-primary: ${flagshipPalette.primary};
+        --desc-secondary: ${flagshipPalette.secondary};
+        --desc-accent-1: ${flagshipPalette.accent1};
+        --desc-accent-2: ${flagshipPalette.accent2};
+        --desc-accent-3: ${flagshipPalette.accent3};
+        --desc-neutral: ${flagshipPalette.neutral};
+        --desc-hover: ${flagshipPalette.hover};
+    `;
+    };
+
+    if (isFlagship) {
+        return `
+            --desc-primary: ${flagshipPalette.primary};
+            --desc-secondary: ${flagshipPalette.secondary};
+            --desc-accent-1: ${flagshipPalette.accent1};
+            --desc-accent-2: ${flagshipPalette.accent2};
+            --desc-accent-3: ${flagshipPalette.accent3};
+            --desc-neutral: ${flagshipPalette.neutral};
+            --desc-hover: ${flagshipPalette.hover};
+        `;
+    }
+
+    // Dynamic generation for others using the same hues for professional consistency
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const h = Math.abs(hash) % 360;
+    return `
+        --desc-primary: hsl(${h}, 90%, 65%);
+        --desc-secondary: hsl(${(h + 40) % 360}, 80%, 70%);
+        --desc-accent-1: hsl(${(h + 120) % 360}, 85%, 75%);
+        --desc-accent-2: hsl(${(h + 200) % 360}, 75%, 70%);
+        --desc-accent-3: hsl(${(h + 280) % 360}, 80%, 75%);
+        --desc-neutral: rgba(255, 255, 255, 0.85);
+        --desc-hover: #ffffff;
+    `;
+};
+
+// Helper to wrap words in spans for verbatim reference matching
+const wrapWordsAndPhrases = (text) => {
+    if (!text) return "";
+
+    // Blue Gradient Theme Mapping
+    const colorMap = {
+        // Royal Blue (#3b82f6)
+        "Dark": "desc-accent-blue", "Route": "desc-accent-blue", "Season": "desc-accent-blue",
+        "Hackathon": "desc-accent-blue", "About": "desc-accent-blue",
+
+        // Sky Blue (#60a5fa)
+        "large-scale,": "desc-accent-sky", "challenge": "desc-accent-sky", "blend": "desc-accent-sky",
+        "two-day": "desc-accent-sky", "problem-solving": "desc-accent-sky", "large-scale": "desc-accent-sky",
+
+        // Cyan (#22d3ee)
+        "student-led": "desc-accent-cyan", "technical": "desc-accent-cyan", "flagship": "desc-accent-cyan",
+
+        // Purple (#c084fc)
+        "strategic": "desc-accent-purple", "exploration": "desc-accent-purple",
+
+        // Indigo (#818cf8)
+        "campus-wide": "desc-accent-indigo", "Treasure": "desc-accent-indigo", "Hunt": "desc-accent-indigo"
+    };
+
+    return text.split(' ').map((word) => {
+        const cleanWord = word.replace(/[^a-zA-Z0-9–,-]/g, '');
+        const accentClass = colorMap[cleanWord] || colorMap[word] || "";
+        return `<span class="desc-word ${accentClass}">${word}</span>`;
+    }).join(' ');
+};
+
 // Helper to detect and format subheadings and paragraphs in event description
 const formatEventDescription = (text) => {
     if (!text) return "";
 
-    // If it already has structured HTML (like <p>), return as is
-    if (text.includes('<p>') || text.includes('<br')) return text;
+    // If it already has structured HTML (like <p>, <div>, <ul>), return as part of the inner content
+    if (text.includes('<p>') || text.includes('<div') || text.includes('<ul') || text.includes('<br')) {
+        return text;
+    }
 
+    // Fallback for plain text: Convert newlines to paragraphs with our custom formatting
     return text.split('\n').map(line => {
         const trimmed = line.trim();
         if (!trimmed) return "";
@@ -1820,7 +1912,8 @@ const formatEventDescription = (text) => {
         // Detect Bullet points
         if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
             const bulletText = trimmed.substring(1).trim();
-            return `<li class="description-list-item">${bulletText}</li>`;
+            const coloredBullet = wrapWordsAndPhrases(bulletText);
+            return `<li class="description-list-item">${coloredBullet}</li>`;
         }
 
         // Subheading Heuristics
@@ -1833,7 +1926,7 @@ const formatEventDescription = (text) => {
             const cleanText = trimmed.replace(/:$/, '');
             const hasSeparator = ["Event Structure", "Eligibility", "Key Highlights", "Organizing Body", "Conclusion"].some(kw => trimmed.includes(kw));
 
-            // Use MAIN for important labels, SUB for others
+            // Use MAIN for it, SUB for others
             const headingClass = isImportantLabel ? 'description-heading-main' : 'description-heading-sub';
 
             return `
@@ -1842,10 +1935,11 @@ const formatEventDescription = (text) => {
             `;
         }
 
-        return `<p class="description-text">${trimmed}</p>`;
+        return `<p class="description-text">${wrapWordsAndPhrases(trimmed)}</p>`;
     }).join("");
 };
 
+// --- VIEWS ---
 const Views = {
     Home: () => `
     <!-- Hero Section (Background Image Only Here) -->
@@ -2017,8 +2111,8 @@ const Views = {
                 <div class="relative rounded-3xl p-8 overflow-hidden group">
                     <div class="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-900 group-hover:scale-105 transition-transform duration-700"></div>
                     <div class="relative z-10">
-                        <h3 class="text-2xl font-bold text-white mb-3">Host your event?</h3>
-                        <p class="text-blue-100/80 mb-8 text-sm leading-relaxed">Subscribe for more updates. Get your society events published globally.</p>
+                        <h3 class="text-2xl font-bold text-white mb-3">KIIT EVENTS at Your Tips!</h3>
+                        <p class="text-blue-100/80 mb-8 text-sm leading-relaxed">Stay updated with everything happening at KIIT. Subscribe and get event updates sent straight to your email.</p>
                         <a href="subscribe.html" class="block w-full">
                             <button class="w-full bg-white text-blue-600 font-bold py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
                                 Subscribe Now
@@ -2201,9 +2295,9 @@ const Views = {
                                 ${ev.featured ? '<span class="flex items-center gap-1 text-yellow-400"><span class="material-icons-round text-base">star</span> Featured</span>' : ''}
                             </div>
                             
-                            <div class="description-card-container mb-12">
-                                <h3 class="description-heading-main flex items-center gap-3 !mt-0 !mb-6">
-                                    <span class="material-icons-round text-primary text-3xl">description</span> About the Event
+                            <div class="description-card-container mb-12" style="${generateEventPalette(ev.id)}">
+                                <h3 class="description-heading-main flex items-center gap-3 !mt-0 !mb-6" style="color: var(--desc-primary) !important;">
+                                    <span class="material-icons-round text-3xl" style="color: var(--desc-primary);">description</span> About the Event
                                 </h3>
                                 <div class="description-card-body">
                                     <div id="expandableDescription" class="collapsible-content collapsed">
