@@ -1,0 +1,280 @@
+<script type="module">
+    import { ChatManager, renderMessageBubbleHifi, renderChatItemHifi, renderDateSeparator } from '../chat.js';
+
+    let saChat = null;
+    let saCurrentRoomId = null;
+    let saRooms = [];
+    let saRoomMessages = {};
+    let saRoomSub = null;
+    let saSelectedInviteUsers = {};
+
+    async function initSAChat() {
+        if (saChat) return; // already init
+        const sb = window.supabase;
+        if (!sb) return;
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+
+        const { data: me } = await sb.from('profiles').select('full_name, role').eq('id', session.user.id).single();
+        saChat = new ChatManager(sb, session.user.id, me?.role || 'super_admin', me?.full_name || 'Super Admin');
+        window._saChat = saChat;
+
+        // Wire up callbacks
+        window.chatOpenRoom = (id) => openSARoom(id);
+        window.toggleChatInfo = () => {
+            const info = document.getElementById('saChatInfo');
+            if (info) info.classList.toggle('active'); // active class can slide it in if styling exists
+        };
+
+        await loadSAChatList();
+        saChat.subscribeToNewChats(() => loadSAChatList());
+    }
+
+    async function loadSAChatList() {
+        if (!saChat) return;
+        saRooms = await saChat.getMyChats();
+        renderSAChatSidebar();
+    }
+
+    function renderSAChatSidebar() {
+        const listEl = document.getElementById('saChatList');
+        if (!listEl) return;
+
+        let html = '';
+        for (const r of saRooms) {
+            const displayName = r.name || 'Conversation';
+            const unread = 0; // implement unread if needed
+            html += renderChatItemHifi(r, r.lastMsg, unread, saCurrentRoomId === r.id, displayName, saChat.userId);
+        }
+        listEl.innerHTML = html || `<div class="p-8 text-center text-slate-500 text-xs font-bold opacity-30">No conversations</div>`;
+    }
+
+    window.filterSAChatList = (val) => {
+        const items = document.querySelectorAll('.chat-item');
+        items.forEach(item => {
+            const title = item.querySelector('.chat-item-name')?.textContent || '';
+            item.style.display = title.toLowerCase().includes(val.toLowerCase()) ? 'flex' : 'none';
+        });
+    };
+
+    async function openSARoom(roomId) {
+        if (!saChat) return;
+        if (saCurrentRoomId === roomId) return;
+        saCurrentRoomId = roomId;
+
+        const room = saRooms.find(r => r.id === roomId);
+        if (!room) return;
+
+        // Show UI parts & Hide Default
+        const def = document.getElementById('saChatDefault');
+        if (def) def.style.display = 'none';
+        const hdr = document.getElementById('saChatHeader');
+        if (hdr) hdr.style.display = 'flex';
+        const msgArea = document.getElementById('saChatMessages');
+        if (msgArea) msgArea.style.display = 'block'; // block/flex depends on CSS
+        const inpArea = document.getElementById('saChatInputArea');
+        if (inpArea) inpArea.style.display = 'block';
+
+        // Mark active in list
+        document.querySelectorAll('.chat-item').forEach(el => {
+            el.classList.toggle('active', el.dataset.chatId === roomId);
+        });
+
+        // Set Header & Info Panel using renderSAInfo (similar to admin)
+        renderSAInfo(room);
+
+        // Load Messages
+        if (msgArea) msgArea.innerHTML = '<div class="flex items-center justify-center p-8 text-slate-400">Loading...</div>';
+
+        const msgs = await saChat.loadMessagesHifi(roomId, 50);
+        saRoomMessages[roomId] = msgs;
+        renderSAMessages(roomId);
+
+        if (saRoomSub) {
+            const sb = window.supabase;
+            try { sb.removeChannel(saRoomSub); } catch (e) { }
+        }
+        saRoomSub = saChat.subscribeToChat(roomId, (newMsg) => {
+            saRoomMessages[roomId] = [...(saRoomMessages[roomId] || []), newMsg];
+            renderSAMessages(roomId);
+        });
+
+        // Setup presence
+        saChat.initPresence(roomId, (presenceData) => {
+            const otherUid = Object.keys(presenceData).find(id => id !== saChat.userId);
+            const isOnline = otherUid && presenceData[otherUid]?.isOnline;
+            const statusEl = document.getElementById('saCurrentChatStatus');
+            if (statusEl) {
+                statusEl.textContent = isOnline ? 'Online' : (room.type === 'private' ? 'Offline' : 'Active Community');
+                statusEl.className = isOnline ? 'text-[10px] text-emerald-500 font-bold uppercase tracking-wider' : 'text-[10px] text-gray-400 font-bold uppercase tracking-wider';
+            }
+        });
+    }
+
+    async function renderSAInfo(chat) {
+        let displayName = chat.name || 'Chat';
+        let avatarUrl = chat.avatar_url || '';
+        const isGroup = chat.type === 'group';
+
+        if (!isGroup) {
+            const other = (chat.members || []).find(m => m.profiles && m.profiles.id !== saChat.userId);
+            if (other && other.profiles) {
+                displayName = other.profiles.full_name || other.profiles.email;
+                avatarUrl = other.profiles.avatar_url;
+            }
+        }
+
+        const headerName = document.getElementById('saCurrentChatName');
+        const headerAvatar = document.getElementById('saCurrentChatAvatar');
+        if (headerName) headerName.textContent = displayName;
+        if (headerAvatar) {
+            if (avatarUrl) headerAvatar.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover rounded-xl" />`;
+            else headerAvatar.innerHTML = displayName.charAt(0);
+        }
+
+        const infoName = document.getElementById('saInfoName');
+        const infoAvatar = document.getElementById('saInfoAvatar');
+        const infoDesc = document.getElementById('saInfoDesc');
+        const infoMemStat = document.getElementById('saInfoMemberStatus');
+
+        if (infoName) infoName.textContent = displayName;
+        if (infoAvatar) {
+            if (avatarUrl) infoAvatar.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover rounded-3xl" />`;
+            else infoAvatar.innerHTML = displayName.charAt(0);
+        }
+        if (infoDesc) infoDesc.textContent = chat.description || (isGroup ? 'Group Conversation' : `Direct Message with ${displayName}`);
+        if (infoMemStat) {
+            const memCount = (chat.members || []).length;
+            infoMemStat.textContent = isGroup ? `${memCount} member${memCount !== 1 ? 's' : ''}` : 'Direct Message';
+        }
+    }
+
+    function renderSAMessages(roomId) {
+        const area = document.getElementById('saChatMessages');
+        if (!area || saCurrentRoomId !== roomId) return;
+        const msgs = saRoomMessages[roomId] || [];
+
+        if (msgs.length === 0) {
+            area.innerHTML = '<div class="p-8 text-center text-slate-500">No messages yet.</div>';
+            return;
+        }
+
+        let html = '';
+        let lastDate = null;
+        for (const raw of msgs) {
+            const msg = saChat.decryptMessage ? { ...raw, content: saChat.decryptMessage(raw.content, raw.iv, roomId) } : raw;
+            const dDate = msg.created_at ? new Date(msg.created_at).toDateString() : null;
+            if (dDate && dDate !== lastDate) {
+                html += renderDateSeparator(msg.created_at);
+                lastDate = dDate;
+            }
+            html += renderMessageBubbleHifi(msg, saChat.userId);
+        }
+        area.innerHTML = html;
+        area.scrollTop = area.scrollHeight;
+    }
+
+    // Action Functions
+    window.sendSAMessage = async () => {
+        if (!saChat || !saCurrentRoomId) return;
+        const inp = document.getElementById('saChatInput');
+        const txt = inp?.value?.trim();
+        if (!txt) return;
+        inp.value = '';
+        await saChat.sendMessageHifi(saCurrentRoomId, txt);
+    };
+
+    window.chatCreateGroupSA = async () => {
+        if (!saChat) return;
+        const nameEl = document.getElementById('saGroupName');
+        const name = nameEl?.value?.trim();
+        if (!name) return alert('Please enter a group name');
+        const selectedUids = Object.keys(saSelectedInviteUsers);
+
+        const newChat = await saChat.createChat(name, 'group', selectedUids, null, '');
+        if (newChat && newChat.id) {
+            document.getElementById('saCreateGroupModal').classList.remove('active');
+            saSelectedInviteUsers = {};
+            if (nameEl) nameEl.value = '';
+            document.getElementById('saGroupSelected').innerHTML = '';
+            await loadSAChatList();
+            openSARoom(newChat.id);
+        } else {
+            alert('Group creation failed. Ensure you have the right permissions.');
+        }
+    };
+
+    // Reuse `searchUsers` from ChatManager
+    window.chatSearchForGroup = async (v, role, resultsId) => {
+        if (!saChat || !v || v.length < 1) return;
+        const users = await saChat.searchUsers(v, role);
+        const resEl = document.getElementById(resultsId);
+        if (resEl) {
+            if (!users || users.length === 0) {
+                resEl.innerHTML = '<div class="p-2 text-xs text-slate-500">No users found</div>';
+                return;
+            }
+            resEl.innerHTML = users.map(p => `
+                    <div class="p-2 hover:bg-white/5 rounded-lg flex items-center justify-between cursor-pointer" onclick="saSelectUser('${p.id}', '${p.full_name}', '${p.avatar_url || ''}')">
+                        <div class="text-xs text-slate-300 font-medium">${p.full_name}</div>
+                        <div class="text-[10px] text-slate-500">${p.email}</div>
+                    </div>
+                `).join('');
+        }
+    };
+
+    window.saSelectUser = (uid, name, avatar) => {
+        saSelectedInviteUsers[uid] = { name, avatar };
+        renderSelectedUsersSA();
+    };
+
+    window.renderSelectedUsersSA = () => {
+        const el = document.getElementById('saGroupSelected');
+        if (el) {
+            el.innerHTML = Object.entries(saSelectedInviteUsers).map(([uid, u]) => `
+                    <div class="bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full flex items-center gap-2 text-[10px] font-bold text-blue-400">
+                        ${u.name}
+                        <span class="material-symbols-outlined text-[14px] cursor-pointer hover:text-white" onclick="delete saSelectedInviteUsers['${uid}']; renderSelectedUsersSA()">close</span>
+                    </div>
+                `).join('');
+        }
+    };
+
+    window.chatSendBroadcast = async () => {
+        // Placeholder: Not implementing broadcast backend here strictly, but can log or alert
+        const title = document.getElementById('bcTitle')?.value;
+        const body = document.getElementById('bcContent')?.value;
+        if (!title || !body) return alert("Title and Message required");
+        alert("Broadcast sent successfully! (Simulated)");
+        document.getElementById('broadcastModal').classList.remove('active');
+    };
+
+    // Ensure chat initializes when section is displayed
+    const origShowSection = window.showSection;
+    window.showSection = function (section) {
+        if (origShowSection) origShowSection(section);
+        if (section === 'chat') {
+            if (!saChat) initSAChat();
+        }
+    };
+
+    // Automatically init if somehow loaded into chat section
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            if (document.getElementById('chatSection')?.style.display === 'block') {
+                initSAChat();
+            }
+        }, 1000);
+    });
+
+    // Modals cleanup on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        }
+    });
+
+</script>
+</body>
+
+</html>

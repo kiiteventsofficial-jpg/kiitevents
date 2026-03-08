@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | KIIT Events</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link rel="stylesheet" href="./admin.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 20px;
+            border: 3px solid #0f172a;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        #addSocietyModal .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border: 3px solid #111827;
+        }
+
+        .notification-drawer {
+            position: absolute;
+            top: 75px;
+            right: 25px;
+            width: 380px;
+            max-height: 550px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            transform-origin: top right;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .notification-drawer.active {
+            display: flex;
+            animation: notifyPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes notifyPop {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .notification-header {
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .notification-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .notification-item {
+            padding: 16px 20px;
+            display: flex;
+            gap: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .notification-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* Mobile Responsiveness for Promote User Modal */
+        @media (max-width: 768px) {
+            #addAdminModal {
+                align-items: flex-end !important;
+                padding-bottom: 0 !important;
+                visibility: hidden;
+                /* Controlled by .active */
+            }
+
+            #addAdminModal.active {
+                visibility: visible !important;
+            }
+
+            #addAdminModal .modal-box {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                max-height: 92vh !important;
+                border-radius: 24px 24px 0 0 !important;
+                margin-bottom: 0 !important;
+                transition: none !important;
+                /* Disable base transition */
+                transform: translateY(100%);
+                flex-direction: column;
+                display: flex;
+            }
+
+            #addAdminModal.active .modal-box {
+                transform: translateY(0) !important;
+                animation: slideUpMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            }
+
+            @keyframes slideUpMobile {
+                from {
+                    transform: translateY(100%);
+                }
+
+                to {
+                    transform: translateY(0);
+                }
+            }
+
+            #addAdminForm {
+                padding: 24px 20px !important;
+                max-height: calc(92vh - 80px) !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+            }
+
+            .role-card {
+                margin-bottom: 12px !important;
+            }
+
+            .permission-group {
+                margin-bottom: 16px !important;
+            }
+
+            .security-warning {
+                padding: 16px !important;
+                line-height: 1.6 !important;
+                margin-top: 8px !important;
+            }
+
+            .modal-footer {
+                position: sticky !important;
+                bottom: 0 !important;
+                background: #0f172a !important;
+                /* Matches bg-[#0f172a] */
+                padding: 20px 0 32px 0 !important;
+                margin-top: 24px !important;
+                z-index: 50 !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+            }
+
+            .modal-footer button {
+                padding: 14px 20px !important;
+                font-size: 13px !important;
+            }
+        }
+
+        .notification-item.unread {
+            background: rgba(59, 130, 246, 0.04);
+        }
+
+        .notification-item.unread::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Sidebar Toggle Animation */
+        .admin-sidebar {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.4s ease, opacity 0.4s ease;
+        }
+
+        main {
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-action {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .notification-meta {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notification-empty {
+            padding: 40px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .new-badge {
+            background: #ef4444;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            margin-left: 8px;
+            text-transform: uppercase;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6",
+                        "primary-hover": "#2563eb",
+                        secondary: "#1e40af",
+                        "dark-bg": "#020617",
+                        "deep-blue": "#0f172a",
+                        "background-light": "#f3f4f6",
+                        "background-dark": "#0f172a",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1e293b",
+                        "input-bg-dark": "#131c2e",
+                        "border-dark": "#334155",
+                        "glass-border": "rgba(255, 255, 255, 0.08)",
+                        "glass-bg": "rgba(30, 41, 59, 0.4)",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                        display: ["Poppins", "sans-serif"],
+                    },
+                    backgroundImage: {
+                        'sidebar-gradient': 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 100%)',
+                        'card-gradient': 'linear-gradient(180deg, rgba(30, 58, 138, 0.2) 0%, rgba(15, 23, 42, 0.3) 100%)',
+                    },
+                },
+            },
+        };
+    </script>
+
+
+
+</head>
+
+<body class="bg-[#020617] text-slate-300 min-h-screen p-0 overflow-hidden">
+    <div id="loadingOverlay"
+        class="fixed inset-0 z-[9999] bg-[#020617] flex flex-col items-center justify-center text-white">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500/20 border-t-blue-500 mb-4"></div>
+        <p id="loadingMessage" class="text-lg font-medium">Verifying access...</p>
+    </div>
+
+
+    <div class="flex w-full h-screen overflow-hidden bg-[#020617] relative">
+        <!-- Background Blobs -->
+        <div
+            class="absolute top-[-20%] left-[10%] w-[1000px] h-[1000px] bg-blue-900/10 rounded-full blur-[180px] pointer-events-none">
+        </div>
+        <div
+            class="absolute bottom-[-10%] right-[-10%] w-[800px] h-[800px] bg-indigo-900/10 rounded-full blur-[150px] pointer-events-none">
+        </div>
+
+
+        <!-- Sidebar -->
+        <aside
+            class="sidebar w-64 h-full flex flex-col sidebar-gradient border-r border-blue-900/20 relative z-20 admin-sidebar">
+            <div class="px-5 py-6 flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/20 flex-shrink-0">
+                        <span class="material-symbols-outlined text-white text-[20px]">admin_panel_settings</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[15px] font-bold text-white tracking-tight font-display" id="logoBrand">Admin
+                            Dashboard</span>
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest" id="logoSubtext">Super
+                            Admin</span>
+                    </div>
+                </div>
+                <button
+                    class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer group"
+                    onclick="toggleSidebarDesktop()">
+                    <span id="desktopToggleIcon"
+                        class="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">menu_open</span>
+                </button>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto custom-scroll px-4 space-y-1">
+                <div class="py-2">
+                    <p class="px-3 text-[10px] font-bold text-blue-300/50 uppercase tracking-widest mb-2">Main</p>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-blue-100 hover:text-white hover:bg-white/[0.04] transition-all duration-200 group sidebar-item-active nav-item active"
+                        onclick="showSection('overview')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">dashboard</span>
+                        <span class="text-sm font-medium">Overview</span>
+                    </button>
+                </div>
+
+                <div class="py-2" id="groupManagement">
+                    <p class="px-3 text-[10px] font-bold text-blue-300/50 uppercase tracking-widest mb-2">Management</p>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navUsers" onclick="showSection('users')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">manage_accounts</span>
+                        <span class="text-sm font-medium">User Management</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navSocieties" onclick="showSection('societies')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">groups</span>
+                        <span class="text-sm font-medium">Societies</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navEventControl" onclick="showSection('events')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">confirmation_number</span>
+                        <span class="text-sm font-medium">Event Control</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navAddAdmin" onclick="showAddAdminModal()">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">person_add</span>
+                        <span class="text-sm font-medium">Add Admin</span>
+                    </button>
+                </div>
+
+                <div class="py-2" id="groupSystem">
+                    <p class="px-3 text-[10px] font-bold text-blue-300/50 uppercase tracking-widest mb-2">System</p>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navLogs" onclick="showSection('logs')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">history</span>
+                        <span class="text-sm font-medium">Activity Logs</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navSettings" onclick="showSection('settings')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">settings_applications</span>
+                        <span class="text-sm font-medium">System Settings</span>
+                    </button>
+                </div>
+
+                <div class="py-2 mt-4 border-t border-blue-800/20">
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        onclick="window.history.length > 1 ? window.history.back() : window.location.replace('index.html')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-slate-300 transition-colors">arrow_back</span>
+                        <span class="text-sm font-medium">Back</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 mt-1 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        onclick="goHome()">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-slate-300 transition-colors">home</span>
+                        <span class="text-sm font-medium">Back to Home</span>
+                    </button>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-blue-900/30 bg-[#0f172a]/50">
+                <div class="flex items-center gap-3 px-2 py-1">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-700 to-slate-700 flex items-center justify-center text-xs font-bold text-white ring-2 ring-blue-900/50 shadow-md"
+                        id="adminInitial">SA</div>
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="text-[13px] font-semibold text-white truncate" id="adminName">Super Admin</span>
+                        <span class="badge admin-badge hidden">SUPERUSER</span>
+                        <span class="text-[10px] text-blue-300/70 truncate">Dashboard Panel</span>
+                    </div>
+                    <button class="ml-auto text-slate-500 hover:text-red-400 transition-colors" title="Logout"
+                        onclick="logout()">
+                        <span class="material-symbols-outlined text-[20px]">logout</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile Overlay (Placed after sidebar for CSS sibling selector) -->
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Main Content -->
+        <main class="flex-1 bg-[#020617] relative overflow-hidden flex flex-col h-full">
+            <header
+                class="flex flex-wrap items-center justify-between px-4 sm:px-6 md:px-8 py-4 border-b border-blue-900/20 backdrop-blur-md bg-blue-900/10 z-10 sticky top-0 gap-y-4">
+                <div class="flex items-center gap-3">
+                    <button
+                        class="lg:hidden text-blue-400 p-2 -ml-2 hover:bg-white/5 rounded-lg transition-colors mobile-sidebar-toggle"
+                        onclick="toggleSidebar()">
+                        <span class="material-symbols-outlined text-[24px]">menu</span>
+                    </button>
+                    <h2 class="text-xl font-bold text-white tracking-tight flex items-center gap-2" id="pageTitle">
+                        <span class="material-symbols-outlined text-blue-400 text-[22px]">dashboard</span>
+                        System Overview
+                    </h2>
+                </div>
+                <div class="flex items-center gap-2 text-[11px] text-slate-500 font-medium hidden md:flex">
+                    <span>Dashboard</span>
+                    <span class="text-slate-600">/</span>
+                    <span class="text-blue-400" id="breadcrumbPage">Overview</span>
+                </div>
+                <!-- Action section (Search & Notif) - allow wrapping and full width on mobile -->
+                <div class="flex flex-wrap items-center justify-end gap-4 w-full md:w-auto ml-auto">
+                    <!-- Search Bar: block & full-width on mobile, auto-width & first on desktop -->
+                    <div class="relative block w-full md:w-auto order-last md:order-none">
+                        <input
+                            class="bg-[#0f172a]/80 border border-blue-800/30 rounded-full py-2 px-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 w-full md:w-64 transition-all"
+                            placeholder="Search system..." type="text" id="systemSearch" />
+                        <span
+                            class="material-symbols-outlined absolute right-3 top-2 text-slate-600 text-[18px]">search</span>
+                    </div>
+                    <!-- Notification Button -->
+                    <button
+                        class="relative w-9 h-9 rounded-full border border-blue-800/30 bg-[#0f172a] flex items-center justify-center hover:bg-blue-900/20 hover:border-blue-500/40 transition-all text-slate-400 hover:text-blue-200 order-first md:order-none"
+                        id="notificationBtn" onclick="toggleNotifications()">
+                        <span class="material-symbols-outlined text-[20px]">notifications</span>
+                        <span id="notificationBadge"
+                            class="absolute top-0 right-0 w-2.5 h-2.5 bg-blue-500 border-2 border-[#0f172a] rounded-full hidden"></span>
+                    </button>
+
+                    <!-- Notifications Drawer -->
+                    <div id="notificationDrawer" class="notification-drawer">
+                        <div class="notification-header">
+                            <div>
+                                <h3 class="text-sm font-bold text-white leading-tight">Notifications</h3>
+                                <p class="text-[10px] text-blue-400 font-medium tracking-wide uppercase">Real-time
+                                    Updates</p>
+                            </div>
+                            <button
+                                class="text-[11px] text-slate-400 hover:text-white transition-colors flex items-center gap-1 group"
+                                onclick="markAllRead()">
+                                <span
+                                    class="material-symbols-outlined text-[14px] group-hover:rotate-12 transition-transform">done_all</span>
+                                Mark all as read
+                            </button>
+                        </div>
+                        <div id="notificationList" class="notification-list custom-scrollbar">
+                            <!-- Quick-Inject Empty State -->
+                            <div class="notification-empty">
+                                <div
+                                    class="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-2">
+                                    <span
+                                        class="material-symbols-outlined text-slate-600 text-[32px]">notifications_off</span>
+                                </div>
+                                <p class="text-sm text-slate-400 font-medium">No new notifications</p>
+                                <p class="text-[11px] text-slate-600">We'll alert you when something happens</p>
+                            </div>
+                        </div>
+                        <div class="px-5 py-3 border-t border-white/5 bg-white/[0.02] flex items-center justify-center">
+                            <button
+                                class="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest flex items-center gap-2"
+                                onclick="showSection('logs'); toggleNotifications();">
+                                <span>View All Activity Logs</span>
+                                <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto custom-scroll p-4 sm:p-6 lg:p-8">
+                <!-- OVERVIEW SECTION -->
+                <section id="overviewSection" class="content-section p-4 sm:p-6 md:p-8 space-y-8">
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 overview-stats">
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-blue-400">group</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div
+                                        class="p-2.5 rounded-xl bg-blue-500/10 border border-blue-400/20 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">group</span>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-500/5 px-2 py-1 rounded-full border border-emerald-500/10">
+                                        +12% </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight"
+                                        id="totalUsersCount">0
+                                    </h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">Total Users</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-indigo-400">diversity_3</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div
+                                        class="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-400/20 text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">diversity_3</span>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-500/5 px-2 py-1 rounded-full border border-emerald-500/10">
+                                        +4% </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight"
+                                        id="totalSocietiesCount">0</h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">Active Societies</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-sky-400">event</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div
+                                        class="p-2.5 rounded-xl bg-sky-500/10 border border-sky-400/20 text-sky-400 group-hover:bg-sky-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">calendar_month</span>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold text-slate-500 flex items-center gap-1 bg-slate-500/5 px-2 py-1 rounded-full border border-slate-500/10">
+                                        - </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight"
+                                        id="totalEventsCount">
+                                        0</h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">Total Events</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-rose-400">report_problem</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div
+                                        class="p-2.5 rounded-xl bg-rose-500/10 border border-rose-400/20 text-rose-400 group-hover:bg-rose-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">block</span>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold text-rose-400 flex items-center gap-1 bg-rose-500/5 px-2 py-1 rounded-full border border-rose-500/10">
+                                        NEW </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight"
+                                        id="blockedUsersCount" style="color: #ef4444;">0</h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">Blocked Users</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 glass-panel rounded-2xl flex flex-col min-h-[400px]">
+                            <div class="px-6 py-5 border-b border-blue-800/20 flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-base font-semibold text-white">Recent System Activity</h3>
+                                    <p class="text-xs text-slate-500 mt-0.5">Live monitoring of platform actions</p>
+                                </div>
+                                <button
+                                    class="text-xs font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20"
+                                    onclick="showSection('logs')"> View Full Log <span
+                                        class="material-symbols-outlined text-[14px]">arrow_forward</span> </button>
+                            </div>
+                            <div class="flex-1 p-6 relative activity-list custom-scroll" id="recentLogs"
+                                style="max-height: 400px; overflow-y: auto;">
+                                <!-- Populated by JS -->
+                                <p class="text-muted text-center p-8">No recent activity.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-6">
+                            <div class="glass-panel rounded-2xl p-0 h-full">
+                                <div class="px-6 py-5 border-b border-blue-800/20">
+                                    <h3 class="text-base font-semibold text-white">Quick Actions</h3>
+                                </div>
+                                <div class="p-6 space-y-4">
+                                    <button
+                                        class="w-full btn-glass group p-3.5 rounded-xl flex items-center justify-between transition-all active:scale-[0.98]"
+                                        onclick="showAddEventModal()">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-[0_0_15px_-3px_rgba(37,99,235,0.3)]">
+                                                <span class="material-symbols-outlined text-[20px]">add</span>
+                                            </div>
+                                            <div class="flex flex-col items-start">
+                                                <span
+                                                    class="text-sm font-semibold text-slate-200 group-hover:text-white">Add
+                                                    Event</span>
+                                                <span class="text-[11px] text-slate-500">Create new public event</span>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="material-symbols-outlined text-slate-600 text-[18px] group-hover:text-blue-400 group-hover:translate-x-1 transition-all">chevron_right</span>
+                                    </button>
+                                    <button
+                                        class="w-full btn-glass group p-3.5 rounded-xl flex items-center justify-between transition-all active:scale-[0.98]"
+                                        onclick="showAddSocietyModal()">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-[0_0_15px_-3px_rgba(79,70,229,0.3)]">
+                                                <span class="material-symbols-outlined text-[20px]">group_add</span>
+                                            </div>
+                                            <div class="flex flex-col items-start">
+                                                <span
+                                                    class="text-sm font-semibold text-slate-200 group-hover:text-white">Add
+                                                    Society</span>
+                                                <span class="text-[11px] text-slate-500">Register new
+                                                    organization</span>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="material-symbols-outlined text-slate-600 text-[18px] group-hover:text-indigo-400 group-hover:translate-x-1 transition-all">chevron_right</span>
+                                    </button>
+                                    <button
+                                        class="w-full btn-glass group p-3.5 rounded-xl flex items-center justify-between transition-all active:scale-[0.98]"
+                                        onclick="showSection('users')">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-sky-600/20 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-[0_0_15px_-3px_rgba(14,165,233,0.3)]">
+                                                <span class="material-symbols-outlined text-[20px]">person_search</span>
+                                            </div>
+                                            <div class="flex flex-col items-start">
+                                                <span
+                                                    class="text-sm font-semibold text-slate-200 group-hover:text-white">Find
+                                                    User</span>
+                                                <span class="text-[11px] text-slate-500">Lookup database records</span>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="material-symbols-outlined text-slate-600 text-[18px] group-hover:text-sky-400 group-hover:translate-x-1 transition-all">chevron_right</span>
+                                    </button>
+                                    <button
+                                        class="w-full btn-glass group p-3.5 rounded-xl flex items-center justify-between transition-all active:scale-[0.98]"
+                                        id="addAdminBtn" onclick="showAddAdminModal()">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)]">
+                                                <span class="material-symbols-outlined text-[20px]">person_add</span>
+                                            </div>
+                                            <div class="flex flex-col items-start">
+                                                <span
+                                                    class="text-sm font-semibold text-slate-200 group-hover:text-white">Promote
+                                                    Admin</span>
+                                                <span class="text-[11px] text-slate-500">Elevate user privileges</span>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="material-symbols-outlined text-slate-600 text-[18px] group-hover:text-emerald-400 group-hover:translate-x-1 transition-all">chevron_right</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div
+                                class="glass-panel rounded-2xl p-5 border border-emerald-500/10 bg-gradient-to-br from-emerald-950/20 to-transparent relative overflow-hidden">
+                                <div
+                                    class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none">
+                                </div>
+                                <div class="flex items-center gap-3 mb-4 relative z-10">
+                                    <div class="relative flex h-3 w-3">
+                                        <span
+                                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span
+                                            class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+                                    </div>
+                                    <span class="text-sm font-bold text-emerald-400 uppercase tracking-wider">System
+                                        Operational</span>
+                                </div>
+                                <div class="space-y-2 relative z-10">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-slate-400">Server Latency</span>
+                                        <span class="font-mono text-emerald-300">24ms</span>
+                                    </div>
+                                    <div class="w-full bg-slate-800/50 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 92%"></div>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs mt-3">
+                                        <span class="text-slate-400">Uptime (30d)</span>
+                                        <span class="font-mono text-emerald-300">99.99%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- USERS SECTION -->
+                <section id="usersSection" class="content-section" style="display: none;">
+                    <div class="glass-panel rounded-2xl p-6">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                            <h3 class="text-xl font-bold text-white">User Management</h3>
+                            <button
+                                class="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-600/20"
+                                id="addAdminFromUsers" onclick="showAddAdminModal()">+ Add Admin</button>
+                        </div>
+                        <div class="relative mb-6">
+                            <input type="text" id="userSearch"
+                                class="w-full bg-[#0f172a]/80 border border-blue-800/20 rounded-xl py-3 px-12 text-slate-300 focus:ring-2 focus:ring-blue-500/40"
+                                placeholder="Search by name, email, role..." oninput="renderUsers()">
+                            <span class="material-symbols-outlined absolute left-4 top-3 text-slate-500">search</span>
+                        </div>
+                        <div class="glass-card rounded-2xl border border-white/5 overflow-hidden">
+                            <div class="table-container">
+                                <table class="w-full text-left border-collapse" id="usersTable">
+                                    <thead class="bg-white/[0.02] border-b border-white/5">
+                                        <tr>
+                                            <th class="px-6 py-4 text-left">Name</th>
+                                            <th class="px-6 py-4 text-left">Email</th>
+                                            <th class="px-6 py-4 text-left">Role</th>
+                                            <th class="px-6 py-4 text-left">Status</th>
+                                            <th class="px-6 py-4 text-left">Joined</th>
+                                            <th class="px-6 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-blue-900/10">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SOCIETIES SECTION -->
+                <section id="societiesSection" class="content-section" style="display: none;">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">Society Management</h3>
+                            <p class="text-sm text-slate-500">Oversee student organizations and clubs</p>
+                        </div>
+                        <button
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg"
+                            onclick="prepareAddSocietyModal()">+ Add Society</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="societiesGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- EVENTS SECTION -->
+                <section id="eventsSection" class="content-section" style="display: none;">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-2xl font-bold text-white">Event Control</h3>
+                        <button
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg"
+                            onclick="showAddEventModal()">+ Create Event</button>
+                    </div>
+                    <div class="glass-panel rounded-2xl p-6">
+                        <div class="flex gap-2 mb-6 p-1 bg-[#0f172a]/80 rounded-xl w-max">
+                            <button class="px-4 py-2 tab-btn active rounded-lg text-sm font-bold transition-all"
+                                onclick="filterEventTab('all')">All</button>
+                            <button class="px-4 py-2 tab-btn rounded-lg text-sm font-bold transition-all"
+                                onclick="filterEventTab('pending')">Pending</button>
+                            <button class="px-4 py-2 tab-btn rounded-lg text-sm font-bold transition-all"
+                                onclick="filterEventTab('upcoming')">Upcoming</button>
+                            <button class="px-4 py-2 tab-btn rounded-lg text-sm font-bold transition-all"
+                                onclick="filterEventTab('past')">Past</button>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl">
+                            <table class="w-full data-table" id="eventsTable">
+                                <thead class="bg-[#1e293b]/50 text-slate-400 text-xs uppercase tracking-widest">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left">Event</th>
+                                        <th class="px-6 py-4 text-left">Organizer</th>
+                                        <th class="px-6 py-4 text-left">Date</th>
+                                        <th class="px-6 py-4 text-left">Status</th>
+                                        <th class="px-6 py-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-blue-900/10">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- LOGS SECTION -->
+                <section id="logsSection" class="content-section" style="display: none;">
+                    <div class="glass-panel rounded-2xl p-6 h-full flex flex-col">
+                        <h3 class="text-xl font-bold text-white mb-6">System Activity Logs</h3>
+                        <div class="flex-1 overflow-y-auto custom-scroll space-y-3" id="fullLogs">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SETTINGS SECTION -->
+                <section id="settingsSection" class="content-section" style="display: none;">
+                    <div class="max-w-3xl">
+                        <h3 class="text-2xl font-bold text-white mb-8">System Settings</h3>
+                        <div class="space-y-6">
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-blue-500">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex gap-4">
+                                        <span class="material-symbols-outlined text-blue-400">person_add</span>
+                                        <div>
+                                            <h4 class="font-bold text-white">New User Registrations</h4>
+                                            <p class="text-xs text-slate-500">Allow new students to create accounts</p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="toggleRegistrations" checked class="sr-only peer">
+                                        <div
+                                            class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex gap-4">
+                                        <span class="material-symbols-outlined text-indigo-400">verified_user</span>
+                                        <div>
+                                            <h4 class="font-bold text-white">Organizer Approvals</h4>
+                                            <p class="text-xs text-slate-500">Require admin validation for new events
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="toggleApprovals" checked class="sr-only peer">
+                                        <div
+                                            class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-rose-500">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex gap-4">
+                                        <span class="material-symbols-outlined text-rose-400">engineering</span>
+                                        <div>
+                                            <h4 class="font-bold text-white">Maintenance Mode</h4>
+                                            <p class="text-xs text-slate-500">Temporarily lock public access</p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="toggleMaintenance" class="sr-only peer">
+                                        <div
+                                            class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600">
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals (Simplified Integration) -->
+
+    <!-- PREMIUM CREATE EVENT MODAL -->
+    <div id="addEventModal" class="modal-overlay">
+        <div class="modal-box"
+            style="display: flex; flex-direction: column; max-width: 700px; width: 95%; margin: auto; position: relative; background: #ffffff; border-radius: 24px; overflow: hidden;">
+            <!-- Header -->
+            <div class="header-section relative">
+                <div
+                    class="px-6 py-4 md:px-8 md:py-5 border-b border-slate-100 bg-white flex flex-col justify-start items-start gap-1 header-row">
+                    <button onclick="closeAddEventModal()"
+                        class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-red-500 hover:bg-red-50 transition-all border border-slate-100 shadow-sm z-10">
+                        <span class="material-icons-round">close</span>
+                    </button>
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
+                            <span class="material-icons-round text-blue-500 text-xl">add_circle</span>
+                        </div>
+                        <div>
+                            <h2 id="eventModalTitle" class="text-xl font-bold text-slate-800 tracking-tight">
+                                Create New Event</h2>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">EVENT
+                                MANAGEMENT SYSTEM</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scrollable Form Container -->
+            <div class="p-4 md:p-5 bg-slate-50">
+                <form id="adminEventForm"
+                    style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%) !important;"
+                    class="bg-white p-5 md:p-6 rounded-[1.5rem] shadow-sm border border-slate-200 space-y-3 md:space-y-4 hover:shadow-md transition-shadow duration-300">
+                    <input type="hidden" id="editEventId">
+
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-slate-700">Event Name <span
+                                    class="text-red-500">*</span></label>
+                            <input id="eventName"
+                                class="w-full px-5 py-4 rounded-2xl bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md hover:border-slate-300"
+                                placeholder="Enter formal event title" type="text" required />
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Date <span
+                                        class="text-red-500">*</span></label>
+                                <input id="eventDate"
+                                    class="w-full px-5 py-4 rounded-2xl bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md hover:border-slate-300"
+                                    type="date" required />
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-slate-700">Start <span
+                                            class="text-red-500">*</span></label>
+                                    <input id="eventTime"
+                                        class="w-full px-5 py-4 rounded-2xl bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md hover:border-slate-300"
+                                        type="time" required />
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-slate-700">End</label>
+                                    <input id="eventEndTime"
+                                        class="w-full px-4 py-3 rounded-2xl bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md hover:border-slate-300"
+                                        type="time" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Venue / Location</label>
+                                <input id="eventVenue"
+                                    class="w-full px-5 py-4 rounded-2xl bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md hover:border-slate-300"
+                                    placeholder="e.g. Auditorium / Online" type="text" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Category</label>
+                                <select id="eventCategory"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium">
+                                    <option>Technical</option>
+                                    <option>Cultural</option>
+                                    <option>Workshop</option>
+                                    <option>Sports</option>
+                                    <option>Social</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Event Type (Cost) <span
+                                        class="text-red-500">*</span></label>
+                                <select id="eventType"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
+                                    onchange="togglePriceField()">
+                                    <option value="free">Free</option>
+                                    <option value="paid">Paid</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Event Mode <span
+                                        class="text-red-500">*</span></label>
+                                <select id="eventMode"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
+                                    onchange="toggleModeFields()">
+                                    <option value="In-Person">In-Person</option>
+                                    <option value="Online">Online</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Target Audience</label>
+                                <select id="eventAudience"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium">
+                                    <option>Open for All</option>
+                                    <option>Students Only</option>
+                                    <option>Members Only</option>
+                                    <option>Invite Only</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-slate-700">Max Capacity</label>
+                                    <input id="eventMaxParticipants"
+                                        class="w-full px-5 py-4 rounded-2xl bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md hover:border-slate-300"
+                                        placeholder="e.g. 100" type="number" min="1" />
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-slate-700">Price (₹)</label>
+                                    <input id="eventPrice"
+                                        class="w-full px-5 py-4 rounded-2xl bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        placeholder="Amount" type="number" min="0" disabled />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Registration Link</label>
+                                <input id="eventRegLink"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    placeholder="https://..." type="url" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Meeting Link (Online)</label>
+                                <input id="eventMeetingLink"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    placeholder="Zoom/Meet Link" type="url" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Registration Deadline</label>
+                                <input id="eventRegDeadline"
+                                    class="w-full px-5 py-4 rounded-2xl bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md hover:border-slate-300"
+                                    type="date" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-slate-700">Event Tags</label>
+                                <div class="event-flags">
+                                    <button type="button" class="flag-btn" id="featuredBtn">Featured</button>
+                                    <button type="button" class="flag-btn" id="charitableBtn">Charitable</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-slate-700">Description <span
+                                    class="text-red-500">*</span></label>
+                            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                                <div class="flex items-center gap-1 p-2 border-b border-slate-200 bg-slate-50">
+                                    <button type="button" onclick="formatDoc('bold')"
+                                        class="p-2 hover:bg-slate-200 rounded-lg text-slate-600 hover:text-slate-900 transition-all"><span
+                                            class="material-icons-round text-lg">format_bold</span></button>
+                                    <button type="button" onclick="formatDoc('italic')"
+                                        class="p-2 hover:bg-slate-200 rounded-lg text-slate-600 hover:text-slate-900 transition-all"><span
+                                            class="material-icons-round text-lg">format_italic</span></button>
+                                    <button type="button" onclick="formatDoc('insertUnorderedList')"
+                                        class="p-2 hover:bg-slate-200 rounded-lg text-slate-600 hover:text-slate-900 transition-all"><span
+                                            class="material-icons-round text-lg">format_list_bulleted</span></button>
+                                </div>
+                                <div id="eventDescEditor" contenteditable="true"
+                                    class="p-6 min-h-[150px] text-slate-700 focus:outline-none"
+                                    placeholder="Describe your event..."></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <label class="block text-sm font-semibold text-slate-700">Event Banner</label>
+                            <div class="relative group cursor-pointer border-2 border-dashed border-slate-200 hover:border-blue-500/50 rounded-[2rem] bg-slate-50 p-12 transition-all hover:bg-white hover:shadow-md"
+                                onclick="document.getElementById('eventImages').click()">
+                                <input id="eventImages" type="file" accept="image/*" class="hidden"
+                                    onchange="handleBannerUpload(this)" />
+                                <canvas id="bannerCanvas" style="display: none;"></canvas>
+                                <div id="bannerPrompt" class="flex flex-col items-center">
+                                    <div
+                                        class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
+                                        <span
+                                            class="material-icons-round text-blue-500 text-4xl">add_photo_alternate</span>
+                                    </div>
+                                    <p class="text-slate-800 font-bold">Launch Image Picker</p>
+                                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">16:9
+                                        RATIO
+                                        RECOMMENDED</p>
+                                </div>
+                                <div id="eventBannerPreview"
+                                    class="hidden absolute inset-0 bg-white rounded-[2rem] overflow-hidden shadow-inner">
+                                    <img src="" class="w-full h-full object-cover">
+                                    <button type="button"
+                                        onclick="event.stopPropagation(); clearSocietyLogo('eventBannerPreview', 'eventBannerUrl', 'eventImages')"
+                                        class="absolute top-4 right-4 w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"><span
+                                            class="material-icons-round">close</span></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6 pt-4">
+                        <div class="space-y-3">
+                            <label class="block text-sm font-semibold text-slate-700">Organizers</label>
+                            <div id="organizerContainer" class="space-y-3">
+                                <!-- Dynamic Organizer Rows -->
+                            </div>
+                            <button type="button" onclick="addOrganizerRow()"
+                                class="text-blue-500 hover:text-blue-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">
+                                <span class="material-icons-round text-base">add_circle</span> Add another organizer
+                            </button>
+                        </div>
+
+                        <div class="space-y-3 border-t border-slate-200 pt-6">
+                            <label class="block text-sm font-semibold text-gray-400">Event Contacts</label>
+                            <div id="contactContainer" class="space-y-3">
+                                <!-- Dynamic Contact Rows -->
+                            </div>
+                            <button type="button" onclick="addContactRow()"
+                                class="text-blue-500 hover:text-blue-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">
+                                <span class="material-icons-round text-base">add_circle</span> Add another contact
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                        <button type="button"
+                            class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-4 rounded-xl transition-all duration-250 transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                            onclick="window.saveEventDraft()">
+                            <span>SAVE AS DRAFT</span>
+                        </button>
+                        <button type="submit"
+                            class="flex-[1.5] bg-[#2f5ea8] hover:bg-[#244a84] text-white font-semibold py-4 rounded-xl shadow-lg shadow-blue-900/20 transition-all duration-250 transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                            <span id="eventSubmitText">PUBLISH EVENT</span>
+                            <span class="material-icons-round text-lg">rocket_launch</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ADD ADMIN MODAL (Premium Redesign Image 3) -->
+        <div id="addAdminModal" class="modal-overlay"
+            style="z-index: 10000; align-items: flex-start; padding-top: 2rem; padding-bottom: 2rem; overflow-y: auto;">
+
+            <style>
+                /* EXACT PREMIUM CSS for Image 3 replica */
+                #addAdminModal.modal-overlay {
+                    z-index: 10000;
+                }
+
+                .pm-modal {
+                    background: #eef2f5;
+                    width: 100%;
+                    max-width: 520px;
+                    margin: auto;
+                    border-radius: 28px;
+                    padding: 32px 24px;
+                    height: auto;
+                    max-height: 95vh;
+                    overflow-y: auto;
+                    font-family: 'Inter', sans-serif;
+                    position: relative;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    border: 8px solid rgba(255, 255, 255, 0.6);
+                }
+
+                .pm-modal::-webkit-scrollbar {
+                    width: 6px;
+                }
+
+                .pm-modal::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 10px;
+                }
+
+                .pm-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: 24px;
+                    padding: 0 8px;
+                }
+
+                .pm-title {
+                    font-size: 24px;
+                    font-weight: 800;
+                    color: #1e293b;
+                    margin-bottom: 4px;
+                    letter-spacing: -0.5px;
+                    line-height: 1.1;
+                }
+
+                .pm-subtitle {
+                    font-size: 10px;
+                    font-weight: 700;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    letter-spacing: 1.5px;
+                }
+
+                .pm-download-btn {
+                    background: #2563eb;
+                    color: white;
+                    border: none;
+                    padding: 8px 14px;
+                    border-radius: 20px;
+                    font-size: 10px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+                    transition: all 0.2s;
+                    white-space: nowrap;
+                }
+
+                .pm-card {
+                    background: #ffffff;
+                    border-radius: 20px;
+                    padding: 24px;
+                    margin-bottom: 16px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    border: 1px solid rgba(226, 232, 240, 0.8);
+                }
+
+                .pm-card-blue {
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                }
+
+                .pm-section {
+                    margin-bottom: 24px;
+                }
+
+                .pm-section:last-child {
+                    margin-bottom: 0;
+                }
+
+                .pm-section-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 13px;
+                    font-weight: 800;
+                    color: #1e293b;
+                    margin-bottom: 16px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+
+                /* Form Fields */
+                .pm-field {
+                    margin-bottom: 14px;
+                }
+
+                .pm-label {
+                    display: block;
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: #475569;
+                    margin-bottom: 6px;
+                    padding-left: 4px;
+                }
+
+                .pm-input {
+                    width: 100%;
+                    padding: 12px 16px;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    font-size: 13px;
+                    color: #1e293b;
+                    transition: all 0.2s;
+                    background: #ffffff;
+                }
+
+                .pm-input:focus {
+                    border-color: #3b82f6;
+                    outline: none;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+
+                /* Role Options */
+                .pm-role-opt {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 14px 16px;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    margin-bottom: 10px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    background: #ffffff;
+                }
+
+                .pm-role-opt:hover {
+                    border-color: #cbd5e1;
+                    background: #f8fafc;
+                }
+
+                .pm-role-radio {
+                    appearance: none;
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 50%;
+                    border: 2px solid #cbd5e1;
+                    margin: 0;
+                    position: relative;
+                    cursor: pointer;
+                }
+
+                .pm-role-radio:checked {
+                    border-color: #2563eb;
+                    background: #ffffff;
+                }
+
+                .pm-role-radio:checked::after {
+                    content: '';
+                    position: absolute;
+                    width: 10px;
+                    height: 10px;
+                    background: #2563eb;
+                    border-radius: 50%;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                }
+
+                .pm-role-text h4 {
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin: 0 0 2px 0;
+                }
+
+                .pm-role-text p {
+                    font-size: 11px;
+                    color: #64748b;
+                    margin: 0;
+                }
+
+                /* Permissions */
+                .pm-perm-all {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 6px 12px;
+                    background: #e2e8f0;
+                    border-radius: 20px;
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: #475569;
+                    cursor: pointer;
+                    margin-bottom: 16px;
+                    transition: all 0.2s;
+                }
+
+                .pm-perm-all:hover {
+                    background: #cbd5e1;
+                }
+
+                .pm-perm-box {
+                    background: #f8fafc;
+                    border-radius: 16px;
+                    padding: 16px;
+                    border: 1px solid #e2e8f0;
+                }
+
+                .pm-perm-group {
+                    margin-bottom: 16px;
+                }
+
+                .pm-perm-group:last-child {
+                    margin-bottom: 0;
+                }
+
+                .pm-perm-title {
+                    font-size: 11px;
+                    font-weight: 800;
+                    color: #475569;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 10px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+
+                .pm-badge {
+                    background: #dbeafe;
+                    color: #1e40af;
+                    font-size: 9px;
+                    padding: 2px 6px;
+                    border-radius: 10px;
+                    font-weight: 800;
+                }
+
+                .pm-check-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 8px;
+                    font-size: 12px;
+                    color: #334155;
+                    font-weight: 500;
+                }
+
+                .pm-checkbox {
+                    appearance: none;
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid #cbd5e1;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    position: relative;
+                    background: #ffffff;
+                    transition: all 0.2s;
+                    flex-shrink: 0;
+                }
+
+                .pm-checkbox:checked {
+                    background: #2563eb;
+                    border-color: #2563eb;
+                }
+
+                .pm-checkbox:checked::after {
+                    content: '✓';
+                    color: white;
+                    position: absolute;
+                    font-size: 11px;
+                    left: 2px;
+                    top: -1px;
+                    font-weight: 900;
+                }
+
+                /* Password Gen */
+                .pm-pass-box {
+                    position: relative;
+                    margin-bottom: 12px;
+                }
+
+                .pm-pass-box input {
+                    width: 100%;
+                    padding: 14px 16px;
+                    border-radius: 16px;
+                    border: 1px solid #e2e8f0;
+                    font-size: 14px;
+                    font-family: monospace;
+                    color: #1e293b;
+                    padding-right: 80px;
+                    background: #ffffff;
+                }
+
+                .pm-pass-copy {
+                    position: absolute;
+                    right: 8px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: #f1f5f9;
+                    color: #475569;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 10px;
+                    font-size: 10px;
+                    font-weight: 800;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .pm-pass-copy:hover {
+                    background: #e2e8f0;
+                }
+
+                .pm-btn-primary {
+                    width: 100%;
+                    background: #1e40af;
+                    color: white;
+                    border: none;
+                    padding: 16px;
+                    border-radius: 16px;
+                    font-size: 13px;
+                    font-weight: 800;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+                    transition: all 0.2s;
+                }
+
+                .pm-btn-primary:active {
+                    transform: scale(0.98);
+                }
+
+                /* Security */
+                .pm-sec-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 14px 16px;
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 16px;
+                    margin-bottom: 10px;
+                }
+
+                .pm-sec-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #1e293b;
+                }
+
+                .pm-sec-value {
+                    font-family: monospace;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #0f172a;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+
+                .pm-sec-value .dots {
+                    color: #64748b;
+                    letter-spacing: 2px;
+                }
+
+                .pm-btn-danger {
+                    background: #b91c1c;
+                    color: white;
+                    border: none;
+                    padding: 8px 14px;
+                    border-radius: 10px;
+                    font-size: 11px;
+                    font-weight: 800;
+                    cursor: pointer;
+                }
+
+                .pm-notice {
+                    background: #eff6ff;
+                    border-left: 3px solid #3b82f6;
+                    padding: 12px 16px;
+                    border-radius: 0 12px 12px 0;
+                    font-size: 11px;
+                    color: #1e3a8a;
+                    line-height: 1.5;
+                    margin-top: 16px;
+                }
+
+                /* Actions Footer */
+                .pm-footer {
+                    display: flex;
+                    gap: 16px;
+                    padding-top: 16px;
+                }
+
+                .pm-btn-cancel {
+                    flex: 1;
+                    background: #dbeafe;
+                    color: #1e40af;
+                    border: none;
+                    padding: 18px;
+                    border-radius: 20px;
+                    font-size: 13px;
+                    font-weight: 800;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .pm-btn-cancel:hover {
+                    background: #bfdbfe;
+                }
+
+                .pm-btn-submit {
+                    flex: 2;
+                    background: #1e40af;
+                    color: white;
+                    border: none;
+                    padding: 18px;
+                    border-radius: 20px;
+                    font-size: 13px;
+                    font-weight: 800;
+                    cursor: pointer;
+                    box-shadow: 0 6px 16px rgba(30, 64, 175, 0.25);
+                    transition: all 0.2s;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .pm-btn-submit:active {
+                    transform: scale(0.98);
+                }
+            </style>
+
+            <form id="addAdminForm" style="display: contents;">
+                <div class="pm-modal">
+                    <div class="pm-header">
+                        <div>
+                            <h2 class="pm-title">Promote User<br>to Admin</h2>
+                            <p class="pm-subtitle">USER CREDENTIALS & ACCESS</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: flex-start;">
+                            <button type="button" class="pm-download-btn">
+                                <span class="material-icons-round" style="font-size: 14px;">download</span> DOWNLOAD AS
+                                PNG
+                            </button>
+                            <button type="button" onclick="closeAddAdminModal()"
+                                class="w-10 h-10 bg-white/50 hover:bg-white text-gray-500 hover:text-red-500 rounded-xl flex items-center justify-center transition-all shadow-sm border border-gray-200">
+                                <span class="material-icons-round">close</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pm-card">
+                        <!-- Identity -->
+                        <div class="pm-section">
+                            <div class="pm-section-title"><span style="color: #4f46e5;">👤</span> ADMIN IDENTITY</div>
+                            <div class="pm-field">
+                                <label class="pm-label">Full Name *</label>
+                                <input type="text" id="newAdminName" class="pm-input" placeholder="Alex Chen" required>
+                            </div>
+                            <div class="pm-field">
+                                <label class="pm-label">Email Address *</label>
+                                <input type="email" id="newAdminEmail" class="pm-input"
+                                    placeholder="alex.chen@kiit.ac.in" required>
+                            </div>
+                        </div>
+
+                        <!-- Role -->
+                        <div class="pm-section">
+                            <div class="pm-section-title"><span style="color: #c026d3;">⚙️</span> ASSIGN ROLE</div>
+                            <label class="pm-role-opt">
+                                <input type="radio" name="adminRole" value="Admin" class="pm-role-radio" checked>
+                                <div class="pm-role-text">
+                                    <h4>Normal Admin</h4>
+                                    <p>Managed permissions & limited access.</p>
+                                </div>
+                            </label>
+                            <label class="pm-role-opt">
+                                <input type="radio" name="adminRole" value="Super Admin" class="pm-role-radio">
+                                <div class="pm-role-text">
+                                    <h4>Super Admin</h4>
+                                    <p>Full system control.</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Permissions -->
+                        <div class="pm-section">
+                            <div class="pm-section-title"><span style="color: #f59e0b;">🔐</span> PERMISSIONS</div>
+
+                            <label class="pm-perm-all">
+                                <input type="checkbox" id="selectAllCheckDemo" onclick="toggleAllPermissions()"
+                                    class="pm-checkbox permission-checkbox-all"
+                                    style="width:14px;height:14px;border-width:1px;">
+                                Select All Permissions
+                            </label>
+
+                            <div class="pm-perm-box" id="permissionsBlock">
+                                <div class="pm-perm-group">
+                                    <div class="pm-perm-title">USER MANAGEMENT <span class="pm-badge">2</span></div>
+                                    <label class="pm-check-row"><input type="checkbox"
+                                            class="pm-checkbox permission-checkbox" value="view_users" checked> View
+                                        Users</label>
+                                    <label class="pm-check-row"><input type="checkbox"
+                                            class="pm-checkbox permission-checkbox" value="manage_roles"> Manage
+                                        Roles</label>
+                                </div>
+                                <div class="pm-perm-group">
+                                    <div class="pm-perm-title">SOCIETIES <span class="pm-badge">2</span></div>
+                                    <label class="pm-check-row"><input type="checkbox"
+                                            class="pm-checkbox permission-checkbox" value="add_societies" checked>
+                                        Create
+                                        New</label>
+                                    <label class="pm-check-row" style="margin-left: 20px;"><input type="checkbox"
+                                            class="pm-checkbox permission-checkbox" value="delete_societies">
+                                        Remove/Delete</label>
+                                </div>
+                                <div class="pm-perm-group">
+                                    <div class="pm-perm-title">EVENT CONTROL <span class="pm-badge">3</span></div>
+                                    <label class="pm-check-row"><input type="checkbox"
+                                            class="pm-checkbox permission-checkbox" value="view_events" checked> View
+                                        Events</label>
+                                    <label class="pm-check-row"><input type="checkbox"
+                                            class="pm-checkbox permission-checkbox" value="create_events"> Create
+                                        Events</label>
+                                    <label class="pm-check-row"><input type="checkbox"
+                                            class="pm-checkbox permission-checkbox" value="approve_events"> Approve
+                                        Events</label>
+                                </div>
+                                <div class="pm-perm-group" style="margin-bottom: 0;">
+                                    <div class="pm-perm-title">SYSTEM</div>
+                                    <label class="pm-check-row"><input type="checkbox"
+                                            class="pm-checkbox permission-checkbox" value="view_logs"> Action
+                                        Logs</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pm-card pm-card-blue">
+                        <div class="pm-section">
+                            <div class="pm-section-title"><span style="color: #f59e0b;">🔑</span> PASSWORD GENERATOR
+                            </div>
+                            <div class="pm-pass-box">
+                                <input type="text" id="genPassword" value="Generating..." readonly>
+                                <button type="button" class="pm-pass-copy" id="copyPasswordBtn"
+                                    onclick="copyToClipboard()">COPY</button>
+                            </div>
+                            <button type="button" class="pm-btn-primary" id="generatePasswordBtn"
+                                onclick="generateRandomPassword()">GENERATE NEW PASSWORD</button>
+                        </div>
+
+                        <div class="pm-section" style="margin-top: 24px;">
+                            <div class="pm-section-title"><span style="color: #3b82f6;">🛡️</span> SECURITY &
+                                CREDENTIALS
+                            </div>
+
+                            <div class="pm-sec-row">
+                                <div class="pm-sec-label"><span style="font-size: 16px;">🔒</span> TEMPORARY PASSWORD
+                                </div>
+                                <div class="pm-sec-value">Generating <span class="dots">•••</span></div>
+                            </div>
+
+                            <div class="pm-sec-row">
+                                <div class="pm-sec-label">
+                                    <span style="font-size: 16px;">📧</span>
+                                    <label
+                                        style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                                        <input type="checkbox" id="emailCredentialsToggle" class="pm-checkbox" checked
+                                            style="width:14px;height:14px;">
+                                        EMAIL CREDENTIALS
+                                    </label>
+                                </div>
+                                <button type="button" class="pm-btn-danger" id="forceResetToggleBtn"
+                                    onclick="toggleForceReset()">
+                                    FORCE RESET
+                                </button>
+                                <input type="checkbox" id="forceResetToggle" style="display:none;">
+                            </div>
+
+                            <div class="pm-notice">
+                                <strong><span class="material-icons-round" style="font-size: 16px;">info</span> Security
+                                    Requirement</strong>
+                                Credentials will be emailed automatically to the user if selected. Ensure the email
+                                address
+                                is correct as this action cannot be undone.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pm-footer">
+                        <button type="button" class="pm-btn-cancel" onclick="closeAddAdminModal()">CANCEL</button>
+                        <button type="submit" class="pm-btn-submit" id="promoteBtn">CREATE ADMINISTRATOR</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <!-- --- SOCIETY MANAGEMENT MODAL (ELITE REDESIGN) --- -->
+        <div id="addSocietyModal" class="modal">
+            <div
+                class="w-full max-w-2xl bg-[#111827] rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col h-[90vh] relative animate-in fade-in zoom-in duration-300">
+
+                <!-- Header -->
+                <div class="px-8 py-6 border-b border-white/5 flex items-center gap-4 shrink-0 bg-[#111827]">
+                    <div class="w-12 h-12 bg-[#1e293b] rounded-2xl flex items-center justify-center shadow-inner">
+                        <span id="socModalIcon" class="material-icons-round text-blue-500 text-2xl">groups</span>
+                    </div>
+                    <div class="flex-1">
+                        <h2 id="socModalTitle" class="text-2xl font-bold text-white tracking-tight">Add New Society</h2>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-0.5">SOCIETY
+                            REGISTRATION PORTAL</p>
+                    </div>
+                    <button onclick="closeAddSocietyModal()"
+                        class="w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-full flex items-center justify-center transition-all">
+                        <span class="material-icons-round">close</span>
+                    </button>
+                </div>
+
+                <!-- Scrollable Form -->
+                <form id="adminSocietyForm" class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-[#111827]">
+                    <input type="hidden" id="editSocId">
+                    <input type="hidden" id="socLogoUrl">
+                    <input type="hidden" id="socBannerUrl">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400" for="society-name">
+                                Society Name <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                id="society-name" placeholder="e.g. KIIT Robotics Society" type="text" required />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400" for="category">
+                                Category <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <select
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
+                                    id="category">
+                                    <option>Technical</option>
+                                    <option>Cultural</option>
+                                    <option>Sports</option>
+                                    <option>Literary</option>
+                                </select>
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-gray-500">
+                                    <span class="material-icons-round text-xl">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+                    <div class="space-y-4">
+                        <div class="flex flex-col md:flex-row gap-6 items-start">
+                            <div class="relative group cursor-pointer w-full md:w-32 h-32 bg-[#0f172a] border-2 border-dashed border-[#1e293b] hover:border-blue-500/50 rounded-2xl transition-all flex flex-col items-center justify-center p-4 text-center"
+                                onclick="document.getElementById('socImage').click()">
+                                <input type="file" id="socImage" class="hidden" accept="image/*"
+                                    onchange="handleSocLogoUpload(this)">
+                                <div id="socLogoPreview" class="absolute inset-0 flex items-center justify-center p-2">
+                                    <div class="flex flex-col items-center">
+                                        <span
+                                            class="material-icons-round text-gray-500 text-3xl mb-1">add_photo_alternate</span>
+                                        <span class="text-[10px] text-gray-500 font-bold uppercase">Upload</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex-1 w-full space-y-2">
+                                <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Or Logo
+                                    URL</label>
+                                <input id="socImageUrl"
+                                    class="w-full px-5 py-3 rounded-xl bg-[#0f172a] border border-[#1e293b] text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                    placeholder="https://path-to-logo.png" type="url" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">
+                            Short Description <span class="text-red-500">*</span>
+                        </label>
+                        <textarea id="socDesc"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium h-24 resize-none"
+                            placeholder="Briefly describe the society..." required></textarea>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">
+                            Detailed Overview
+                        </label>
+                        <textarea id="socOverview"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium h-32"
+                            placeholder="Detailed information about the society..."></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">How it Works</label>
+                            <textarea id="socHowItWorks"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium h-24"
+                                placeholder="Describe how members interact..."></textarea>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Recruitment Process</label>
+                            <textarea id="socRecruitment"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium h-24"
+                                placeholder="How can students join?"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Members</label>
+                            <input id="socMembers"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="e.g. 100+" type="text" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Events/Projects</label>
+                            <input id="socProjects"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="e.g. 20+" type="text" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Est. Year</label>
+                            <input id="socEst"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="e.g. 2015" type="text" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Website</label>
+                            <input id="socWebsite"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="https://..." type="url" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">LinkedIn</label>
+                            <input id="socLinkedin"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="LinkedIn URL" type="url" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Instagram</label>
+                            <input id="socInstagram"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="Instagram URL" type="url" />
+                        </div>
+                    </div>
+
+                    <div class="pt-6 pb-4">
+                        <button type="submit"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-6 rounded-2xl shadow-xl shadow-blue-500/20 transform active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3">
+                            <span class="material-icons-round">check_circle</span>
+                            <span id="socSubmitBtnText">ADD SOCIETY</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <script src="./state.js"></script>
+        <script type="module" src="./supabase.js"></script>
+        <script type="module" src="./admin.js?v=19"></script>
+
+<!-- ── CUSTOM NEXUS MODALS FOR MEMBERS AND SETTINGS ── -->
+<div class="nexus-modal" id="nexusAddMemberModal">
+    <div class="nexus-modal-content">
+        <h3><i class="fas fa-user-plus" style="color:#7c4dff;margin-right:8px;"></i>Add People</h3>
+        <p style="font-size:0.8rem;color:#8f9bc0;margin-bottom:15px;">Search by name or email to add to the chat.</p>
+        <input class="nexus-modal-input" type="text" id="nexusAddPeopleSearch" placeholder="Search users...">
+        <div class="nexus-member-list" id="nexusAddPeopleResults" style="max-height:200px;overflow-y:auto;margin-top:10px;"></div>
+        <div class="nexus-modal-footer">
+            <button class="nexus-modal-btn cancel" id="nexusCloseAddPeople">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="nexus-modal" id="nexusChannelSettingsModal">
+    <div class="nexus-modal-content" style="max-width:500px;">
+        <h3><i class="fas fa-cog" style="color:#7c4dff;margin-right:8px;"></i>Channel Settings</h3>
+        
+        <div style="margin-top:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:10px;">
+            <h4 style="font-size:0.85rem; color:#8f9bc0; margin-bottom:10px; text-transform:uppercase;">Members</h4>
+            <div id="nexusChannelMembersList" style="max-height:200px; overflow-y:auto; border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:5px;">
+                <!-- Members populated by JS -->
+            </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="nexus-modal-btn danger" id="nexusLeaveChannelBtn" style="width:100%; text-align:left;"><i class="fas fa-sign-out-alt"></i> Leave Channel</button>
+            <button class="nexus-modal-btn danger" id="nexusDeleteChannelBtn" style="width:100%; text-align:left;"><i class="fas fa-trash"></i> Delete Channel (Admin)</button>
+        </div>
+
+        <div class="nexus-modal-footer">
+            <button class="nexus-modal-btn cancel" id="nexusCloseChannelSettings">Close</button>
+        </div>
+    </div>
+</div>
+\n</body>
+
+</html>

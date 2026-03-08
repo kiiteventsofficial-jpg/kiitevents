@@ -1,0 +1,3178 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | KIIT Events</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="nexus-chat.js" defer></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="./admin.css">
+    <link rel="stylesheet" href="./chat.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 20px;
+            border: 3px solid #0f172a;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        #addSocietyModal .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border: 3px solid #111827;
+        }
+
+        .notification-drawer {
+            position: absolute;
+            top: 75px;
+            right: 25px;
+            width: 380px;
+            max-height: 550px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            transform-origin: top right;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .notification-drawer.active {
+            display: flex;
+            animation: notifyPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes notifyPop {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .notification-header {
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .notification-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .notification-item {
+            padding: 16px 20px;
+            display: flex;
+            gap: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .notification-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* Mobile Responsiveness for Promote User Modal */
+        @media (max-width: 768px) {
+            #addAdminModal {
+                align-items: flex-end !important;
+                padding-bottom: 0 !important;
+                visibility: hidden;
+                /* Controlled by .active */
+            }
+
+            #addAdminModal.active {
+                visibility: visible !important;
+            }
+
+            #addAdminModal .modal-box {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                max-height: 92vh !important;
+                border-radius: 24px 24px 0 0 !important;
+                margin-bottom: 0 !important;
+                transition: none !important;
+                /* Disable base transition */
+                transform: translateY(100%);
+                flex-direction: column;
+                display: flex;
+            }
+
+            #addAdminModal.active .modal-box {
+                transform: translateY(0) !important;
+                animation: slideUpMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            }
+
+            @keyframes slideUpMobile {
+                from {
+                    transform: translateY(100%);
+                }
+
+                to {
+                    transform: translateY(0);
+                }
+            }
+
+            #addAdminForm {
+                padding: 24px 20px !important;
+                max-height: calc(92vh - 80px) !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+            }
+
+            .role-card {
+                margin-bottom: 12px !important;
+            }
+
+            .permission-group {
+                margin-bottom: 16px !important;
+            }
+
+            .security-warning {
+                padding: 16px !important;
+                line-height: 1.6 !important;
+                margin-top: 8px !important;
+            }
+
+            .modal-footer {
+                position: sticky !important;
+                bottom: 0 !important;
+                background: #0f172a !important;
+                /* Matches bg-[#0f172a] */
+                padding: 20px 0 32px 0 !important;
+                margin-top: 24px !important;
+                z-index: 50 !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+            }
+
+            .modal-footer button {
+                padding: 14px 20px !important;
+                font-size: 13px !important;
+            }
+        }
+
+        .notification-item.unread {
+            background: rgba(59, 130, 246, 0.04);
+        }
+
+        .notification-item.unread::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Sidebar Toggle Animation */
+        .admin-sidebar {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.4s ease, opacity 0.4s ease;
+        }
+
+        main {
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-action {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .notification-meta {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notification-empty {
+            padding: 40px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Emoji Picker Styles */
+        .emoji-picker {
+            display: none;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 280px;
+        }
+
+        .emoji-item {
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+        .emoji-item:hover {
+            background: #f3f4f6;
+        }
+
+        /* Shared Media File Style */
+        .media-item.file {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4f6;
+            color: #6366f1;
+        }
+
+        .new-badge {
+            background: #ef4444;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            margin-left: 8px;
+            text-transform: uppercase;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6",
+                        "primary-hover": "#2563eb",
+                        secondary: "#1e40af",
+                        "dark-bg": "#020617",
+                        "deep-blue": "#0f172a",
+                        "background-light": "#f3f4f6",
+                        "background-dark": "#0f172a",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1e293b",
+                        "input-bg-dark": "#131c2e",
+                        "border-dark": "#334155",
+                        "glass-border": "rgba(255, 255, 255, 0.08)",
+                        "glass-bg": "rgba(30, 41, 59, 0.4)",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                        display: ["Poppins", "sans-serif"],
+                    },
+                    backgroundImage: {
+                        'sidebar-gradient': 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 100%)',
+                        'card-gradient': 'linear-gradient(180deg, rgba(30, 58, 138, 0.2) 0%, rgba(15, 23, 42, 0.3) 100%)',
+                    },
+                },
+            },
+        };
+    </script>
+    <script type="module" src="./supabase.js"></script>
+
+
+</head>
+
+<body class="bg-[#020617] text-slate-300 min-h-screen p-0 overflow-hidden">
+    <div id="loadingOverlay"
+        class="fixed inset-0 z-[9999] bg-[#020617] flex flex-col items-center justify-center text-white">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500/20 border-t-blue-500 mb-4"></div>
+        <p id="loadingMessage" class="text-lg font-medium">Verifying access...</p>
+    </div>
+
+
+    <div class="flex w-full h-screen overflow-hidden bg-[#020617] relative">
+        <!-- Background Blobs -->
+        <div
+            class="absolute top-[-20%] left-[10%] w-[1000px] h-[1000px] bg-blue-900/10 rounded-full blur-[180px] pointer-events-none">
+        </div>
+        <div
+            class="absolute bottom-[-10%] right-[-10%] w-[800px] h-[800px] bg-indigo-900/10 rounded-full blur-[150px] pointer-events-none">
+        </div>
+
+
+        <!-- Sidebar -->
+        <aside
+            class="sidebar w-64 h-full flex flex-col sidebar-gradient border-r border-blue-900/20 relative z-20 admin-sidebar">
+            <div class="px-5 py-6 flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/20 flex-shrink-0">
+                        <span class="material-symbols-outlined text-white text-[20px]">admin_panel_settings</span>
+                    </div>
+                    <div class="flex flex-col logo-text">
+                        <span class="text-[15px] font-bold text-white tracking-tight font-display" id="logoBrand">Admin
+                            Dashboard</span>
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest" id="logoSubtext">Super
+                            Admin</span>
+                    </div>
+                </div>
+                <button
+                    class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer group"
+                    onclick="toggleSidebarDesktop()">
+                    <span id="desktopToggleIcon"
+                        class="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">menu_open</span>
+                </button>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto custom-scroll px-4 space-y-1">
+                <div class="py-2" id="groupMain">
+                    <p class="px-3 text-[10px] font-bold text-blue-300/50 uppercase tracking-widest mb-2">Main</p>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-blue-100 hover:text-white hover:bg-white/[0.04] transition-all duration-200 group sidebar-item-active nav-item active"
+                        id="navOverview" onclick="showSection('overview')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">dashboard</span>
+                        <span class="text-sm font-medium menu-text">Overview</span>
+                    </button>
+                </div>
+
+                <div class="py-2" id="groupManagement">
+                    <p class="px-3 text-[10px] font-bold text-blue-300/50 uppercase tracking-widest mb-2">Management</p>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navUsers" onclick="showSection('users')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">manage_accounts</span>
+                        <span class="text-sm font-medium menu-text">User Management</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navSocieties" onclick="showSection('societies')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">groups</span>
+                        <span class="text-sm font-medium menu-text">Societies</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navAdminEvents" onclick="showSection('adminEvents')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">calendar_view_day</span>
+                        <span class="text-sm font-medium menu-text">My Events</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navEventControl" onclick="showSection('events')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">confirmation_number</span>
+                        <span class="text-sm font-medium menu-text">Event Control</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navAddAdmin" onclick="showAddAdminModal()">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">person_add</span>
+                        <span class="text-sm font-medium menu-text">Add Admin</span>
+                    </button>
+                </div>
+
+                <div class="py-2" id="groupCommunication">
+                    <p class="px-3 text-[10px] font-bold text-blue-300/50 uppercase tracking-widest mb-2">Communication
+                    </p>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navChat" onclick="window.open('nexus.html?role=admin', '_blank')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">chat</span>
+                        <span class="text-sm font-medium menu-text">Chat</span>
+                    </button>
+                </div>
+
+                <div class="py-2" id="groupSystem">
+                    <p class="px-3 text-[10px] font-bold text-blue-300/50 uppercase tracking-widest mb-2">System</p>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navLogs" onclick="showSection('logs')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">history</span>
+                        <span class="text-sm font-medium">Activity Logs</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navSettings" onclick="showSection('settings')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">settings_applications</span>
+                        <span class="text-sm font-medium">System Settings</span>
+                    </button>
+
+                </div>
+
+                <div class="py-2 mt-4 border-t border-blue-800/20">
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        onclick="window.history.length > 1 ? window.history.back() : window.location.replace('index.html')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-slate-300 transition-colors">arrow_back</span>
+                        <span class="text-sm font-medium">Back</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 mt-1 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        onclick="goHome()">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-slate-300 transition-colors">home</span>
+                        <span class="text-sm font-medium">Back to Home</span>
+                    </button>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-blue-900/30 bg-[#0f172a]/50">
+                <div class="flex items-center gap-3 px-2 py-1">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-700 to-slate-700 flex items-center justify-center text-xs font-bold text-white ring-2 ring-blue-900/50 shadow-md"
+                        id="adminInitial">SA</div>
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="text-[13px] font-semibold text-white truncate" id="adminName">Super Admin</span>
+                        <span class="badge admin-badge hidden">SUPERUSER</span>
+                        <span class="text-[10px] text-blue-300/70 truncate">Dashboard Panel</span>
+                    </div>
+                    <button class="ml-auto text-slate-500 hover:text-red-400 transition-colors" title="Logout"
+                        onclick="logout()">
+                        <span class="material-symbols-outlined text-[20px]">logout</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile Overlay (Placed after sidebar for CSS sibling selector) -->
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Main Content -->
+        <main class="flex-1 bg-[#020617] relative overflow-hidden flex flex-col h-full">
+            <header
+                class="flex flex-wrap items-center justify-between px-4 sm:px-6 md:px-8 py-4 border-b border-blue-900/20 backdrop-blur-md bg-blue-900/10 z-10 sticky top-0 gap-y-4">
+                <div class="flex items-center gap-3">
+                    <button
+                        class="lg:hidden text-blue-400 p-2 -ml-2 hover:bg-white/5 rounded-lg transition-colors mobile-sidebar-toggle"
+                        onclick="toggleSidebar()">
+                        <span class="material-symbols-outlined text-[24px]">menu</span>
+                    </button>
+                    <h2 class="text-xl font-bold text-white tracking-tight flex items-center gap-2" id="pageTitle">
+                        <span class="material-symbols-outlined text-blue-400 text-[22px]">dashboard</span>
+                        System Overview
+                    </h2>
+                </div>
+                <div class="flex items-center gap-2 text-[11px] text-slate-500 font-medium hidden md:flex">
+                    <span>Dashboard</span>
+                    <span class="text-slate-600">/</span>
+                    <span class="text-blue-400" id="breadcrumbPage">Overview</span>
+                </div>
+                <!-- Action section (Search & Notif) - allow wrapping and full width on mobile -->
+                <div class="flex flex-wrap items-center justify-end gap-4 w-full md:w-auto ml-auto">
+                    <!-- Search Bar: block & full-width on mobile, auto-width & first on desktop -->
+                    <div class="relative block w-full md:w-auto order-last md:order-none">
+                        <input
+                            class="bg-[#0f172a]/80 border border-blue-800/30 rounded-full py-2 px-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 w-full md:w-64 transition-all"
+                            placeholder="Search system..." type="text" id="systemSearch" />
+                        <span
+                            class="material-symbols-outlined absolute right-3 top-2 text-slate-600 text-[18px]">search</span>
+                    </div>
+                    <!-- Notification Button -->
+                    <button
+                        class="relative w-9 h-9 rounded-full border border-blue-800/30 bg-[#0f172a] flex items-center justify-center hover:bg-blue-900/20 hover:border-blue-500/40 transition-all text-slate-400 hover:text-blue-200 order-first md:order-none"
+                        id="notificationBtn" onclick="toggleNotifications()">
+                        <span class="material-symbols-outlined text-[20px]">notifications</span>
+                        <span id="notificationBadge"
+                            class="absolute top-0 right-0 w-2.5 h-2.5 bg-blue-500 border-2 border-[#0f172a] rounded-full hidden"></span>
+                    </button>
+
+                    <!-- Notifications Drawer -->
+                    <div id="notificationDrawer" class="notification-drawer">
+                        <div class="notification-header">
+                            <div>
+                                <h3 class="text-sm font-bold text-white leading-tight">Notifications</h3>
+                                <p class="text-[10px] text-blue-400 font-medium tracking-wide uppercase">Real-time
+                                    Updates</p>
+                            </div>
+                            <button
+                                class="text-[11px] text-slate-400 hover:text-white transition-colors flex items-center gap-1 group"
+                                onclick="markAllRead()">
+                                <span
+                                    class="material-symbols-outlined text-[14px] group-hover:rotate-12 transition-transform">done_all</span>
+                                Mark all as read
+                            </button>
+                        </div>
+                        <div id="notificationList" class="notification-list custom-scrollbar">
+                            <!-- Quick-Inject Empty State -->
+                            <div class="notification-empty">
+                                <div
+                                    class="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-2">
+                                    <span
+                                        class="material-symbols-outlined text-slate-600 text-[32px]">notifications_off</span>
+                                </div>
+                                <p class="text-sm text-slate-400 font-medium">No new notifications</p>
+                                <p class="text-[11px] text-slate-600">We'll alert you when something happens</p>
+                            </div>
+                        </div>
+                        <div class="px-5 py-3 border-t border-white/5 bg-white/[0.02] flex items-center justify-center">
+                            <button
+                                class="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest flex items-center gap-2"
+                                onclick="showSection('logs'); toggleNotifications();">
+                                <span>View All Activity Logs</span>
+                                <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto custom-scroll p-4 sm:p-6 lg:p-8" id="mainScrollAreaAdmin">
+                <!-- MODALS -->
+
+                <div class="nexus-modal" id="nexusCreateGroupModal">
+                    <div class="nexus-modal-content">
+                        <h3><i class="fas fa-users" style="color:#7c4dff;margin-right:8px;"></i>Create Group /
+                            Channel</h3>
+                        <input class="nexus-modal-input" type="text" id="nexusGroupNameInput"
+                            placeholder="Group Name (e.g. CORE TEAM)">
+
+                        <div style="margin: 15px 0 10px;">
+                            <label
+                                style="display:block;font-size:0.75rem;color:#8f9bc0;margin-bottom:5px;font-weight:600;">ADD
+                                MEMBERS</label>
+                            <input class="nexus-modal-input" type="text" id="nexusGroupSearchInput"
+                                placeholder="Search by name or email...">
+                        </div>
+
+                        <div class="nexus-member-list" id="nexusGroupSearchResults"
+                            style="max-height:150px;overflow-y:auto;border:1px solid rgba(143,155,192,0.1);border-radius:8px;">
+                        </div>
+
+                        <div id="nexusSelectedMembers" class="nexus-tag-container"
+                            style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;min-height:30px;">
+                            <span style="font-size:0.75rem;color:#6b7390;font-style:italic;">No members
+                                selected...</span>
+                        </div>
+
+                        <div class="nexus-modal-footer">
+                            <button class="nexus-modal-btn cancel" id="nexusCancelGroup">Cancel</button>
+                            <button class="nexus-modal-btn primary" id="nexusSaveGroup">Create Group</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="nexus-modal" id="nexusAddMemberModal">
+                    <div class="nexus-modal-content">
+                        <h3><i class="fas fa-user-plus" style="color:#7c4dff;margin-right:8px;"></i>Add Member</h3>
+                        <input class="nexus-modal-input" type="text" id="nexusAddPeopleSearch"
+                            placeholder="Search by name or email...">
+                        <div class="nexus-member-list" id="nexusAddPeopleResults"
+                            style="max-height:300px;overflow-y:auto;margin-top:10px;"></div>
+                        <div class="nexus-modal-footer">
+                            <button class="nexus-modal-btn cancel" id="nexusCloseAddPeople">Close</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nexus-modal" id="nexusChannelSettingsModal">
+                    <div class="nexus-modal-content" style="max-width:500px;">
+                        <h3 id="nexusChannelSettingsTitle"><i class="fas fa-cog"
+                                style="color:#7c4dff;margin-right:8px;"></i>Channel Settings</h3>
+
+                        <div style="margin:20px 0;">
+                            <label
+                                style="display:block;font-size:0.75rem;color:#8f9bc0;margin-bottom:10px;font-weight:600;text-transform:uppercase;">Manage
+                                Members</label>
+                            <div id="nexusSettingsMemberList"
+                                style="max-height:250px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:10px;padding:5px;">
+                            </div>
+                        </div>
+
+                        <div style="margin:20px 0;">
+                            <label
+                                style="display:block;font-size:0.75rem;color:#8f9bc0;margin-bottom:10px;font-weight:600;text-transform:uppercase;">Quick
+                                Actions</label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <button class="nexus-modal-btn secondary" id="nexusSettingsAddAll"
+                                    style="font-size:0.75rem;">Add All Users</button>
+                                <button class="nexus-modal-btn secondary" id="nexusSettingsAddAdmins"
+                                    style="font-size:0.75rem;">Add Admins</button>
+                                <button class="nexus-modal-btn secondary" id="nexusSettingsAddStudents"
+                                    style="font-size:0.75rem;">Add Students</button>
+                                <button class="nexus-modal-btn danger" id="nexusDeleteChannelBtn"
+                                    style="font-size:0.75rem;">Delete Channel</button>
+                            </div>
+                        </div>
+
+                        <div class="nexus-modal-footer">
+                            <button class="nexus-modal-btn cancel" id="nexusCloseChannelSettings">Close</button>
+                            <button class="nexus-modal-btn danger" id="nexusLeaveChannelBtn">Leave Channel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nexus-modal" id="nexusDMModal">
+                    <div class="nexus-modal-content">
+                        <h3><i class="fas fa-user-plus" style="color:#7c4dff;margin-right:8px;"></i>Start Direct
+                            Message</h3>
+                        <input class="nexus-modal-input" type="text" id="nexusDMSearchInput"
+                            placeholder="Search by name or email...">
+                        <div class="nexus-member-list" id="nexusDMResults"></div>
+                        <div class="nexus-modal-footer">
+                            <button class="nexus-modal-btn cancel" id="nexusCancelDM">Close</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="nexus-modal" id="nexusManageGroupModal">
+                    <div class="nexus-modal-content">
+                        <h3 id="nexusManageGroupTitle">Manage Group</h3>
+                        <div class="nexus-member-list" id="nexusMemberList"></div>
+                        <input class="nexus-modal-input" type="text" id="nexusMemberSearchInput"
+                            placeholder="Search users to add...">
+                        <select class="nexus-modal-select" id="nexusAddMemberSelect">
+                            <option value="">Search first...</option>
+                        </select>
+                        <div class="nexus-modal-footer">
+                            <button class="nexus-modal-btn cancel" id="nexusCloseManageGroup">Close</button>
+                            <button class="nexus-modal-btn primary" id="nexusAddMemberBtn">Add Member</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="nexus-modal" id="nexusBroadcastModal">
+                    <div class="nexus-modal-content">
+                        <h3><i class="fas fa-bullhorn" style="color:#7c4dff;margin-right:8px;"></i>Broadcast Message
+                        </h3>
+                        <select class="nexus-modal-select" id="nexusBroadcastTarget">
+                            <option value="all">Everyone</option>
+                            <option value="students">Students Only</option>
+                            <option value="admins">Admins Only</option>
+                        </select>
+                        <textarea class="nexus-modal-input" id="nexusBroadcastMsg"
+                            placeholder="Your broadcast content..." rows="4"
+                            style="border-radius:14px;resize:none;"></textarea>
+                        <div class="nexus-modal-footer">
+                            <button class="nexus-modal-btn cancel" id="nexusCancelBroadcast">Cancel</button>
+                            <button class="nexus-modal-btn primary" id="nexusSendBroadcast">Send</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="nexus-modal" id="nexusIncomingCallModal">
+                    <div class="nexus-modal-content nexus-call-modal-body">
+                        <h3 id="nexusCallType">Incoming Call</h3>
+                        <div class="nexus-call-avatar nexus-call-pulse"><i class="fas fa-user"></i></div>
+                        <p id="nexusCallerName" style="text-align:center;margin-bottom:8px;font-weight:600;"></p>
+                        <div class="nexus-call-actions">
+                            <button class="nexus-call-btn accept" id="nexusAcceptCall"><i class="fas fa-phone"></i>
+                                Accept</button>
+                            <button class="nexus-call-btn decline" id="nexusDeclineCall"><i
+                                    class="fas fa-phone-slash"></i> Decline</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- CHANNEL SETTINGS MODAL -->
+                <div class="nexus-modal" id="nexusChannelSettingsModal">
+                    <div class="nexus-modal-content" style="max-width:480px;">
+                        <h3 id="nexusSettingsTitle"><i class="fas fa-cog"
+                                style="color:#7c4dff;margin-right:8px;"></i>Channel Settings</h3>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+                            <button class="nexus-modal-btn primary" id="nexusSettingsAddAll" style="flex:1;"><i
+                                    class="fas fa-users"></i> Add All Users</button>
+                            <button class="nexus-modal-btn primary" id="nexusSettingsAddAdmins" style="flex:1;"><i
+                                    class="fas fa-user-shield"></i> Add Admins</button>
+                            <button class="nexus-modal-btn primary" id="nexusSettingsAddStudents" style="flex:1;"><i
+                                    class="fas fa-graduation-cap"></i> Add Students</button>
+                        </div>
+                        <input class="nexus-modal-input" type="text" id="nexusSettingsMemberSearch"
+                            placeholder="Search users to add..." style="margin-bottom:8px;">
+                        <div class="nexus-member-list" id="nexusSettingsSearchResults"
+                            style="max-height:100px;overflow-y:auto;border:1px solid rgba(143,155,192,0.1);border-radius:8px;margin-bottom:10px;">
+                        </div>
+                        <div
+                            style="font-size:0.72rem;color:#8f9bc0;font-weight:700;letter-spacing:0.08em;margin-bottom:6px;">
+                            MEMBERS</div>
+                        <div class="nexus-member-list" id="nexusSettingsMemberList"
+                            style="max-height:200px;overflow-y:auto;"></div>
+                        <div class="nexus-modal-footer" style="margin-top:14px;">
+                            <button class="nexus-modal-btn danger" id="nexusSettingsDeleteChannel"><i
+                                    class="fas fa-trash"></i> Delete Channel</button>
+                            <button class="nexus-modal-btn cancel" id="nexusCloseSettings">Close</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="nexus-call-overlay" id="nexusCallOverlay">
+                    <p id="nexusCallOverlayStatus" style="color:#9198b0;font-size:0.85rem;margin-bottom:16px;"></p>
+                    <div class="nexus-call-videos">
+                        <video id="nexusRemoteVideo" autoplay playsinline
+                            style="width:60vw;max-width:700px;background:#111;border-radius:16px;"></video>
+                        <video id="nexusLocalVideo" autoplay playsinline muted
+                            style="width:30vw;max-width:320px;background:#111827;border-radius:12px;"></video>
+                    </div>
+                    <div class="nexus-call-ctrl">
+                        <button class="nexus-call-ctrl-btn mute" id="nexusMuteBtn"><i
+                                class="fas fa-microphone"></i></button>
+                        <button class="nexus-call-ctrl-btn vidoff" id="nexusVidOffBtn"><i
+                                class="fas fa-video"></i></button>
+                        <button class="nexus-call-ctrl-btn hangup" id="nexusHangupBtn"><i
+                                class="fas fa-phone-slash"></i></button>
+                    </div>
+                </div>
+                </section>
+
+
+                <!-- OVERVIEW SECTION -->
+                <section id="overviewSection" class="content-section p-4 sm:p-6 md:p-8 space-y-8">
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 overview-stats">
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-blue-400">group</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div
+                                        class="p-2.5 rounded-xl bg-blue-500/10 border border-blue-400/20 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">group</span>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-500/5 px-2 py-1 rounded-full border border-emerald-500/10">
+                                        +12% </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight"
+                                        id="totalUsersCount">0
+                                    </h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">Total Users</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-indigo-400">diversity_3</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div
+                                        class="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-400/20 text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">diversity_3</span>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-500/5 px-2 py-1 rounded-full border border-emerald-500/10">
+                                        +4% </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight"
+                                        id="totalSocietiesCount">0</h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">Active Societies</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-sky-400">event</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div
+                                        class="p-2.5 rounded-xl bg-sky-500/10 border border-sky-400/20 text-sky-400 group-hover:bg-sky-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">calendar_month</span>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold text-slate-500 flex items-center gap-1 bg-slate-500/5 px-2 py-1 rounded-full border border-slate-500/10">
+                                        - </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight"
+                                        id="totalEventsCount">
+                                        0</h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">Total Events</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-emerald-400">event_note</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div
+                                        class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-400/20 text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">event_note</span>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-500/5 px-2 py-1 rounded-full border border-emerald-500/10">
+                                        MINE </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight"
+                                        id="myEventsCount">0</h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">My Events</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 glass-panel rounded-2xl flex flex-col min-h-[400px]">
+                            <div class="px-6 py-5 border-b border-blue-800/20 flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-base font-semibold text-white">Recent System Activity</h3>
+                                    <p class="text-xs text-slate-500 mt-0.5">Live monitoring of platform actions</p>
+                                </div>
+                                <button
+                                    class="text-xs font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20"
+                                    onclick="showSection('logs')"> View Full Log <span
+                                        class="material-symbols-outlined text-[14px]">arrow_forward</span> </button>
+                            </div>
+                            <div class="flex-1 p-6 relative activity-list custom-scroll" id="recentLogs"
+                                style="max-height: 400px; overflow-y: auto;">
+                                <!-- Populated by JS -->
+                                <p class="text-muted text-center p-8">No recent activity.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-6">
+                            <div class="glass-panel rounded-2xl p-0 h-full">
+                                <div class="px-6 py-5 border-b border-blue-800/20">
+                                    <h3 class="text-base font-semibold text-white">Quick Actions</h3>
+                                </div>
+                                <div class="p-6 space-y-4">
+                                    <button
+                                        class="w-full btn-glass group p-3.5 rounded-xl flex items-center justify-between transition-all active:scale-[0.98]"
+                                        onclick="showAddEventModal()">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-[0_0_15px_-3px_rgba(37,99,235,0.3)]">
+                                                <span class="material-symbols-outlined text-[20px]">add</span>
+                                            </div>
+                                            <div class="flex flex-col items-start">
+                                                <span
+                                                    class="text-sm font-semibold text-slate-200 group-hover:text-white">Add
+                                                    Event</span>
+                                                <span class="text-[11px] text-slate-500">Create new public event</span>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="material-symbols-outlined text-slate-600 text-[18px] group-hover:text-blue-400 group-hover:translate-x-1 transition-all">chevron_right</span>
+                                    </button>
+                                    <button
+                                        class="w-full btn-glass group p-3.5 rounded-xl flex items-center justify-between transition-all active:scale-[0.98]"
+                                        onclick="showAddSocietyModal()">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-[0_0_15px_-3px_rgba(79,70,229,0.3)]">
+                                                <span class="material-symbols-outlined text-[20px]">group_add</span>
+                                            </div>
+                                            <div class="flex flex-col items-start">
+                                                <span
+                                                    class="text-sm font-semibold text-slate-200 group-hover:text-white">Add
+                                                    Society</span>
+                                                <span class="text-[11px] text-slate-500">Register new
+                                                    organization</span>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="material-symbols-outlined text-slate-600 text-[18px] group-hover:text-indigo-400 group-hover:translate-x-1 transition-all">chevron_right</span>
+                                    </button>
+                                    <button
+                                        class="w-full btn-glass group p-3.5 rounded-xl flex items-center justify-between transition-all active:scale-[0.98]"
+                                        onclick="showSection('users')">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-sky-600/20 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-[0_0_15px_-3px_rgba(14,165,233,0.3)]">
+                                                <span class="material-symbols-outlined text-[20px]">person_search</span>
+                                            </div>
+                                            <div class="flex flex-col items-start">
+                                                <span
+                                                    class="text-sm font-semibold text-slate-200 group-hover:text-white">Find
+                                                    User</span>
+                                                <span class="text-[11px] text-slate-500">Lookup database records</span>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="material-symbols-outlined text-slate-600 text-[18px] group-hover:text-sky-400 group-hover:translate-x-1 transition-all">chevron_right</span>
+                                    </button>
+                                    <button
+                                        class="w-full btn-glass group p-3.5 rounded-xl flex items-center justify-between transition-all active:scale-[0.98]"
+                                        id="addAdminBtn" onclick="showAddAdminModal()">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)]">
+                                                <span class="material-symbols-outlined text-[20px]">person_add</span>
+                                            </div>
+                                            <div class="flex flex-col items-start">
+                                                <span
+                                                    class="text-sm font-semibold text-slate-200 group-hover:text-white">Promote
+                                                    Admin</span>
+                                                <span class="text-[11px] text-slate-500">Elevate user privileges</span>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="material-symbols-outlined text-slate-600 text-[18px] group-hover:text-emerald-400 group-hover:translate-x-1 transition-all">chevron_right</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div
+                                class="glass-panel rounded-2xl p-5 border border-emerald-500/10 bg-gradient-to-br from-emerald-950/20 to-transparent relative overflow-hidden">
+                                <div
+                                    class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none">
+                                </div>
+                                <div class="flex items-center gap-3 mb-4 relative z-10">
+                                    <div class="relative flex h-3 w-3">
+                                        <span
+                                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span
+                                            class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+                                    </div>
+                                    <span class="text-sm font-bold text-emerald-400 uppercase tracking-wider">System
+                                        Operational</span>
+                                </div>
+                                <div class="space-y-2 relative z-10">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-slate-400">Server Latency</span>
+                                        <span class="font-mono text-emerald-300">24ms</span>
+                                    </div>
+                                    <div class="w-full bg-slate-800/50 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 92%"></div>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs mt-3">
+                                        <span class="text-slate-400">Uptime (30d)</span>
+                                        <span class="font-mono text-emerald-300">99.99%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- USERS SECTION -->
+                <section id="usersSection" class="content-section" style="display: none;">
+                    <div class="glass-panel rounded-2xl p-6">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                            <h3 class="text-xl font-bold text-white">User Management</h3>
+                            <button
+                                class="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-600/20"
+                                id="addAdminFromUsers" onclick="showAddAdminModal()">+ Add Admin</button>
+                        </div>
+                        <div class="relative mb-6">
+                            <input type="text" id="userSearch"
+                                class="w-full bg-[#0f172a]/80 border border-blue-800/20 rounded-xl py-3 px-12 text-slate-300 focus:ring-2 focus:ring-blue-500/40"
+                                placeholder="Search by name, email, role..." oninput="renderUsers()">
+                            <span class="material-symbols-outlined absolute left-4 top-3 text-slate-500">search</span>
+                        </div>
+                        <div class="glass-card rounded-2xl border border-white/5 overflow-hidden">
+                            <div class="table-container">
+                                <table class="w-full text-left border-collapse" id="usersTable">
+                                    <thead class="bg-white/[0.02] border-b border-white/5">
+                                        <tr>
+                                            <th class="px-6 py-4 text-left">Name</th>
+                                            <th class="px-6 py-4 text-left">Email</th>
+                                            <th class="px-6 py-4 text-left">Role</th>
+                                            <th class="px-6 py-4 text-left">Status</th>
+                                            <th class="px-6 py-4 text-left">Joined</th>
+                                            <th class="px-6 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-blue-900/10">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SOCIETIES SECTION -->
+                <section id="societiesSection" class="content-section" style="display: none;">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">Society Management</h3>
+                            <p class="text-sm text-slate-500">Oversee student organizations and clubs</p>
+                        </div>
+                        <button
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg"
+                            onclick="prepareAddSocietyModal()">+ Add Society</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="societiesGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- EVENTS SECTION -->
+                <section id="eventsSection" class="content-section" style="display: none;">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-2xl font-bold text-white">Event Control</h3>
+                        <button
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg"
+                            onclick="showAddEventModal()">+ Create Event</button>
+                    </div>
+                    <div class="glass-panel rounded-2xl p-6">
+                        <div class="flex gap-2 mb-6 p-1 bg-[#0f172a]/80 rounded-xl w-max">
+                            <button class="px-4 py-2 tab-btn active rounded-lg text-sm font-bold transition-all"
+                                onclick="filterEventTab('all')">All</button>
+                            <button class="px-4 py-2 tab-btn rounded-lg text-sm font-bold transition-all"
+                                onclick="filterEventTab('pending')">Pending</button>
+                            <button class="px-4 py-2 tab-btn rounded-lg text-sm font-bold transition-all"
+                                onclick="filterEventTab('upcoming')">Upcoming</button>
+                            <button class="px-4 py-2 tab-btn rounded-lg text-sm font-bold transition-all"
+                                onclick="filterEventTab('past')">Past</button>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl">
+                            <table class="w-full data-table" id="eventsTable">
+                                <thead class="bg-[#1e293b]/50 text-slate-400 text-xs uppercase tracking-widest">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left">Event</th>
+                                        <th class="px-6 py-4 text-left">Organizer</th>
+                                        <th class="px-6 py-4 text-left">Date</th>
+                                        <th class="px-6 py-4 text-left">Status</th>
+                                        <th class="px-6 py-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-blue-900/10">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ADMIN PERSONAL EVENTS SECTION -->
+                <section id="adminEventsSection" class="content-section" style="display: none;">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">My Events</h3>
+                            <p class="text-sm text-slate-500">Manage all events created by you</p>
+                        </div>
+                        <button
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg"
+                            onclick="showAddEventModal()">+ Create New Event</button>
+                    </div>
+                    <div class="glass-panel rounded-2xl p-6">
+                        <div class="flex gap-2 mb-6 p-1 bg-[#0f172a]/80 rounded-xl w-max">
+                            <button class="px-4 py-2 tab-btn active rounded-lg text-sm font-bold transition-all"
+                                onclick="filterAdminEventTab('all')">All</button>
+                            <button class="px-4 py-2 tab-btn rounded-lg text-sm font-bold transition-all"
+                                onclick="filterAdminEventTab('pending')">Pending</button>
+                            <button class="px-4 py-2 tab-btn rounded-lg text-sm font-bold transition-all"
+                                onclick="filterAdminEventTab('upcoming')">Upcoming</button>
+                            <button class="px-4 py-2 tab-btn rounded-lg text-sm font-bold transition-all"
+                                onclick="filterAdminEventTab('past')">Past</button>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl">
+                            <table class="w-full data-table" id="adminEventsTable">
+                                <thead class="bg-[#1e293b]/50 text-slate-400 text-xs uppercase tracking-widest">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left">Event Name</th>
+                                        <th class="px-6 py-4 text-left">Date</th>
+                                        <th class="px-6 py-4 text-left">Category</th>
+                                        <th class="px-6 py-4 text-left">Status</th>
+                                        <th class="px-6 py-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-blue-900/10">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- LOGS SECTION -->
+                <section id="logsSection" class="content-section" style="display: none;">
+                    <div class="glass-panel rounded-2xl p-6 h-full flex flex-col">
+                        <h3 class="text-xl font-bold text-white mb-6">System Activity Logs</h3>
+                        <div class="flex-1 overflow-y-auto custom-scroll space-y-3" id="fullLogs">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SETTINGS SECTION -->
+                <section id="settingsSection" class="content-section" style="display: none;">
+                    <div class="max-w-3xl">
+                        <h3 class="text-2xl font-bold text-white mb-8">System Settings</h3>
+                        <div class="space-y-6">
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-blue-500">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex gap-4">
+                                        <span class="material-symbols-outlined text-blue-400">person_add</span>
+                                        <div>
+                                            <h4 class="font-bold text-white">New User Registrations</h4>
+                                            <p class="text-xs text-slate-500">Allow new students to create accounts</p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="toggleRegistrations" checked class="sr-only peer">
+                                        <div
+                                            class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex gap-4">
+                                        <span class="material-symbols-outlined text-indigo-400">verified_user</span>
+                                        <div>
+                                            <h4 class="font-bold text-white">Organizer Approvals</h4>
+                                            <p class="text-xs text-slate-500">Require admin validation for new events
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="toggleApprovals" checked class="sr-only peer">
+                                        <div
+                                            class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-rose-500">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex gap-4">
+                                        <span class="material-symbols-outlined text-rose-400">engineering</span>
+                                        <div>
+                                            <h4 class="font-bold text-white">Maintenance Mode</h4>
+                                            <p class="text-xs text-slate-500">Temporarily lock public access</p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="toggleMaintenance" class="sr-only peer">
+                                        <div
+                                            class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600">
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals (Simplified Integration) -->
+
+    <!-- PREMIUM CREATE EVENT MODAL -->
+
+    <!-- MODERNIZED CREATE EVENT MODAL -->
+    <div id="addEventModal" class="modal-overlay">
+        <div class="modal-box">
+            <!-- Header -->
+            <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                        <span class="material-icons-round text-blue-500 text-2xl">add_circle</span>
+                    </div>
+                    <div>
+                        <h2 id="eventModalTitle" class="text-2xl font-bold text-white tracking-tight">Create New Event
+                        </h2>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">EVENT MANAGEMENT
+                            SYSTEM</p>
+                    </div>
+                </div>
+                <button onclick="closeAddEventModal()"
+                    class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 transition-all">
+                    <span class="material-icons-round">close</span>
+                </button>
+            </div>
+
+            <!-- Scrollable Form -->
+            <form id="adminEventForm" class="p-8 space-y-8">
+                <input type="hidden" id="editEventId">
+
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">Event Name <span
+                                class="text-red-500">*</span></label>
+                        <input id="eventName"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            placeholder="Enter formal event title" type="text" required />
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Date <span
+                                    class="text-red-500">*</span></label>
+                            <input id="eventDate"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                type="date" required />
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Start <span
+                                        class="text-red-500">*</span></label>
+                                <input id="eventTime"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    type="time" required />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">End</label>
+                                <input id="eventEndTime"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    type="time" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Venue / Location</label>
+                            <input id="eventVenue"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="e.g. Auditorium / Online" type="text" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Category</label>
+                            <select id="eventCategory"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium">
+                                <option>Technical</option>
+                                <option>Cultural</option>
+                                <option>Workshop</option>
+                                <option>Sports</option>
+                                <option>Social</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Event Type (Cost) <span
+                                    class="text-red-500">*</span></label>
+                            <select id="eventType"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
+                                onchange="togglePriceField()">
+                                <option value="free">Free</option>
+                                <option value="paid">Paid</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Event Mode <span
+                                    class="text-red-500">*</span></label>
+                            <select id="eventMode"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
+                                onchange="toggleModeFields()">
+                                <option value="In-Person">In-Person</option>
+                                <option value="Online">Online</option>
+                                <option value="Hybrid">Hybrid</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Target Audience</label>
+                            <select id="eventAudience"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium">
+                                <option>Open for All</option>
+                                <option>Students Only</option>
+                                <option>Members Only</option>
+                                <option>Invite Only</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Max Capacity</label>
+                                <input id="eventMaxParticipants"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    placeholder="e.g. 100" type="number" min="1" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Price (₹)</label>
+                                <input id="eventPrice"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    placeholder="Amount" type="number" min="0" disabled />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Registration Link</label>
+                            <input id="eventRegLink"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="https://..." type="url" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Meeting Link (Online)</label>
+                            <input id="eventMeetingLink"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="Zoom/Meet Link" type="url" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Registration Deadline</label>
+                            <input id="eventRegDeadline"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                type="date" />
+                        </div>
+                        <div class="flex items-center gap-6 pt-8">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative">
+                                    <input type="checkbox" id="toggleFeatured" class="sr-only peer">
+                                    <div
+                                        class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                                    </div>
+                                </div>
+                                <span
+                                    class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">Featured</span>
+                            </label>
+
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative">
+                                    <input type="checkbox" id="toggleShare" class="sr-only peer" checked>
+                                    <div
+                                        class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                                    </div>
+                                </div>
+                                <span
+                                    class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">Sharable</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">Description <span
+                                class="text-red-500">*</span></label>
+                        <div class="rounded-2xl border border-[#1e293b] bg-[#0f172a] overflow-hidden">
+                            <div class="flex items-center gap-1 p-2 border-b border-[#1e293b] bg-white/5">
+                                <button type="button" onclick="formatDoc('bold')"
+                                    class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"><span
+                                        class="material-icons-round text-lg">format_bold</span></button>
+                                <button type="button" onclick="formatDoc('italic')"
+                                    class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"><span
+                                        class="material-icons-round text-lg">format_italic</span></button>
+                                <button type="button" onclick="formatDoc('insertUnorderedList')"
+                                    class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"><span
+                                        class="material-icons-round text-lg">format_list_bulleted</span></button>
+                            </div>
+                            <div id="eventDescEditor" contenteditable="true"
+                                class="p-6 min-h-[150px] text-gray-300 focus:outline-none"
+                                placeholder="Describe your event..."></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="block text-sm font-semibold text-gray-400">Event Banner</label>
+                        <div class="relative group cursor-pointer border-2 border-dashed border-[#1e293b] hover:border-blue-500/50 rounded-[2rem] bg-[#0f172a]/50 p-12 transition-all"
+                            onclick="document.getElementById('eventImages').click()">
+                            <input id="eventImages" type="file" accept="image/*" class="hidden"
+                                onchange="previewSocietyLogo(this, 'eventBannerPreview', 'eventBannerUrl')" />
+                            <div id="bannerPrompt" class="flex flex-col items-center">
+                                <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
+                                    <span class="material-icons-round text-blue-500 text-4xl">add_photo_alternate</span>
+                                </div>
+                                <p class="text-white font-bold">Launch Image Picker</p>
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">16:9 RATIO
+                                    RECOMMENDED</p>
+                            </div>
+                            <div id="eventBannerPreview"
+                                class="hidden absolute inset-0 bg-[#0f172a] rounded-[2rem] overflow-hidden">
+                                <img src="" class="w-full h-full object-cover">
+                                <button type="button"
+                                    onclick="event.stopPropagation(); clearSocietyLogo('eventBannerPreview', 'eventBannerUrl', 'eventImages')"
+                                    class="absolute top-4 right-4 w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center shadow-lg"><span
+                                        class="material-icons-round">close</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6 pt-4">
+                    <div class="space-y-3">
+                        <label class="block text-sm font-semibold text-gray-400">Organizers</label>
+                        <div id="organizerContainer" class="space-y-3">
+                            <!-- Dynamic Organizer Rows -->
+                        </div>
+                        <button type="button" onclick="addOrganizerRow()"
+                            class="text-blue-500 hover:text-blue-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">
+                            <span class="material-icons-round text-base">add_circle</span> Add another organizer
+                        </button>
+                    </div>
+
+                    <div class="space-y-3 border-t border-[#1e293b] pt-6">
+                        <label class="block text-sm font-semibold text-gray-400">Event Contacts</label>
+                        <div id="contactContainer" class="space-y-3">
+                            <!-- Dynamic Contact Rows -->
+                        </div>
+                        <button type="button" onclick="addContactRow()"
+                            class="text-blue-500 hover:text-blue-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">
+                            <span class="material-icons-round text-base">add_circle</span> Add another contact
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-6">
+                    <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-3">
+                        <span id="eventSubmitText">PUBLISH EVENT</span>
+                        <span class="material-icons-round">rocket_launch</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+    <!-- ADD ADMIN MODAL (Premium Redesign Image 3) -->
+    <div id="addAdminModal" class="modal-overlay"
+        style="z-index: 10000; align-items: flex-start; padding-top: 2rem; padding-bottom: 2rem; overflow-y: auto;">
+
+        <style>
+            /* EXACT PREMIUM CSS for Image 3 replica */
+            #addAdminModal.modal-overlay {
+                z-index: 10000;
+            }
+
+            .pm-modal {
+                background: #eef2f5;
+                width: 100%;
+                max-width: 520px;
+                margin: auto;
+                border-radius: 28px;
+                padding: 32px 24px;
+                height: auto;
+                max-height: 95vh;
+                overflow-y: auto;
+                font-family: 'Inter', sans-serif;
+                position: relative;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                border: 8px solid rgba(255, 255, 255, 0.6);
+            }
+
+            .pm-modal::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .pm-modal::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 10px;
+            }
+
+            .pm-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 24px;
+                padding: 0 8px;
+            }
+
+            .pm-title {
+                font-size: 24px;
+                font-weight: 800;
+                color: #1e293b;
+                margin-bottom: 4px;
+                letter-spacing: -0.5px;
+                line-height: 1.1;
+            }
+
+            .pm-subtitle {
+                font-size: 10px;
+                font-weight: 700;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+            }
+
+            .pm-download-btn {
+                background: #2563eb;
+                color: white;
+                border: none;
+                padding: 8px 14px;
+                border-radius: 20px;
+                font-size: 10px;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+                transition: all 0.2s;
+                white-space: nowrap;
+            }
+
+            .pm-card {
+                background: #ffffff;
+                border-radius: 20px;
+                padding: 24px;
+                margin-bottom: 16px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                border: 1px solid rgba(226, 232, 240, 0.8);
+            }
+
+            .pm-card-blue {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+            }
+
+            .pm-section {
+                margin-bottom: 24px;
+            }
+
+            .pm-section:last-child {
+                margin-bottom: 0;
+            }
+
+            .pm-section-title {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 13px;
+                font-weight: 800;
+                color: #1e293b;
+                margin-bottom: 16px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            /* Form Fields */
+            .pm-field {
+                margin-bottom: 14px;
+            }
+
+            .pm-label {
+                display: block;
+                font-size: 11px;
+                font-weight: 700;
+                color: #475569;
+                margin-bottom: 6px;
+                padding-left: 4px;
+            }
+
+            .pm-input {
+                width: 100%;
+                padding: 12px 16px;
+                border-radius: 12px;
+                border: 1px solid #e2e8f0;
+                font-size: 13px;
+                color: #1e293b;
+                transition: all 0.2s;
+                background: #ffffff;
+            }
+
+            .pm-input:focus {
+                border-color: #3b82f6;
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            /* Role Options */
+            .pm-role-opt {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 14px 16px;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-bottom: 10px;
+                cursor: pointer;
+                transition: all 0.2s;
+                background: #ffffff;
+            }
+
+            .pm-role-opt:hover {
+                border-color: #cbd5e1;
+                background: #f8fafc;
+            }
+
+            .pm-role-radio {
+                appearance: none;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                border: 2px solid #cbd5e1;
+                margin: 0;
+                position: relative;
+                cursor: pointer;
+            }
+
+            .pm-role-radio:checked {
+                border-color: #2563eb;
+                background: #ffffff;
+            }
+
+            .pm-role-radio:checked::after {
+                content: '';
+                position: absolute;
+                width: 10px;
+                height: 10px;
+                background: #2563eb;
+                border-radius: 50%;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+
+            .pm-role-text h4 {
+                font-size: 14px;
+                font-weight: 700;
+                color: #1e293b;
+                margin: 0 0 2px 0;
+            }
+
+            .pm-role-text p {
+                font-size: 11px;
+                color: #64748b;
+                margin: 0;
+            }
+
+            /* Permissions */
+            .pm-perm-all {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 12px;
+                background: #e2e8f0;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 700;
+                color: #475569;
+                cursor: pointer;
+                margin-bottom: 16px;
+                transition: all 0.2s;
+            }
+
+            .pm-perm-all:hover {
+                background: #cbd5e1;
+            }
+
+            .pm-perm-box {
+                background: #f8fafc;
+                border-radius: 16px;
+                padding: 16px;
+                border: 1px solid #e2e8f0;
+            }
+
+            .pm-perm-group {
+                margin-bottom: 16px;
+            }
+
+            .pm-perm-group:last-child {
+                margin-bottom: 0;
+            }
+
+            .pm-perm-title {
+                font-size: 11px;
+                font-weight: 800;
+                color: #475569;
+                letter-spacing: 0.5px;
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .pm-badge {
+                background: #dbeafe;
+                color: #1e40af;
+                font-size: 9px;
+                padding: 2px 6px;
+                border-radius: 10px;
+                font-weight: 800;
+            }
+
+            .pm-check-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 8px;
+                font-size: 12px;
+                color: #334155;
+                font-weight: 500;
+            }
+
+            .pm-checkbox {
+                appearance: none;
+                width: 16px;
+                height: 16px;
+                border: 2px solid #cbd5e1;
+                border-radius: 4px;
+                cursor: pointer;
+                position: relative;
+                background: #ffffff;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            }
+
+            .pm-checkbox:checked {
+                background: #2563eb;
+                border-color: #2563eb;
+            }
+
+            .pm-checkbox:checked::after {
+                content: '✓';
+                color: white;
+                position: absolute;
+                font-size: 11px;
+                left: 2px;
+                top: -1px;
+                font-weight: 900;
+            }
+
+            /* Password Gen */
+            .pm-pass-box {
+                position: relative;
+                margin-bottom: 12px;
+            }
+
+            .pm-pass-box input {
+                width: 100%;
+                padding: 14px 16px;
+                border-radius: 16px;
+                border: 1px solid #e2e8f0;
+                font-size: 14px;
+                font-family: monospace;
+                color: #1e293b;
+                padding-right: 80px;
+                background: #ffffff;
+            }
+
+            .pm-pass-copy {
+                position: absolute;
+                right: 8px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: #f1f5f9;
+                color: #475569;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 10px;
+                font-size: 10px;
+                font-weight: 800;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .pm-pass-copy:hover {
+                background: #e2e8f0;
+            }
+
+            .pm-btn-primary {
+                width: 100%;
+                background: #1e40af;
+                color: white;
+                border: none;
+                padding: 16px;
+                border-radius: 16px;
+                font-size: 13px;
+                font-weight: 800;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+                transition: all 0.2s;
+            }
+
+            .pm-btn-primary:active {
+                transform: scale(0.98);
+            }
+
+            /* Security */
+            .pm-sec-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 16px;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 16px;
+                margin-bottom: 10px;
+            }
+
+            .pm-sec-label {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 12px;
+                font-weight: 700;
+                color: #1e293b;
+            }
+
+            .pm-sec-value {
+                font-family: monospace;
+                font-size: 13px;
+                font-weight: 600;
+                color: #0f172a;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+
+            .pm-sec-value .dots {
+                color: #64748b;
+                letter-spacing: 2px;
+            }
+
+            .pm-btn-danger {
+                background: #b91c1c;
+                color: white;
+                border: none;
+                padding: 8px 14px;
+                border-radius: 10px;
+                font-size: 11px;
+                font-weight: 800;
+                cursor: pointer;
+            }
+
+            .pm-notice {
+                background: #eff6ff;
+                border-left: 3px solid #3b82f6;
+                padding: 12px 16px;
+                border-radius: 0 12px 12px 0;
+                font-size: 11px;
+                color: #1e3a8a;
+                line-height: 1.5;
+                margin-top: 16px;
+            }
+
+            /* Actions Footer */
+            .pm-footer {
+                display: flex;
+                gap: 16px;
+                padding-top: 16px;
+            }
+
+            .pm-btn-cancel {
+                flex: 1;
+                background: #dbeafe;
+                color: #1e40af;
+                border: none;
+                padding: 18px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 800;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .pm-btn-cancel:hover {
+                background: #bfdbfe;
+            }
+
+            .pm-btn-submit {
+                flex: 2;
+                background: #1e40af;
+                color: white;
+                border: none;
+                padding: 18px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 800;
+                cursor: pointer;
+                box-shadow: 0 6px 16px rgba(30, 64, 175, 0.25);
+                transition: all 0.2s;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .pm-btn-submit:active {
+                transform: scale(0.98);
+            }
+        </style>
+
+        <form id="addAdminForm" style="display: contents;">
+            <div class="pm-modal">
+                <div class="pm-header">
+                    <div>
+                        <h2 class="pm-title">Promote User<br>to Admin</h2>
+                        <p class="pm-subtitle">USER CREDENTIALS & ACCESS</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <button type="button" class="pm-download-btn">
+                            <span class="material-icons-round" style="font-size: 14px;">download</span> DOWNLOAD AS PNG
+                        </button>
+                        <button type="button" onclick="closeAddAdminModal()"
+                            class="w-10 h-10 bg-white/50 hover:bg-white text-gray-500 hover:text-red-500 rounded-xl flex items-center justify-center transition-all shadow-sm border border-gray-200">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pm-card">
+                    <!-- Identity -->
+                    <div class="pm-section">
+                        <div class="pm-section-title"><span style="color: #4f46e5;">👤</span> ADMIN IDENTITY</div>
+                        <div class="pm-field">
+                            <label class="pm-label">Full Name *</label>
+                            <input type="text" id="newAdminName" class="pm-input" placeholder="Alex Chen" required>
+                        </div>
+                        <div class="pm-field">
+                            <label class="pm-label">Email Address *</label>
+                            <input type="email" id="newAdminEmail" class="pm-input" placeholder="alex.chen@kiit.ac.in"
+                                required>
+                        </div>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="pm-section">
+                        <div class="pm-section-title"><span style="color: #c026d3;">⚙️</span> ASSIGN ROLE</div>
+                        <label class="pm-role-opt">
+                            <input type="radio" name="adminRole" value="Admin" class="pm-role-radio" checked>
+                            <div class="pm-role-text">
+                                <h4>Normal Admin</h4>
+                                <p>Managed permissions & limited access.</p>
+                            </div>
+                        </label>
+                        <label class="pm-role-opt">
+                            <input type="radio" name="adminRole" value="Super Admin" class="pm-role-radio">
+                            <div class="pm-role-text">
+                                <h4>Super Admin</h4>
+                                <p>Full system control.</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Permissions -->
+                    <div class="pm-section">
+                        <div class="pm-section-title"><span style="color: #f59e0b;">🔐</span> PERMISSIONS</div>
+
+                        <label class="pm-perm-all">
+                            <input type="checkbox" id="selectAllCheckDemo" onclick="toggleAllPermissions()"
+                                class="pm-checkbox permission-checkbox-all"
+                                style="width:14px;height:14px;border-width:1px;">
+                            Select All Permissions
+                        </label>
+
+                        <div class="pm-perm-box" id="permissionsBlock">
+                            <div class="pm-perm-group">
+                                <div class="pm-perm-title">USER MANAGEMENT <span class="pm-badge">2</span></div>
+                                <label class="pm-check-row"><input type="checkbox"
+                                        class="pm-checkbox permission-checkbox" value="view_users" checked> View
+                                    Users</label>
+                                <label class="pm-check-row"><input type="checkbox"
+                                        class="pm-checkbox permission-checkbox" value="manage_roles"> Manage
+                                    Roles</label>
+                            </div>
+                            <div class="pm-perm-group">
+                                <div class="pm-perm-title">SOCIETIES <span class="pm-badge">2</span></div>
+                                <label class="pm-check-row"><input type="checkbox"
+                                        class="pm-checkbox permission-checkbox" value="add_societies" checked> Create
+                                    New</label>
+                                <label class="pm-check-row" style="margin-left: 20px;"><input type="checkbox"
+                                        class="pm-checkbox permission-checkbox" value="delete_societies">
+                                    Remove/Delete</label>
+                            </div>
+                            <div class="pm-perm-group">
+                                <div class="pm-perm-title">EVENT CONTROL <span class="pm-badge">3</span></div>
+                                <label class="pm-check-row"><input type="checkbox"
+                                        class="pm-checkbox permission-checkbox" value="view_events" checked> View
+                                    Events</label>
+                                <label class="pm-check-row"><input type="checkbox"
+                                        class="pm-checkbox permission-checkbox" value="create_events"> Create
+                                    Events</label>
+                                <label class="pm-check-row"><input type="checkbox"
+                                        class="pm-checkbox permission-checkbox" value="approve_events"> Approve
+                                    Events</label>
+                            </div>
+                            <div class="pm-perm-group" style="margin-bottom: 0;">
+                                <div class="pm-perm-title">SYSTEM</div>
+                                <label class="pm-check-row"><input type="checkbox"
+                                        class="pm-checkbox permission-checkbox" value="view_logs"> Action Logs</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pm-card pm-card-blue">
+                    <div class="pm-section">
+                        <div class="pm-section-title"><span style="color: #f59e0b;">🔑</span> PASSWORD GENERATOR</div>
+                        <div class="pm-pass-box">
+                            <input type="text" id="genPassword" value="Generating..." readonly>
+                            <button type="button" class="pm-pass-copy" id="copyPasswordBtn"
+                                onclick="copyToClipboard()">COPY</button>
+                        </div>
+                        <button type="button" class="pm-btn-primary" id="generatePasswordBtn"
+                            onclick="generateRandomPassword()">GENERATE NEW PASSWORD</button>
+                    </div>
+
+                    <div class="pm-section" style="margin-top: 24px;">
+                        <div class="pm-section-title"><span style="color: #3b82f6;">🛡️</span> SECURITY & CREDENTIALS
+                        </div>
+
+                        <div class="pm-sec-row">
+                            <div class="pm-sec-label"><span style="font-size: 16px;">🔒</span> TEMPORARY PASSWORD</div>
+                            <div class="pm-sec-value">Generating <span class="dots">•••</span></div>
+                        </div>
+
+                        <div class="pm-sec-row">
+                            <div class="pm-sec-label">
+                                <span style="font-size: 16px;">📧</span>
+                                <label
+                                    style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                                    <input type="checkbox" id="emailCredentialsToggle" class="pm-checkbox" checked
+                                        style="width:14px;height:14px;">
+                                    EMAIL CREDENTIALS
+                                </label>
+                            </div>
+                            <button type="button" class="pm-btn-danger" id="forceResetToggleBtn"
+                                onclick="toggleForceReset()">
+                                FORCE RESET
+                            </button>
+                            <input type="checkbox" id="forceResetToggle" style="display:none;">
+                        </div>
+
+                        <div class="pm-notice">
+                            <strong><span class="material-icons-round" style="font-size: 16px;">info</span> Security
+                                Requirement</strong>
+                            Credentials will be emailed automatically to the user if selected. Ensure the email address
+                            is correct as this action cannot be undone.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pm-footer">
+                    <button type="button" class="pm-btn-cancel" onclick="closeAddAdminModal()">CANCEL</button>
+                    <button type="submit" class="pm-btn-submit" id="promoteBtn">CREATE ADMINISTRATOR</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <!-- --- SOCIETY MANAGEMENT MODAL (ELITE REDESIGN) --- -->
+    <div id="addSocietyModal" class="modal">
+        <div
+            class="w-full max-w-2xl bg-[#111827] rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col h-[90vh] relative animate-in fade-in zoom-in duration-300">
+
+            <!-- Header -->
+            <div class="px-8 py-6 border-b border-white/5 flex items-center gap-4 shrink-0 bg-[#111827]">
+                <div class="w-12 h-12 bg-[#1e293b] rounded-2xl flex items-center justify-center shadow-inner">
+                    <span id="socModalIcon" class="material-icons-round text-blue-500 text-2xl">groups</span>
+                </div>
+                <div class="flex-1">
+                    <h2 id="socModalTitle" class="text-2xl font-bold text-white tracking-tight">Add New Society</h2>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-0.5">SOCIETY
+                        REGISTRATION PORTAL</p>
+                </div>
+                <button onclick="closeAddSocietyModal()"
+                    class="w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-full flex items-center justify-center transition-all">
+                    <span class="material-icons-round">close</span>
+                </button>
+            </div>
+
+            <!-- Scrollable Form -->
+            <form id="adminSocietyForm" class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-[#111827]">
+                <input type="hidden" id="editSocId">
+                <input type="hidden" id="socLogoUrl">
+                <input type="hidden" id="socBannerUrl">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="society-name">
+                            Society Name <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            id="society-name" placeholder="e.g. KIIT Robotics Society" type="text" required />
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="category">
+                            Category <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <select
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
+                                id="category">
+                                <option>Technical</option>
+                                <option>Cultural</option>
+                                <option>Sports</option>
+                                <option>Literary</option>
+                            </select>
+                            <div
+                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-gray-500">
+                                <span class="material-icons-round text-xl">expand_more</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+                <div class="space-y-4">
+                    <div class="flex flex-col md:flex-row gap-6 items-start">
+                        <div class="relative group cursor-pointer w-full md:w-32 h-32 bg-[#0f172a] border-2 border-dashed border-[#1e293b] hover:border-blue-500/50 rounded-2xl transition-all flex flex-col items-center justify-center p-4 text-center"
+                            onclick="document.getElementById('socImage').click()">
+                            <input type="file" id="socImage" class="hidden" accept="image/*"
+                                onchange="handleSocLogoUpload(this)">
+                            <div id="socLogoPreview" class="absolute inset-0 flex items-center justify-center p-2">
+                                <div class="flex flex-col items-center">
+                                    <span
+                                        class="material-icons-round text-gray-500 text-3xl mb-1">add_photo_alternate</span>
+                                    <span class="text-[10px] text-gray-500 font-bold uppercase">Upload</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-1 w-full space-y-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Or Logo URL</label>
+                            <input id="socImageUrl"
+                                class="w-full px-5 py-3 rounded-xl bg-[#0f172a] border border-[#1e293b] text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                placeholder="https://path-to-logo.png" type="url" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-400">
+                        Short Description <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="socDesc"
+                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium h-24 resize-none"
+                        placeholder="Briefly describe the society..." required></textarea>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-400">
+                        Detailed Overview
+                    </label>
+                    <textarea id="socOverview"
+                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium h-32"
+                        placeholder="Detailed information about the society..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">How it Works</label>
+                        <textarea id="socHowItWorks"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium h-24"
+                            placeholder="Describe how members interact..."></textarea>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">Recruitment Process</label>
+                        <textarea id="socRecruitment"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium h-24"
+                            placeholder="How can students join?"></textarea>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">Members</label>
+                        <input id="socMembers"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            placeholder="e.g. 100+" type="text" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">Events/Projects</label>
+                        <input id="socProjects"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            placeholder="e.g. 20+" type="text" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">Est. Year</label>
+                        <input id="socEst"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            placeholder="e.g. 2015" type="text" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">Website</label>
+                        <input id="socWebsite"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            placeholder="https://..." type="url" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">LinkedIn</label>
+                        <input id="socLinkedin"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            placeholder="LinkedIn URL" type="url" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400">Instagram</label>
+                        <input id="socInstagram"
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            placeholder="Instagram URL" type="url" />
+                    </div>
+                </div>
+
+                <div class="pt-6 pb-4">
+                    <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-6 rounded-2xl shadow-xl shadow-blue-500/20 transform active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3">
+                        <span class="material-icons-round">check_circle</span>
+                        <span id="socSubmitBtnText">ADD SOCIETY</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <div id="modal-root">
+        <!-- Admin Create Group Modal -->
+        <div id="adminCreateGroupModal" class="modal-overlay"
+            onclick="if(event.target === this) this.classList.remove('active')">
+            <div class="modal-box max-w-2xl !bg-[#0f172a] border border-white/5 shadow-2xl">
+                <!-- Header -->
+                <div
+                    class="chat-modal-header border-b border-white/5 pb-5 mb-6 flex justify-between items-center relative">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                            <span class="material-symbols-outlined">group_add</span>
+                        </div>
+                        <div>
+                            <h4 class="text-white font-bold text-xl">Create Admin Group</h4>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Initialize
+                                a new Workspace</p>
+                        </div>
+                    </div>
+                    <button
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-white/5 hover:text-white transition-all"
+                        onclick="document.getElementById('adminCreateGroupModal').classList.remove('active')">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+
+                <div class="chat-modal-body custom-scrollbar max-h-[70vh] overflow-y-auto pr-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Left Side: Basic Info -->
+                        <div class="space-y-6">
+                            <!-- Avatar Upload -->
+                            <div class="flex items-center gap-5">
+                                <div class="relative group">
+                                    <div id="adminGroupAvatarPreview"
+                                        class="w-20 h-20 rounded-2xl bg-[#1e293b] border-2 border-dashed border-slate-700 flex items-center justify-center text-slate-500 overflow-hidden transition-all group-hover:border-blue-500/50">
+                                        <span class="material-symbols-outlined text-3xl">add_a_photo</span>
+                                    </div>
+                                    <input type="file" id="adminGroupAvatarInput"
+                                        class="absolute inset-0 opacity-0 cursor-pointer"
+                                        onchange="previewAdminGroupAvatar(this)">
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-white mb-1">Group Avatar</p>
+                                    <p class="text-[10px] text-slate-500">JPG, PNG or WEBP (Max 2MB)</p>
+                                    <button
+                                        class="mt-2 text-[10px] text-blue-400 font-bold uppercase tracking-tight hover:text-blue-300 transition-colors"
+                                        onclick="document.getElementById('adminGroupAvatarInput').click()">Upoad
+                                        Image</button>
+                                </div>
+                            </div>
+
+                            <!-- Name & Description -->
+                            <div class="space-y-4">
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Group
+                                        Name *</label>
+                                    <input id="adminGroupName" type="text" placeholder="e.g. CORE COMMITTEE 2026"
+                                        class="w-full bg-[#1e293b] border border-slate-700/50 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all font-medium">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Description</label>
+                                    <textarea id="adminGroupDesc" rows="3" placeholder="What is this group about?"
+                                        class="w-full bg-[#1e293b] border border-slate-700/50 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all font-medium resize-none"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Type & Privacy -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Type</label>
+                                    <select id="adminGroupType"
+                                        class="w-full bg-[#1e293b] border border-slate-700/50 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
+                                        <option value="admin">Admin Only</option>
+                                        <option value="mixed">Mixed (Admins + Students)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Privacy</label>
+                                    <select id="adminGroupPrivacy"
+                                        class="w-full bg-[#1e293b] border border-slate-700/50 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
+                                        <option value="private">Private Group</option>
+                                        <option value="public">Public (to Admins)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Side: Members & Permissions -->
+                        <div class="space-y-6">
+                            <!-- Member Selection -->
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Add
+                                    Members</label>
+                                <div class="relative">
+                                    <span
+                                        class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]">search</span>
+                                    <input id="adminGroupSearch" type="text" placeholder="Search by name or email..."
+                                        oninput="adminSearchForNewChat(this.value)"
+                                        class="w-full bg-[#1e293b] border border-slate-700/50 rounded-xl pl-11 pr-4 py-3.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
+                                </div>
+                                <div id="adminGroupResults"
+                                    class="mt-2 space-y-1 max-h-40 overflow-y-auto custom-scrollbar"></div>
+                            </div>
+
+                            <!-- Selected Tags -->
+                            <div id="adminGroupSelected"
+                                class="flex flex-wrap gap-2 min-h-[40px] p-3 bg-white/5 rounded-xl border border-dashed border-slate-700/50">
+                                <p id="noMembersText" class="text-[10px] text-slate-600 font-bold italic">No members
+                                    selected yet...</p>
+                            </div>
+
+                            <!-- Permissions & Advanced Settings -->
+                            <div class="grid grid-cols-1 gap-6 pt-2">
+                                <div>
+                                    <h5 class="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-3">
+                                        Permissions</h5>
+                                    <div class="space-y-2.5">
+                                        <label class="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" id="permAddMembers" checked
+                                                class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-blue-500/40">
+                                            <span
+                                                class="text-xs text-slate-300 group-hover:text-white transition-colors">Members
+                                                can add others</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" id="permSendFiles" checked
+                                                class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-blue-500/40">
+                                            <span
+                                                class="text-xs text-slate-300 group-hover:text-white transition-colors">Members
+                                                can send files</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" id="permEditMsgs" checked
+                                                class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-blue-500/40">
+                                            <span
+                                                class="text-xs text-slate-300 group-hover:text-white transition-colors">Members
+                                                can edit contents</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" id="permAdminOnlyPin"
+                                                class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-blue-500/40">
+                                            <span
+                                                class="text-xs text-slate-300 group-hover:text-white transition-colors">Only
+                                                admins can pin contents</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-3">
+                                        Group Settings</h5>
+                                    <div class="space-y-2.5">
+                                        <label class="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" id="setMediaShare" checked
+                                                class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-emerald-600 focus:ring-emerald-500/40">
+                                            <span
+                                                class="text-xs text-slate-300 group-hover:text-white transition-colors">Enable
+                                                media sharing</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" id="setVoiceCalls"
+                                                class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-emerald-600 focus:ring-emerald-500/40">
+                                            <span
+                                                class="text-xs text-slate-300 group-hover:text-white transition-colors">Enable
+                                                voice & video calls</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="chat-modal-footer mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
+                    <p class="text-[10px] text-slate-500 italic font-medium">* Required fields must be completed</p>
+                    <div class="flex gap-3">
+                        <button onclick="document.getElementById('adminCreateGroupModal').classList.remove('active')"
+                            class="px-5 py-3 rounded-xl text-slate-400 bg-white/5 hover:bg-white/10 text-xs font-bold transition-all">Cancel
+                            Project</button>
+                        <button id="adminCreateGroupSubmitBtn" onclick="adminCreateGroup()"
+                            class="px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xl shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">group_add</span>
+                            Create Workspace
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Broadcast Modal -->
+        <div id="admBroadcastModal" class="modal-overlay"
+            onclick="if(event.target === this) this.classList.remove('active')">
+            <div class="modal-box max-w-md">
+                <div class="chat-modal-header border-b border-white/10 pb-4 mb-4 flex justify-between items-center">
+                    <h4 class="text-white font-bold text-lg">📢 Global Broadcast</h4>
+                    <button class="text-slate-400 hover:text-white transition-colors"
+                        onclick="document.getElementById('admBroadcastModal').classList.remove('active')">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+                <div class="chat-modal-body space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Target
+                            Audience</label>
+                        <select id="admBroadcastTarget"
+                            class="w-full bg-[#1e293b] border border-slate-700/50 rounded-xl px-4 py-3 text-white text-sm focus:outline-none ring-blue-500/40">
+                            <option value="all_admins">All Admins</option>
+                            <option value="all_students">All Students</option>
+                            <option value="everyone">Everyone</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Message</label>
+                        <textarea id="admBroadcastMsg" rows="4" placeholder="Type your broadcast content here..."
+                            class="w-full bg-[#1e293b] border border-slate-700/50 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"></textarea>
+                    </div>
+                </div>
+                <div class="chat-modal-footer mt-6 pt-4 border-t border-white/5 flex justify-end gap-3">
+                    <button onclick="document.getElementById('admBroadcastModal').classList.remove('active')"
+                        class="px-5 py-2.5 rounded-xl text-slate-300 bg-slate-800 hover:bg-slate-700 text-sm font-semibold transition-all">Cancel</button>
+                    <button id="admSendBroadcastBtn" onclick="createAdminBroadcast()"
+                        class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-500/20 transition-transform active:scale-95 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">send</span> Send Broadcast
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./state.js"></script>
+    <script type="module" src="./supabase.js"></script>
+    <script type="module" src="./admin.js?v=18"></script>
+    <script type="module">
+        import { ChatManager, renderMessageBubbleHifi, renderChatItemHifi, renderDateSeparator, getInitials, formatDate, EMOJIS } from './chat.js';
+        import { WebRTCManager } from './webrtc.js';
+        let webrtcManager = null;
+
+        // ── STATE ─────────────────────────────────────────────────
+        let adminChat = null;
+        let adminCurrentChatId = null;
+        let adminRooms = [];
+        let adminRoomMessages = {};
+        let adminRoomSub = null;
+        let adminSelectedInviteUsers = {};
+        let adminChatFilter = 'all';
+        let _chatInitStarted = false;
+
+        // ── INITIALIZATION ────────────────────────────────────────
+
+        async function initAdminChat() {
+            if (_chatInitStarted) return;
+            _chatInitStarted = true;
+            const sb = window.supabase;
+            if (!sb) { _chatInitStarted = false; return; }
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session) { _chatInitStarted = false; return; }
+                const { data: me } = await sb.from('profiles').select('full_name, role').eq('id', session.user.id).single();
+                adminChat = new ChatManager(sb, session.user.id, me?.role || 'admin', me?.full_name || 'Admin');
+                webrtcManager = new WebRTCManager(sb, session.user.id, me?.full_name || 'User');
+                window.startVideoCall = async () => {
+                    let currentRoom = null;
+                    if (typeof adminCurrentChatId !== 'undefined') currentRoom = adminCurrentChatId;
+                    if (typeof saCurrentRoomId !== 'undefined') currentRoom = saCurrentRoomId;
+                    if (typeof stdCurrentRoomId !== 'undefined') currentRoom = stdCurrentRoomId;
+
+                    if (!currentRoom) return;
+                    await webrtcManager.startCall(currentRoom, currentRoom, true); // Use room ID as target for simplicity
+                };
+                window.startVoiceCall = async () => {
+                    let currentRoom = null;
+                    if (typeof adminCurrentChatId !== 'undefined') currentRoom = adminCurrentChatId;
+                    if (typeof saCurrentRoomId !== 'undefined') currentRoom = saCurrentRoomId;
+                    if (typeof stdCurrentRoomId !== 'undefined') currentRoom = stdCurrentRoomId;
+
+                    if (!currentRoom) return;
+                    await webrtcManager.startCall(currentRoom, currentRoom, false);
+                };
+
+                window._adminChat = adminChat;
+                window.openHifiChat = openHifiChat;
+                window.sendAdmMessage = sendAdmMessage;
+                window.adminCreateGroup = adminCreateGroup;
+                window.createAdminBroadcast = createAdminBroadcast;
+                window.startDirectChat = startDirectChat;
+                window.startSAChat = startSAChat;
+                window.adminSearchForGroup = (v) => searchForAdminGroup(v, 'admin', 'adminGroupResults');
+                window.adminSearchForNewChat = (v) => searchForAdminGroup(v, 'all', 'adminGroupResults');
+
+                // Initialize AI Assistant
+                try {
+                    const { data: aiChats } = await sb.from('chat_rooms')
+                        .select('id, chat_room_members!inner(user_id)')
+                        .eq('is_ai_active', true)
+                        .eq('type', 'private')
+                        .eq('chat_room_members.user_id', session.user.id)
+                        .limit(1);
+
+                    if (!aiChats || aiChats.length === 0) {
+                        const { data: newChat } = await sb.from('chat_rooms')
+                            .insert({
+                                name: 'KIIT AI Assistant',
+                                type: 'private',
+                                created_by: session.user.id,
+                                avatar_url: 'https://ui-avatars.com/api/?name=AI&background=0D8ABC&color=fff',
+                                description: 'Your personal AI event assistant',
+                                is_ai_active: true
+                            }).select().single();
+
+                        if (newChat) {
+                            await sb.from('chat_room_members').insert([
+                                { room_id: newChat.id, user_id: session.user.id, role: 'admin' }
+                            ]);
+                        }
+                    }
+                } catch (e) {
+                    console.error('AI Init Error:', e);
+                }
+
+                await loadAdminRooms();
+                adminChat.subscribeToNewChats(() => loadAdminRooms());
+            } catch (err) {
+                console.error('initAdminChat failed:', err);
+                _chatInitStarted = false;
+            }
+        }
+
+        // ── SIDEBAR / CHAT LIST ────────────────────────────────────
+
+        async function loadAdminRooms() {
+            if (!adminChat) return;
+            const listEl = document.getElementById('admChatList');
+            if (!listEl) return;
+            listEl.innerHTML = '<div class="p-8 text-center text-xs text-slate-400 animate-pulse font-bold uppercase tracking-widest">Loading...</div>';
+            try {
+                const chats = await adminChat.getMyChats();
+                adminRooms = chats;
+                const filtered = chats.filter(c => {
+                    if (adminChatFilter === 'all') return true;
+                    if (adminChatFilter === 'group') return c.type === 'group';
+                    if (adminChatFilter === 'direct') return c.type === 'private';
+                    return true;
+                });
+                if (!filtered.length) {
+                    listEl.innerHTML = '<div class="p-8 text-center"><span class="material-symbols-outlined text-[40px] text-slate-300 mb-3 block">forum</span><p class="text-xs text-slate-400 font-bold uppercase tracking-widest">No chats yet</p></div>';
+                    return;
+                }
+                listEl.innerHTML = filtered.map(chat =>
+                    renderChatItemHifi(chat, adminCurrentChatId === chat.id, adminChat.userId)
+                ).join('');
+            } catch (err) {
+                console.error('loadAdminRooms error:', err);
+                listEl.innerHTML = '<div class="p-8 text-center text-xs text-red-400 font-bold">Failed to load chats</div>';
+            }
+        }
+
+        window.loadAdminRooms = loadAdminRooms;
+
+        window.filterAdminChatList = (query) => {
+            const q = query.toLowerCase().trim();
+            document.querySelectorAll('.chat-item').forEach(el => {
+                const name = el.querySelector('.chat-item-name')?.textContent.toLowerCase() || '';
+                el.style.display = (!q || name.includes(q)) ? 'flex' : 'none';
+            });
+        };
+
+        window.chatFilterByPill = (type) => {
+            document.querySelectorAll('.pill').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget?.classList.add('active');
+            adminChatFilter = type;
+            loadAdminRooms();
+        };
+
+        window.chatFilterByType = (type) => {
+            document.querySelectorAll('.icon-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget?.classList.add('active');
+            adminChatFilter = type;
+            loadAdminRooms();
+        };
+
+        window.toggleAdminChatSidebar = (show) => {
+            const sb = document.getElementById('admChatSidebar');
+            if (sb) sb.classList.toggle('active', typeof show === 'boolean' ? show : !sb.classList.contains('active'));
+        };
+
+        window.toggleAdmChatInfo = () => {
+            const panel = document.getElementById('admChatInfo');
+            if (panel) panel.classList.toggle('active');
+        };
+
+        // ── OPEN CHAT ──────────────────────────────────────────────
+
+        async function openHifiChat(chatId) {
+            if (!adminChat) return;
+            adminCurrentChatId = chatId;
+            const chat = adminRooms.find(c => c.id === chatId);
+            if (!chat) return;
+
+            const displayName = chat.name || 'Chat';
+            const avatar = chat.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=6366f1&color=fff&size=64`;
+
+            // Show chat layout, hide welcome
+            const welcome = document.getElementById('admChatDefault');
+            if (welcome) welcome.style.display = 'none';
+            const layout = document.getElementById('admActiveChatLayout');
+            if (layout) layout.style.display = 'flex';
+
+            // Update header
+            const nameEl = document.getElementById('admCurrentChatName');
+            const avatarEl = document.getElementById('admCurrentChatAvatar');
+            const statusEl = document.getElementById('admCurrentChatStatus');
+            if (nameEl) nameEl.textContent = displayName;
+            if (avatarEl) {
+                avatarEl.src = avatar;
+                avatarEl.onerror = () => { avatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=6366f1&color=fff`; };
+            }
+            if (statusEl) statusEl.textContent = chat.type === 'group' ? 'Group Chat' : 'Direct Message';
+
+            // Mobile: hide sidebar
+            if (window.innerWidth < 1024) toggleAdminChatSidebar(false);
+
+            // Mark active in list
+            document.querySelectorAll('.chat-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.chatId === chatId);
+            });
+
+            // Load contents
+            const contentsEl = document.getElementById('admChatMessages');
+            if (contentsEl) contentsEl.innerHTML = '<div class="flex-1 flex items-center justify-center"><span class="text-xs text-slate-400 animate-pulse">Loading contents...</span></div>';
+
+            const msgs = await adminChat.loadMessagesHifi(chatId, 80);
+            adminRoomMessages[chatId] = msgs;
+            renderAdminMessages(chatId);
+
+            // Realtime subscription
+            if (adminRoomSub) {
+                try { window.supabase.removeChannel(adminRoomSub); } catch (e) { }
+            }
+            adminRoomSub = adminChat.subscribeToChat(chatId, (newMsg) => {
+                const exists = (adminRoomMessages[chatId] || []).some(m => m.id === newMsg.id);
+                if (!exists) {
+                    adminRoomMessages[chatId] = [...(adminRoomMessages[chatId] || []), newMsg];
+                    renderAdminMessages(chatId);
+                    loadAdminRooms();
+                }
+            });
+
+            // Info panel
+            renderAdminInfo(chat, displayName, avatar);
+        }
+
+        // ── RENDER MESSAGES ────────────────────────────────────────
+
+        function renderAdminMessages(chatId) {
+            const el = document.getElementById('admChatMessages');
+            if (!el) return;
+            const msgs = adminRoomMessages[chatId] || [];
+            if (!msgs.length) {
+                el.innerHTML = '<div class="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-60"><span class="material-symbols-outlined text-[48px] text-slate-300 mb-3">chat_bubble_outline</span><p class="text-sm font-semibold text-slate-400">No contents yet</p><p class="text-xs text-slate-300 mt-1">Be the first to say something!</p></div>';
+                return;
+            }
+            let html = '';
+            let lastDate = null;
+            for (const msg of msgs) {
+                const msgDate = msg.created_at ? new Date(msg.created_at).toDateString() : null;
+                if (msgDate && msgDate !== lastDate) {
+                    html += renderDateSeparator(msg.created_at);
+                    lastDate = msgDate;
+                }
+                html += renderMessageBubbleHifi(msg, adminChat.userId);
+            }
+            el.innerHTML = html;
+            requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+        }
+
+        // ── INFO PANEL ─────────────────────────────────────────────
+
+        async function renderAdminInfo(chat, name, avatar) {
+            const infoName = document.getElementById('admInfoName');
+            const infoAvatar = document.getElementById('admInfoAvatar');
+            const infoDesc = document.getElementById('admInfoDesc');
+            const infoStatus = document.getElementById('admInfoMemberStatus');
+            const sharedMedia = document.getElementById('admSharedMedia');
+            const memberList = document.getElementById('admMemberList');
+
+            if (infoName) infoName.textContent = name;
+            if (infoAvatar) {
+                infoAvatar.src = avatar;
+                infoAvatar.onerror = () => { infoAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff&size=128`; };
+            }
+            if (infoDesc) infoDesc.textContent = chat.description || (chat.type === 'private' ? `Direct content with ${name}` : 'Group conversation');
+
+            if (sharedMedia) {
+                const { data: media } = await window.supabase.from('chat_messages')
+                    .select('file_url, content, created_at')
+                    .eq('room_id', chat.id)
+                    .not('file_url', 'is', null)
+                    .order('created_at', { ascending: false })
+                    .limit(9);
+                sharedMedia.innerHTML = (media && media.length) ? media.map(m => {
+                    const isImg = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(m.file_url || '');
+                    return `<div class="media-item cursor-pointer" onclick="window.open('${m.file_url}', '_blank')">${isImg ? `<img src="${m.file_url}" alt="Media" loading="lazy">` : '<span class="material-symbols-outlined text-slate-400 text-[28px]">description</span>'}</div>`;
+                }).join('') : '<p class="text-[11px] text-slate-400 font-medium col-span-3 p-2">No shared files yet</p>';
+            }
+
+            if (memberList) {
+                const { data: members } = await window.supabase.from('chat_room_members')
+                    .select('role, user_id, profiles(full_name, avatar_url)')
+                    .eq('room_id', chat.id)
+                    .limit(30);
+                const memberCount = (members || []).length;
+                if (infoStatus) {
+                    infoStatus.textContent = chat.type === 'private' ? 'Direct Message' : `${memberCount} member${memberCount !== 1 ? 's' : ''}`;
+                    infoStatus.className = 'text-xs font-bold text-emerald-500 uppercase tracking-widest';
+                }
+                memberList.innerHTML = (members || []).map(m => {
+                    const p = m.profiles || {};
+                    const mAvatar = p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name || 'U')}&background=random&color=fff&size=40`;
+                    return `<div class="flex items-center gap-3 py-2 group hover:bg-slate-50 rounded-xl px-2 -mx-2 transition-colors">
+                        <img src="${mAvatar}" class="w-8 h-8 rounded-xl object-cover flex-shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=U&background=6366f1&color=fff&size=40'">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[12px] font-bold text-slate-800 truncate">${p.full_name || 'Anonymous'}</div>
+                            <div class="flex items-center gap-1 mt-0.5">
+                                <span class="w-1.5 h-1.5 rounded-full ${m.role === 'admin' ? 'bg-blue-500' : 'bg-slate-300'}"></span>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wide">${m.role}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('') || '<p class="text-xs text-slate-400 italic text-center py-4">No members found</p>';
+            }
+        }
+
+        // ── SEND MESSAGE ───────────────────────────────────────────
+
+        async function sendAdmMessage() {
+            if (!adminChat || !adminCurrentChatId) return;
+            const inp = document.getElementById('admChatInput');
+            const val = inp?.value?.trim();
+            if (!val) return;
+            inp.value = '';
+            inp.focus();
+            try {
+                await adminChat.sendMessageHifi(adminCurrentChatId, val);
+            } catch (err) {
+                console.error('Send content failed:', err);
+                if (inp) inp.value = val;
+            }
+        }
+
+        // ── FILE UPLOAD (Supabase Storage: chat-files bucket) ──────
+
+        window.handleAdmAttachment = async (input) => {
+            const file = input.files?.[0];
+            if (!file || !adminCurrentChatId || !adminChat) return;
+            const iconEl = input.previousElementSibling?.querySelector?.('.material-symbols-outlined');
+            if (iconEl) iconEl.textContent = 'hourglass_empty';
+            try {
+                await adminChat.uploadAndSendFile(adminCurrentChatId, file);
+            } catch (err) {
+                console.error('File upload failed:', err);
+                alert('Upload failed: ' + (err.content || 'Please try again'));
+            } finally {
+                if (iconEl) iconEl.textContent = 'add';
+                input.value = '';
+            }
+        };
+
+        // ── EMOJI ──────────────────────────────────────────────────
+
+        window.toggleAdmEmoji = (e) => {
+            e.stopPropagation();
+            const picker = document.getElementById('admEmojiPicker');
+            if (!picker) return;
+            if (!picker.style.display || picker.style.display === 'none') {
+                picker.innerHTML = EMOJIS.map(em => `<button class="emoji-btn text-lg hover:scale-125 transition-transform p-1" onclick="insertAdmEmoji('${em}')">${em}</button>`).join('');
+                picker.style.display = 'flex';
+                picker.style.flexWrap = 'wrap';
+                setTimeout(() => document.addEventListener('click', () => { picker.style.display = 'none'; }, { once: true }), 0);
+            } else {
+                picker.style.display = 'none';
+            }
+        };
+
+        window.insertAdmEmoji = (em) => {
+            const inp = document.getElementById('admChatInput');
+            if (inp) { inp.value += em; inp.focus(); }
+            const picker = document.getElementById('admEmojiPicker');
+            if (picker) picker.style.display = 'none';
+        };
+
+        window.adminAddEmoji = window.insertAdmEmoji;
+
+        document.addEventListener('click', (e) => {
+            const picker = document.getElementById('admEmojiPicker');
+            if (picker && !picker.contains(e.target)) picker.style.display = 'none';
+        });
+
+        // ── DIRECT CHAT ────────────────────────────────────────────
+
+        async function startDirectChat(uid) {
+            if (!adminChat) return;
+            try {
+                const chat = await adminChat.getOrCreateDirectChatHifi(uid);
+                document.getElementById('adminCreateGroupModal')?.classList.remove('active');
+                await loadAdminRooms();
+                await openHifiChat(chat.id);
+            } catch (err) {
+                console.error('startDirectChat error:', err);
+                alert('Could not open direct chat: ' + (err.content || 'Unknown error'));
+            }
+        }
+
+        async function startSAChat(saId) {
+            await startDirectChat(saId);
+        }
+
+        // ── USER SEARCH ────────────────────────────────────────────
+
+        async function searchForAdminGroup(v, role, resultsId) {
+            const resEl = document.getElementById(resultsId);
+            if (!v || v.length < 1) { if (resEl) resEl.innerHTML = ''; return; }
+            const sb = window.supabase;
+            let query = sb.from('profiles').select('id, full_name, email, role, avatar_url')
+                .or(`full_name.ilike.%${v}%,email.ilike.%${v}%`).limit(10);
+            if (role && role !== 'all') query = query.eq('role', role);
+            const { data } = await query;
+            if (!resEl) return;
+            if (!data || !data.length) { resEl.innerHTML = '<p class="text-center text-xs text-slate-500 py-4">No users found</p>'; return; }
+            resEl.innerHTML = data.map(p => {
+                const avatar = p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name || 'U')}&background=random&color=fff&size=40`;
+                const safeName = (p.full_name || '').replace(/'/g, "\\'");
+                return `<div class="p-3 hover:bg-white/5 rounded-xl flex items-center justify-between cursor-pointer group transition-all" onclick="adminSelectUser('${p.id}', '${safeName}')">
+                    <div class="flex items-center gap-3">
+                        <img src="${avatar}" class="w-9 h-9 rounded-xl object-cover" onerror="this.src='https://ui-avatars.com/api/?name=U&background=6366f1&color=fff&size=40'">
+                        <div>
+                            <div class="text-xs text-white font-bold group-hover:text-blue-400 transition-colors">${p.full_name || 'Unknown'}</div>
+                            <div class="text-[9px] text-slate-500 font-medium">${(p.role || '').toUpperCase()} · ${p.email || ''}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="w-7 h-7 rounded-lg bg-white/5 group-hover:bg-blue-600/20 text-slate-500 group-hover:text-blue-400 flex items-center justify-center" title="Add to group">
+                            <span class="material-symbols-outlined text-[16px]">add</span>
+                        </button>
+                        <button class="w-7 h-7 rounded-lg bg-white/5 hover:bg-indigo-600 text-slate-500 hover:text-white flex items-center justify-center"
+                                onclick="event.stopPropagation(); startDirectChat('${p.id}')" title="Direct Message">
+                            <span class="material-symbols-outlined text-[16px]">send</span>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.adminSelectUser = (uid, name) => {
+            if (adminSelectedInviteUsers[uid]) return;
+            adminSelectedInviteUsers[uid] = { name };
+            renderSelectedUsers();
+        };
+
+        window.adminRemoveSelectedUser = (uid) => {
+            delete adminSelectedInviteUsers[uid];
+            renderSelectedUsers();
+        };
+
+        function renderSelectedUsers() {
+            const el = document.getElementById('adminGroupSelected');
+            if (!el) return;
+            const uids = Object.keys(adminSelectedInviteUsers);
+            if (!uids.length) {
+                el.innerHTML = '<p id="noMembersText" class="text-[10px] text-slate-600 font-bold italic">No members selected yet...</p>';
+                return;
+            }
+            el.innerHTML = uids.map(id => {
+                const u = adminSelectedInviteUsers[id];
+                return `<div class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg group">
+                    <span class="text-[11px] font-bold text-blue-400">${u.name}</span>
+                    <button onclick="adminRemoveSelectedUser('${id}')" class="text-blue-500/50 hover:text-blue-400 transition-colors">
+                        <span class="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        // ── GROUP CREATION ─────────────────────────────────────────
+
+        let adminGroupAvatarFile = null;
+
+        window.previewAdminGroupAvatar = (input) => {
+            const file = input.files[0];
+            if (!file) return;
+            adminGroupAvatarFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('adminGroupAvatarPreview');
+                if (preview) preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-[inherit]">`;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        async function adminCreateGroup() {
+            const name = document.getElementById('adminGroupName')?.value?.trim();
+            const desc = document.getElementById('adminGroupDesc')?.value?.trim();
+            const selectedUids = Object.keys(adminSelectedInviteUsers);
+            const submitBtn = document.getElementById('adminCreateGroupSubmitBtn');
+
+            if (!name) return alert('Group name is required');
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">sync</span> Creating...';
+
+            try {
+                // 1. Upload avatar to Supabase Storage (chat-files bucket)
+                let avatarUrl = null;
+                if (adminGroupAvatarFile) {
+                    const sb = window.supabase;
+                    const ext = adminGroupAvatarFile.name.split('.').pop();
+                    const path = `group-avatars/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+                    const { data: upData, error: upErr } = await sb.storage
+                        .from('chat-files')
+                        .upload(path, adminGroupAvatarFile, { cacheControl: '3600', upsert: false });
+                    if (!upErr && upData) {
+                        const { data: urlData } = sb.storage.from('chat-files').getPublicUrl(upData.path);
+                        avatarUrl = urlData.publicUrl;
+                    }
+                }
+
+                // 2. Create chat using ChatManager (inserts into chats + chat_room_members)
+                const newChat = await adminChat.createChat(name, 'group', selectedUids, avatarUrl, desc);
+
+                // 3. Also sync to groups table if it exists (non-fatal)
+                try {
+                    const sb = window.supabase;
+                    const { data: { session } } = await sb.auth.getSession();
+                    await sb.from('groups').insert({
+                        id: newChat.id,
+                        group_name: name,
+                        description: desc || null,
+                        created_by: session.user.id,
+                        group_avatar: avatarUrl
+                    });
+                    await sb.from('group_members').insert([
+                        { group_id: newChat.id, user_id: session.user.id, role: 'admin' },
+                        ...selectedUids.map(uid => ({ group_id: newChat.id, user_id: uid, role: 'member' }))
+                    ]);
+                } catch (syncErr) {
+                    console.warn('groups table sync skipped:', syncErr.content);
+                }
+
+                // 4. Reset and open
+                document.getElementById('adminCreateGroupModal')?.classList.remove('active');
+                if (document.getElementById('adminGroupName')) document.getElementById('adminGroupName').value = '';
+                if (document.getElementById('adminGroupDesc')) document.getElementById('adminGroupDesc').value = '';
+                adminSelectedInviteUsers = {};
+                adminGroupAvatarFile = null;
+                const previewEl = document.getElementById('adminGroupAvatarPreview');
+                if (previewEl) previewEl.innerHTML = '<span class="material-symbols-outlined text-3xl">add_a_photo</span>';
+                renderSelectedUsers();
+
+                await loadAdminRooms();
+                await openHifiChat(newChat.id);
+
+            } catch (err) {
+                console.error('Group creation failed:', err);
+                alert(err.content || 'Failed to create group. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">group_add</span> Create Workspace';
+            }
+        }
+
+        // ── BROADCAST ──────────────────────────────────────────────
+
+        async function createAdminBroadcast() {
+            if (!adminChat) return;
+            const target = document.getElementById('admBroadcastTarget')?.value;
+            const msg = document.getElementById('admBroadcastMsg')?.value?.trim();
+            if (!msg) return alert('Please enter a broadcast content');
+            const btn = document.getElementById('admSendBroadcastBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[16px]">sync</span> Sending...';
+            try {
+                const sb = window.supabase;
+                let query = sb.from('profiles').select('id');
+                if (target === 'all_admins') query = query.eq('role', 'admin');
+                else if (target === 'all_students') query = query.eq('role', 'student');
+                const { data: users } = await query;
+                const userIds = (users || []).map(u => u.id).filter(id => id !== adminChat.userId);
+                let successCount = 0;
+                for (const uid of userIds) {
+                    try {
+                        const chat = await adminChat.getOrCreateDirectChatHifi(uid);
+                        await adminChat.sendMessageHifi(chat.id, msg);
+                        successCount++;
+                    } catch (e) { console.error('Broadcast error to', uid, e); }
+                }
+                alert(`Broadcast sent to ${successCount} user${successCount !== 1 ? 's' : ''}.`);
+                document.getElementById('admBroadcastModal')?.classList.remove('active');
+                document.getElementById('admBroadcastMsg').value = '';
+                await loadAdminRooms();
+            } catch (err) {
+                console.error('Broadcast failed:', err);
+                alert('Broadcast failed: ' + (err.content || 'Unknown error'));
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">send</span> Send Broadcast';
+            }
+        }
+
+        // ── PLACEHOLDER STUBS ──────────────────────────────────────
+
+        window.startVideoCall = () => alert('Video call coming soon!');
+        window.startVoiceCall = () => alert('Voice call coming soon!');
+
+        // ── INIT HOOK ──────────────────────────────────────────────
+
+        const _origShowSection = window.showSection;
+        window.showSection = (section) => {
+            if (section === 'chat') {
+                initAdminChat();
+                if (typeof _origShowSection === 'function') {
+                    _origShowSection(section);
+                    const chatSec = document.getElementById('chatSection');
+                    if (chatSec) chatSec.style.display = 'flex';
+                } else {
+                    document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+                    const target = document.getElementById('chatSection');
+                    if (target) target.style.display = 'flex';
+                }
+                return;
+            }
+            if (typeof _origShowSection === 'function') _origShowSection(section);
+            else {
+                document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+                const target = document.getElementById(section + 'Section');
+                if (target) target.style.display = 'block';
+            }
+        };
+
+        // Nexus Chat lazy-init: fires once when chatSection becomes visible
+        (function () {
+            let _nexusInited = false;
+            function tryInitNexus() {
+                if (_nexusInited) return;
+                _nexusInited = true;
+                function doInit() {
+                    if (typeof window.initNexusChat === 'function') {
+                        window.initNexusChat('admin');
+                    } else {
+                        setTimeout(doInit, 150);
+                    }
+                }
+                doInit();
+            }
+            document.addEventListener('DOMContentLoaded', () => {
+                const chatSec = document.getElementById('chatSection');
+                if (!chatSec) return;
+                const obs = new MutationObserver(() => {
+                    if (chatSec.style.display !== 'none') tryInitNexus();
+                });
+                obs.observe(chatSec, { attributes: true, attributeFilter: ['style'] });
+                const _orig = window.showSection;
+                window.showSection = function (id) {
+                    if (_orig) _orig.call(this, id);
+                    if (id === 'chat') tryInitNexus();
+                };
+                const chatSec2 = document.getElementById('chatSection');
+                if (chatSec2 && chatSec2.style.display !== 'none') tryInitNexus();
+            });
+        })();
+    </script>
+
+    <!-- Nexus Chat Controller — must be loaded before initNexusChat is called -->
+    <script src="nexus-chat.js"></script>
+
+
+    <!-- ── CUSTOM NEXUS MODALS FOR MEMBERS AND SETTINGS ── -->
+    <div class="nexus-modal" id="nexusAddMemberModal">
+        <div class="nexus-modal-content">
+            <h3><i class="fas fa-user-plus" style="color:#7c4dff;margin-right:8px;"></i>Add People</h3>
+            <p style="font-size:0.8rem;color:#8f9bc0;margin-bottom:15px;">Search by name or email to add to the chat.
+            </p>
+            <input class="nexus-modal-input" type="text" id="nexusAddPeopleSearch" placeholder="Search users...">
+            <div class="nexus-member-list" id="nexusAddPeopleResults"
+                style="max-height:200px;overflow-y:auto;margin-top:10px;"></div>
+            <div class="nexus-modal-footer">
+                <button class="nexus-modal-btn cancel" id="nexusCloseAddPeople">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="nexus-modal" id="nexusChannelSettingsModal">
+        <div class="nexus-modal-content" style="max-width:500px;">
+            <h3><i class="fas fa-cog" style="color:#7c4dff;margin-right:8px;"></i>Channel Settings</h3>
+
+            <div
+                style="margin-top:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:10px;">
+                <h4 style="font-size:0.85rem; color:#8f9bc0; margin-bottom:10px; text-transform:uppercase;">Members</h4>
+                <div id="nexusChannelMembersList"
+                    style="max-height:200px; overflow-y:auto; border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:5px;">
+                    <!-- Members populated by JS -->
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="nexus-modal-btn danger" id="nexusLeaveChannelBtn" style="width:100%; text-align:left;"><i
+                        class="fas fa-sign-out-alt"></i> Leave Channel</button>
+                <button class="nexus-modal-btn danger" id="nexusDeleteChannelBtn"
+                    style="width:100%; text-align:left;"><i class="fas fa-trash"></i> Delete Channel (Admin)</button>
+            </div>
+
+            <div class="nexus-modal-footer">
+                <button class="nexus-modal-btn cancel" id="nexusCloseChannelSettings">Close</button>
+            </div>
+        </div>
+    </div>
+    \n
+</body>
+
+</html>

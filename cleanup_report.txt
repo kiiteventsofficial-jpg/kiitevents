@@ -1,0 +1,15 @@
+# KIIT Events Deep Folder Cleanup Report (Update 2)
+
+I have re-analyzed the root `/functions/` directory, specifically looking at `/functions/node_modules/` and `/functions/index.js`. 
+
+## 🗑️ Folders Scheduled for Safe Deletion
+
+### 1. `functions/` and `functions/node_modules/` (Root Level)
+- **Location**: `/functions/`
+- **Reason**: This folder is actually an **unreferenced Firebase Cloud Functions initialization** (it contains `firebase-admin` and a default commented-out hello world script). 
+Since your project actively uses **Supabase** for its backend (the actual Supabase Edge Functions are safely located inside `/supabase-backend/supabase/functions/`), this root `functions/` folder is completely irrelevant to your website's operation.
+- **Reference Count**: 0 references in the active frontend or Supabase backend.
+
+## User Action Required
+> [!CAUTION]
+> Please review this updated `cleanup_report.txt`. I can confirm with 100% certainty that the root `/functions/` directory (including its heavy `node_modules` folder) is a remnant of a Firebase test and is completely disconnected from your live Supabase project. I will delete it upon your approval.

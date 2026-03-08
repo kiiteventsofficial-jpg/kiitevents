@@ -1,0 +1,463 @@
+* {
+    box-sizing: border-box;
+    font-family: "Inter", sans-serif;
+}
+
+body {
+    height: 100vh;
+    margin: 0;
+    background: #0f172a;
+    /* Fallback */
+    background: radial-gradient(circle at top left, #1e293b, #0f172a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    /* Prevent scrollbars from blobs */
+    position: relative;
+}
+
+/* --- Animated Blobs --- */
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: -1;
+    opacity: 0.6;
+    animation: float 10s infinite alternate;
+}
+
+.blob-1 {
+    top: -10%;
+    left: -10%;
+    width: 500px;
+    height: 500px;
+    background: #3b82f6;
+    animation-delay: 0s;
+}
+
+.blob-2 {
+    bottom: -10%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: #8b5cf6;
+    animation-delay: -5s;
+}
+
+@keyframes float {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    100% {
+        transform: translate(30px, 50px) scale(1.1);
+    }
+}
+
+.back-home-btn {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 16px;
+    border-radius: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    z-index: 10;
+}
+
+.back-home-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 520px;
+    padding: 20px;
+    z-index: 1;
+}
+
+.auth-card {
+    background: rgba(255, 255, 255, 0.03);
+    /* Very transparent */
+    backdrop-filter: blur(20px);
+    /* Strong blur */
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 40px;
+    color: white;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease;
+}
+
+h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    background: linear-gradient(to right, #fff, #cbd5e1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    color: #94a3b8;
+    font-size: 14px;
+    margin-bottom: 32px;
+    line-height: 1.5;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #cbd5e1;
+    margin-bottom: 8px;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.6);
+    color: white;
+    outline: none;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+input:focus,
+select:focus {
+    border-color: #3b82f6;
+    background: rgba(15, 23, 42, 0.8);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+input::placeholder {
+    color: #475569;
+}
+
+.password-group {
+    position: relative;
+}
+
+.toggle {
+    position: absolute;
+    right: 16px;
+    top: 40px;
+    cursor: pointer;
+    color: #64748b;
+    transition: color 0.2s;
+}
+
+.toggle:hover {
+    color: #94a3b8;
+}
+
+.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.875rem;
+    margin-bottom: 24px;
+    cursor: pointer;
+    color: #cbd5e1;
+}
+
+.checkbox input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #3b82f6;
+    cursor: pointer;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.switch {
+    margin-top: 24px;
+    font-size: 0.9rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.switch span {
+    color: #60a5fa;
+    cursor: pointer;
+    font-weight: 500;
+    transition: color 0.2s;
+    margin-left: 4px;
+}
+
+.switch span:hover {
+    color: #93c5fd;
+    text-decoration: underline;
+}
+
+/* --- Divider --- */
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 24px 0;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.divider span {
+    padding: 0 16px;
+}
+
+/* --- Google Btn --- */
+.google-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: white;
+    color: #1e293b;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.google-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    background: #f8fafc;
+}
+
+.google-btn:active {
+    transform: translateY(0);
+}
+
+.google-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Ensure role selection styles match the new theme if they were inline */
+/* Moving critical inline styles here if needed, but keeping HTML clean */
+
+/* --- Premium Segmented Control --- */
+.segmented-control {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    /* No gap for proper segmented look, or small padding? keeping simple */
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.6));
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 50px;
+    /* Pill shape for the container */
+    padding: 4px;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.segment {
+    position: relative;
+    cursor: pointer;
+    text-align: center;
+}
+
+.segment input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.segment-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 40px;
+    /* Match container inner radius */
+    color: #94a3b8;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    white-space: nowrap;
+}
+
+.segment-content .material-icons-round {
+    font-size: 16px;
+    opacity: 0.7;
+}
+
+/* Hover State */
+.segment:hover .segment-content {
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Selected State */
+.segment input:checked+.segment-content {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+    transform: scale(1.02);
+    /* Subtle lift */
+}
+
+.segment input:checked+.segment-content .material-icons-round {
+    opacity: 1;
+}
+
+/* Mobile Responsive */
+@media (max-width: 400px) {
+    .segmented-control {
+        border-radius: 12px;
+        /* Less rounded on very small screens if cramped, or keep pill */
+    }
+
+    .segment-content {
+        padding: 8px 4px;
+        font-size: 0.75rem;
+        gap: 4px;
+    }
+
+    .segment-content .material-icons-round {
+        font-size: 14px;
+    }
+}
+
+/* --- New Role Selector UI --- */
+.role-section {
+    margin-top: 16px;
+}
+
+.role-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 500;
+}
+
+.role-selector {
+    display: flex;
+    background: linear-gradient(135deg, #0f1f2d, #162a3a);
+    border-radius: 999px;
+    padding: 6px;
+    border: 1px solid rgba(0, 160, 255, 0.35);
+    gap: 6px;
+}
+
+.role-option {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 10px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    transition: all 0.2s ease;
+}
+
+.role-option svg {
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.role-option:hover {
+    color: #ffffff;
+}
+
+.role-option.active {
+    background: linear-gradient(135deg, #2f80ff, #1b63e6);
+    color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(47, 128, 255, 0.25),
+        0 8px 20px rgba(47, 128, 255, 0.35);
+}
+
+.role-option.active svg {
+    opacity: 1;
+}
+
+/* Mobile check */
+@media (max-width: 400px) {
+    .role-option {
+        padding: 8px;
+        font-size: 12px;
+    }
+
+    .role-option svg {
+        width: 14px;
+        height: 14px;
+    }
+}

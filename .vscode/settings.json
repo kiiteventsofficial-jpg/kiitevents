@@ -1,0 +1,8 @@
+{
+    "liveServer.settings.port": 5502,
+    "deno.enable": true,
+    "deno.enablePaths": [
+        "supabase-backend/supabase/functions"
+    ],
+    "deno.importMap": "supabase-backend/supabase/functions/deno.json"
+}

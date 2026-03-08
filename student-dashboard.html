@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard | KIIT Events</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="nexus-chat.js" defer></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="chat.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6",
+                        secondary: "#1e40af",
+                        "dark-bg": "#020617",
+                        "deep-blue": "#0f172a",
+                        "glass-border": "rgba(255, 255, 255, 0.08)",
+                        "glass-bg": "rgba(30, 41, 59, 0.4)",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                        display: ["Poppins", "sans-serif"],
+                    },
+                },
+            },
+        };
+    </script>
+    <script src="state.js"></script>
+    <script src="student-dashboard.js" type="module"></script>
+</head>
+
+<body class="bg-[#020617] text-slate-300 min-h-screen p-0 overflow-hidden">
+    <div id="loadingOverlay"
+        class="fixed inset-0 z-[9999] bg-[#020617] flex flex-col items-center justify-center text-white transition-opacity duration-500">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500/20 border-t-blue-500 mb-4"></div>
+        <p class="text-lg font-medium">Loading your dashboard...</p>
+    </div>
+
+    <div class="flex w-full h-screen overflow-hidden bg-[#020617] relative">
+        <!-- Sidebar -->
+        <aside
+            class="sidebar w-64 h-full flex flex-col border-r border-blue-900/20 relative z-20 transition-all bg-[#0f172a]/80 backdrop-blur-xl">
+            <div class="px-5 py-6 flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg border border-blue-400/20">
+                        <span class="material-icons-round text-white">person</span>
+                    </div>
+                    <div class="flex flex-col logo-text">
+                        <span class="text-[15px] font-bold text-white tracking-tight">Student</span>
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest">Dashboard</span>
+                    </div>
+                </div>
+                <!-- Desktop Toggle Button -->
+                <button
+                    class="w-8 h-8 hidden lg:flex items-center justify-center rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer group"
+                    onclick="toggleSidebarDesktop()">
+                    <span id="desktopToggleIcon"
+                        class="material-icons-round text-[20px] group-hover:scale-110 transition-transform">menu_open</span>
+                </button>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto px-4 space-y-1">
+                <button
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-blue-100 hover:bg-white/[0.04] transition-all nav-item active"
+                    onclick="showSection('overview')">
+                    <span class="material-icons-round text-[20px]">dashboard</span>
+                    <span class="text-sm font-medium menu-text">Overview</span>
+                </button>
+                <button
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
+                    onclick="showSection('watchlist')">
+                    <span class="material-icons-round text-[20px]">bookmark</span>
+                    <span class="text-sm font-medium menu-text">My Watchlist</span>
+                </button>
+                <button
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
+                    onclick="showSection('registered')">
+                    <span class="material-icons-round text-[20px]">event_available</span>
+                    <span class="text-sm font-medium menu-text">Registered Events</span>
+                </button>
+                <button
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
+                    onclick="window.open('nexus.html?role=student', '_blank')">
+                    <span class="material-icons-round text-[20px]">forum</span>
+                    <span class="text-sm font-medium menu-text">Real-time Chat</span>
+                </button>
+                <button
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
+                    onclick="showSection('profile')">
+                    <span class="material-icons-round text-[20px]">settings</span>
+                    <span class="text-sm font-medium menu-text">My Profile</span>
+                </button>
+                <div class="pt-4 mt-4 border-t border-blue-800/20">
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white transition-all"
+                        onclick="window.location.replace('index.html')">
+                        <span class="material-icons-round text-[20px]">home</span>
+                        <span class="text-sm font-medium menu-text">Home Page</span>
+                    </button>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-blue-900/30 bg-[#0f172a]/50">
+                <div class="flex items-center gap-3 px-2 py-1">
+                    <div class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white ring-2 ring-blue-900/50"
+                        id="userInitial">S</div>
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="text-[13px] font-semibold text-white truncate" id="userNameDisplay">Student
+                            Name</span>
+                        <span class="text-[10px] text-blue-300/70">Student Account</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 bg-[#020617] flex flex-col h-full overflow-hidden">
+            <header
+                class="flex items-center justify-between px-8 py-4 border-b border-blue-900/20 bg-blue-900/10 backdrop-blur-md">
+                <h2 class="text-xl font-bold text-white tracking-tight" id="pageTitle">Welcome Back</h2>
+                <div class="flex items-center gap-4">
+                    <button class="p-2 text-slate-400 hover:text-white transition-colors lg:hidden"
+                        onclick="toggleSidebar()">
+                        <span class="material-icons-round">menu</span>
+                    </button>
+                    <button
+                        class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-bold rounded-lg border border-red-500/20 transition-all"
+                        onclick="logout()">LOGOUT</button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto custom-scroll p-8" id="mainScrollAreaStudent">
+                <!-- OVERVIEW -->
+                <section id="overviewSection" class="content-section space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                    <span class="material-icons-round text-2xl">bookmark</span>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-medium text-slate-400">Saved Events</h4>
+                                    <p class="text-2xl font-bold text-white" id="watchlistCount">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-6">Quick Watchlist</h3>
+                        <div id="watchlistGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- WATCHLIST -->
+                <section id="watchlistSection" class="content-section" style="display:none;">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">My Watchlist</h3>
+                            <p class="text-sm text-slate-500">Events you've saved for later</p>
+                        </div>
+                    </div>
+                    <div id="watchlistGridFull" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated by JS (shares same logic) -->
+                    </div>
+                </section>
+
+                <!-- REGISTERED -->
+                <section id="registeredSection" class="content-section" style="display:none;">
+                    <div class="text-center py-20 bg-white/[0.02] rounded-3xl border border-white/5">
+                        <span class="material-icons-round text-6xl text-slate-700 mb-4">event_available</span>
+                        <h3 class="text-xl font-bold text-white">Your Registered Events</h3>
+                        <p class="text-slate-500 mt-2">You haven't registered for any events yet.</p>
+                        <button
+                            class="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/20"
+                            onclick="window.location.replace('index.html')">Browse Events</button>
+                    </div>
+                </section>
+
+                </section>
+
+                <!-- PROFILE -->
+                <section id="profileSection" class="content-section" style="display:none;">
+                    <div class="max-w-4xl mx-auto space-y-8">
+                        <div class="glass-panel p-8 rounded-3xl border border-white/5 bg-white/[0.02]">
+                            <h3 class="text-2xl font-bold text-white mb-8">Personal Information</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Full
+                                        Name</label>
+                                    <input type="text" id="profileName"
+                                        class="w-full bg-[#020617] border-white/5 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40"
+                                        readonly>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Email
+                                        Address</label>
+                                    <input type="email" id="profileEmail"
+                                        class="w-full bg-[#020617] border-white/5 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40"
+                                        readonly>
+                                </div>
+                                <div class="space-y-2">
+                                    <label
+                                        class="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Account
+                                        Role</label>
+                                    <input type="text" id="profileRole"
+                                        class="w-full bg-[#020617] border-white/5 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40"
+                                        readonly>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Join
+                                        Date</label>
+                                    <input type="text" id="profileJoined"
+                                        class="w-full bg-[#020617] border-white/5 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40"
+                                        readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+</body>
+
+</html>

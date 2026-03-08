@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>College Events Hub | Home</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6",
+                        "primary-hover": "#2563eb",
+                        "background-light": "#f3f4f6",
+                        "background-dark": "#0f172a",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1e293b",
+                        "input-bg-dark": "#131c2e",
+                        "border-dark": "#334155",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
+                    },
+                },
+            },
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 20px;
+            border: 3px solid #0f172a;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        #addSocietyModal .custom-scrollbar::-webkit-scrollbar-track {
+            background: #111827;
+        }
+
+        #addSocietyModal .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border: 3px solid #111827;
+        }
+    </style>
+</head>
+
+<body class="bg-background-dark font-display text-slate-200 antialiased min-h-screen flex flex-col relative">
+    <div id="debug-error-log"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); color:red; z-index:9999; padding:20px; overflow:auto; font-family:monospace;">
+        <h2>JavaScript Errors Detected:</h2>
+        <pre id="error-content"></pre>
+        <button onclick="document.getElementById('debug-error-log').style.display='none'"
+            style="background:white; color:black; padding:5px;">Close</button>
+    </div>
+    <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            document.getElementById('debug-error-log').style.display = 'block';
+            document.getElementById('error-content').innerText += `Error: ${message}\nSource: ${source}:${lineno}:${colno}\n\n`;
+        };
+        window.addEventListener('unhandledrejection', function (event) {
+            document.getElementById('debug-error-log').style.display = 'block';
+            document.getElementById('error-content').innerText += `Promise Rejection: ${event.reason}\n\n`;
+        });
+
+    </script>
+    <!-- Global 3D Background Canvas -->
+    <canvas id="global-3d-canvas" class="fixed inset-0 w-full h-full pointer-events-none z-10 opacity-60"></canvas>
+
+
+
+    <!-- Navigation Bar Container -->
+    <nav id="navbar-container"
+        class="sticky top-0 z-50 bg-background-dark/80 backdrop-blur-md border-b border-white/10 transition-all duration-300 min-h-[64px]">
+        <!-- Content injected by script.js -->
+    </nav>
+
+    <!-- --- SOCIETY SUBMISSION MODAL (ELITE REDESIGN) --- -->
+    <div id="addSocietyModal" class="modal fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/80"
+        style="display: none;">
+        <div
+            class="w-full max-w-2xl bg-[#111827] rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col h-[90vh] relative">
+
+            <!-- Header -->
+            <div class="px-8 py-6 border-b border-white/5 flex items-center gap-4 shrink-0 bg-[#111827]">
+                <div class="w-12 h-12 bg-[#1e293b] rounded-2xl flex items-center justify-center shadow-inner">
+                    <span class="material-icons-round text-blue-500 text-2xl">groups</span>
+                </div>
+                <div class="flex-1">
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Add New Society</h2>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-0.5">SOCIETY
+                        REGISTRATION PORTAL</p>
+                </div>
+                <button onclick="window.closeAddSocietyModal()"
+                    class="w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-full flex items-center justify-center transition-all">
+                    <span class="material-icons-round">close</span>
+                </button>
+            </div>
+
+            <!-- Scrollable Form -->
+            <form id="publicSocietyForm" class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-[#111827]"
+                onsubmit="window.handleSocietySubmit(event)">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="society-name">
+                            Society Name <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            id="society-name" placeholder="e.g. KIIT Robotics Society" type="text" required />
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="category">
+                            Category <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <select
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
+                                id="category">
+                                <option>Technical</option>
+                                <option>Cultural</option>
+                                <option>Sports</option>
+                                <option>Literary</option>
+                            </select>
+                            <div
+                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-gray-500">
+                                <span class="material-icons-round text-xl">expand_more</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-400">
+                        Society Logo
+                    </label>
+                    <div class="relative group cursor-pointer">
+                        <input class="hidden" id="logo-upload" type="file" accept="image/*"
+                            onchange="window.previewSocietyLogo(this)" />
+                        <label
+                            class="flex flex-col items-center justify-center w-full min-h-[220px] border-2 border-dashed border-[#1e293b] rounded-[2rem] bg-[#0f172a]/50 hover:bg-[#0f172a] transition-all cursor-pointer group-hover:border-blue-500/50"
+                            for="logo-upload">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center"
+                                id="logo-upload-prompt">
+                                <div
+                                    class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                                    <span class="material-icons-round text-blue-500 text-4xl">add_photo_alternate</span>
+                                </div>
+                                <p class="text-white font-bold text-lg">Click to upload logo</p>
+                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-2">SQUARE
+                                    FORMAT RECOMMENDED</p>
+                            </div>
+                            <!-- Pill-shaped Paste Button inside Box -->
+                            <div
+                                class="mt-6 px-6 py-2.5 bg-[#0f172a] rounded-full border border-[#1e293b] text-gray-400 text-sm flex items-center gap-2 hover:border-white/20 transition-all">
+                                <span>Paste Logo URL here...</span>
+                            </div>
+
+                            <div id="socImagePreview"
+                                class="hidden absolute inset-0 bg-[#0f172a] rounded-[2rem] flex items-center justify-center p-4">
+                                <img src="" class="h-full w-auto object-contain rounded-xl shadow-2xl">
+                                <button type="button"
+                                    class="absolute top-4 right-4 w-10 h-10 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl flex items-center justify-center transition-all"
+                                    onclick="event.stopPropagation(); event.preventDefault(); window.clearSocietyLogo();">
+                                    <span class="material-icons-round">close</span>
+                                </button>
+                            </div>
+                        </label>
+                    </div>
+                    <!-- Actual URL input (hidden but accessible or used for pasting) -->
+                    <input id="pubSocImageUrl" class="hidden" type="url" />
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-400" for="short-desc">
+                        Short Description <span class="text-red-500">*</span> <span
+                            class="text-[10px] text-gray-600 ml-1 uppercase">(Used for cards)</span>
+                    </label>
+                    <textarea
+                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[120px] resize-none transition-all font-medium"
+                        id="short-desc" placeholder="Brief summary for the society card..." required></textarea>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-400" for="overview">
+                        Overview (Full Page)
+                    </label>
+                    <textarea
+                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[150px] resize-none transition-all font-medium"
+                        id="overview" placeholder="Detailed introduction..."></textarea>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-400" for="activities">
+                        Activities & How It Works
+                    </label>
+                    <textarea
+                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[120px] resize-none transition-all font-medium"
+                        id="activities" placeholder="What does the society actually do?"></textarea>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-400" for="recruitment">
+                        Recruitment Process
+                    </label>
+                    <textarea
+                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[120px] resize-none transition-all font-medium"
+                        id="recruitment" placeholder="How can students join?"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="members">
+                            Members
+                        </label>
+                        <input
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            id="members" placeholder="e.g. 50+" type="text" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="events">
+                            Events/Projects
+                        </label>
+                        <input
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            id="events" placeholder="e.g. 20+" type="text" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="est-year">
+                            Est. Year
+                        </label>
+                        <input
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            id="est-year" placeholder="e.g. 2015" type="text" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="website">
+                            Website
+                        </label>
+                        <input
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            id="website" placeholder="https://..." type="url" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="linkedin">
+                            LinkedIn
+                        </label>
+                        <input
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            id="linkedin" placeholder="LinkedIn URL" type="url" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-400" for="instagram">
+                            Instagram
+                        </label>
+                        <input
+                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                            id="instagram" placeholder="Instagram URL" type="url" />
+                    </div>
+                </div>
+
+                <div class="pt-6 pb-12">
+                    <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-6 rounded-2xl shadow-xl shadow-blue-500/20 transform active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3">
+                        <span class="material-icons-round">check_circle</span>
+                        <span id="pubSocSubmitBtnText">SUBMIT SOCIETY REQUEST</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+
+    <div id="app-root" class="flex-1">
+        <!-- Views will be rendered here -->
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-[#050505] border-t border-white/5 py-8 relative z-20">
+        <div
+            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-slate-500 text-sm">&copy; 2026 KIIT Events. All rights reserved.</p>
+            <p class="text-slate-500 text-sm flex items-center gap-1">
+                Made with <span class="text-red-500">❤️</span> for KiiTians, by KiiTians
+            </p>
+        </div>
+    </footer>
+
+
+    <!-- Supabase Client (Module) -->
+    <script type="module" src="supabase.js"></script>
+
+    <script>
+        // 🚨 Prevent app scripts from running during OAuth redirect
+        const isOAuthFlow =
+            window.location.pathname.includes("auth-callback") ||
+            window.location.hash.includes("access_token") ||
+            window.location.search.includes("code=");
+
+        if (isOAuthFlow) {
+            console.log("🛑 OAuth flow detected. App scripts paused.");
+            window.__PAUSE_APP__ = true;
+        }
+    </script>
+    <script>
+        if (!window.__PAUSE_APP__) {
+            const scripts = [
+                { src: "state.js?v=12", type: "text/javascript" },
+                { src: "storage.js?v=12", type: "module" },
+                { src: "script.js?v=12", type: "module" }
+            ];
+
+            scripts.forEach(s => {
+                const el = document.createElement("script");
+                el.src = s.src;
+                if (s.type === "module") el.type = "module";
+                el.async = false; // 🚨 FORCE SYNCHRONOUS ORDER
+                document.body.appendChild(el);
+            });
+        } else {
+            console.log("🛑 App scripts skipped on index.html (OAuth redirect). Loading Auth Callback handler...");
+            const callbackScript = document.createElement("script");
+            callbackScript.type = "module";
+            callbackScript.src = "auth-callback.js?v=12";
+            callbackScript.async = false;
+            document.body.appendChild(callbackScript);
+        }
+    </script>
+</body>
+
+</html>

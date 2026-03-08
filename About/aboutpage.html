@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About KIIT Events</title>
+  <!-- Tailwind CDN + fonts (exactly as in original) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Global styles – identical to index.html + AboutPage custom style */
+    body {
+      background-color: #0B0B0B;
+      color: #FFFFFF;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      overflow-x: hidden;
+    }
+    h1, h2, h3 {
+      font-family: 'Poppins', sans-serif;
+    }
+    .vertical-text {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0B0B0B;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #222;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #333;
+    }
+
+    /* Custom animations from AboutPage style block */
+    @keyframes slide-up {
+      from {
+        transform: rotate(180deg) translateY(100%);
+        opacity: 0;
+      }
+      to {
+        transform: rotate(180deg) translateY(0);
+        opacity: 0.7;
+      }
+    }
+    .animate-slide-up {
+      animation: slide-up 1.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+    .stroke-text {
+      -webkit-text-stroke: 1.5px rgba(255,255,255,0.8);
+    }
+    @media (max-width: 640px) {
+      .stroke-text {
+        -webkit-text-stroke: 1px rgba(255,255,255,0.8);
+      }
+    }
+
+    /* Scroll-triggered animation – replicates AnimatedSection behavior */
+    .animated-section {
+      transition: all 1s ease-out;
+      opacity: 0;
+      transform: translateY(3rem); /* = translate-y-12 */
+    }
+    .animated-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <main class="min-h-screen selection:bg-cyan-500/30">
+      <!-- Exactly the same structure as AboutPage.tsx, with React replaced by static HTML -->
+      <div class="relative w-full overflow-hidden bg-[#0B0B0B] text-white">
+
+        <!-- Subtle background glow effects (fixed) -->
+        <div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div class="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+        <!-- SECTION 1: HERO / ABOUT KIIT EVENTS -->
+        <section class="relative min-h-screen flex items-center pt-24 pb-20 px-4 sm:px-6 md:px-12 lg:px-24">
+          <div class="flex w-full max-w-7xl mx-auto items-stretch gap-4 sm:gap-8 md:gap-16 lg:gap-24">
+            
+            <!-- Vertical Text Left – preserves stroke & slide-up animation -->
+            <div class="flex flex-col items-center justify-center">
+              <div class="overflow-hidden">
+                <p class="vertical-text text-4xl sm:text-6xl md:text-7xl lg:text-9xl font-black text-transparent stroke-text tracking-tighter animate-slide-up uppercase whitespace-nowrap"
+                   style="-webkit-text-stroke: 1.5px rgba(255,255,255,0.8);">
+                  KIIT EVENTS
+                </p>
+              </div>
+            </div>
+
+            <!-- Right Content with animated sections (delay 200, 400) -->
+            <div class="flex-1 flex flex-col justify-center">
+              <!-- AnimatedSection delay={200} (span + h1) -->
+              <div class="animated-section" style="transition-delay:200ms">
+                <span class="text-cyan-400 font-semibold tracking-widest uppercase text-xs sm:text-sm mb-4 block">KNOW ABOUT KIIT EVENTS</span>
+                <h1 class="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold mb-8 tracking-tight leading-none uppercase">
+                  ABOUT <span class="text-gray-500">KIIT EVENTS</span>
+                </h1>
+              </div>
+              
+              <!-- AnimatedSection delay={400} with paragraphs -->
+              <div class="animated-section max-w-3xl space-y-6" style="transition-delay:400ms">
+                <p class="text-base sm:text-lg md:text-xl text-gray-300 leading-relaxed font-light">
+                  KIIT Events is a student-driven digital initiative designed to centralize and simplify access to all official college events within KIIT. Built by students, for students, the platform addresses a common challenge — the <span class="text-white font-normal">lack of structured, accessible information</span> about campus events.
+                </p>
+                <p class="text-base sm:text-lg md:text-xl text-gray-300 leading-relaxed font-light">
+                  From technical workshops and cultural festivals to sports competitions and society-led programs, KIIT Events serves as a <span class="text-white font-normal">unified hub</span> where students can explore detailed event information, schedules, venues, and registration links in one organized space.
+                </p>
+                <p class="text-base sm:text-lg md:text-xl text-gray-400 leading-relaxed font-light italic border-l-2 border-cyan-500/30 pl-4 sm:pl-6">
+                  The platform not only enhances student awareness and participation but also supports event organizers by reducing dependency on scattered promotions and word-of-mouth communication.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Abstract Background Texture (SVG grid) – exactly as original -->
+          <div class="absolute inset-0 z-[-1] opacity-5 pointer-events-none">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="0.5"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
+          </div>
+        </section>
+
+        <!-- SECTION 2: ABOUT KIIT -->
+        <section class="py-24 px-6 md:px-12 lg:px-24 bg-[#0d0d0d]">
+          <div class="max-w-7xl mx-auto">
+            <!-- AnimatedSection (no delay) – heading + cyan line -->
+            <div class="animated-section">
+              <h2 class="text-4xl md:text-5xl font-bold mb-10 tracking-tight">About KIIT</h2>
+              <div class="w-20 h-1 bg-cyan-500 mb-10 rounded-full"></div>
+            </div>
+            
+            <!-- AnimatedSection delay={200} – paragraphs -->
+            <div class="animated-section max-w-4xl space-y-6" style="transition-delay:200ms">
+              <p class="text-lg md:text-xl text-gray-300 leading-relaxed font-light">
+                Kalinga Institute of Industrial Technology (KIIT), established in 1992–93 by <span class="text-white italic">Dr. Achyuta Samanta</span>, has grown from a modest educational initiative into one of India’s leading multidisciplinary universities. Located in Bhubaneswar, Odisha, KIIT was granted Deemed-to-be-University status in 2004 and has since earned national and international recognition for excellence in education, research, and innovation.
+              </p>
+              <p class="text-lg md:text-xl text-gray-300 leading-relaxed font-light">
+                KIIT offers a wide range of programs across engineering, management, law, medical sciences, biotechnology, liberal arts, and more. With students from across India and over 60 countries, the university fosters a diverse, inclusive, and globally connected academic environment.
+              </p>
+              <p class="text-lg md:text-xl text-gray-300 leading-relaxed font-light">
+                Beyond academics, KIIT emphasizes holistic development through sports, cultural engagement, entrepreneurship, and social responsibility. With world-class infrastructure, research facilities, and industry collaborations, KIIT continues to empower students to become innovators, leaders, and changemakers of the future.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 3: FOUNDER – DR. ACHYUTA SAMANTA -->
+        <section class="py-32 px-6 md:px-12 lg:px-24 relative overflow-hidden">
+          <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            
+            <!-- Left Column: Text (order on mobile: 2) -->
+            <div class="order-2 lg:order-1">
+              <!-- AnimatedSection (no delay) – titles -->
+              <div class="animated-section">
+                <h2 class="text-4xl md:text-5xl font-bold mb-4 tracking-tight">About the Founder</h2>
+                <h3 class="text-2xl text-cyan-400 font-semibold mb-8">Dr. Achyuta Samanta</h3>
+              </div>
+              
+              <!-- AnimatedSection delay={200} – paragraphs -->
+              <div class="animated-section space-y-6 text-gray-400 text-lg leading-relaxed font-light" style="transition-delay:200ms">
+                <p>
+                  Dr. Achyuta Samanta is an educationist, social reformer, and the founder of KIIT and KISS (Kalinga Institute of Social Sciences). Born in a small village in Odisha, he faced significant financial hardships in his early life. Despite these challenges, his determination and commitment to education led him to establish KIIT in 1992 with limited resources but an extraordinary vision.
+                </p>
+                <p>
+                  Under his leadership, KIIT has become one of India’s premier educational institutions. In addition, he founded KISS, a globally recognized institution dedicated to providing free education, accommodation, and vocational training to thousands of underprivileged tribal children.
+                </p>
+                <p>
+                  Dr. Samanta’s work extends beyond education into social development, rural empowerment, and community upliftment. His contributions have earned him numerous national and international honors. His vision remains centered on making quality education accessible, inclusive, and transformative.
+                </p>
+              </div>
+            </div>
+
+            <!-- Right Column: Image + Social (order on mobile: 1) -->
+            <div class="order-1 lg:order-2 flex flex-col items-center lg:items-end">
+              <!-- AnimatedSection (no delay) wrapping the entire group (image + caption) -->
+              <div class="animated-section group relative">
+                <div class="relative overflow-hidden rounded-2xl shadow-2xl shadow-black/50 border border-white/5">
+                  <img 
+                    src="founder.jpg" 
+                    alt="Dr. Achyuta Samanta" 
+                    class="w-full max-w-md object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-105"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-[#0B0B0B] via-transparent to-transparent opacity-60"></div>
+                </div>
+                
+                <div class="mt-8 text-center lg:text-right w-full">
+                  <p class="text-xl font-bold tracking-wide uppercase">Dr. Achyuta Samanta</p>
+                  <!-- Social icons – exactly as original, using Lucide paths as inline SVGs -->
+                  <div class="flex justify-center lg:justify-end gap-6 mt-4">
+                    <!-- Globe -->
+                    <a href="https://achyutasamanta.com/" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-cyan-400 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] transition-all">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                        <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
+                      </svg>
+                    </a>
+                    <!-- Twitter (bird) -->
+                    <a href="https://x.com/achyuta_samanta?lang=en" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-cyan-400 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] transition-all">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                        <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.5 9 4.5 0-1.6.8-3 2-4-1-1-2-2-4-2 2-3 7-3 7-3Z"/>
+                      </svg>
+                    </a>
+                    <!-- Instagram -->
+                    <a href="https://www.instagram.com/dr.achyutasamanta/?hl=en" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-cyan-400 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] transition-all">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                        <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+                      </svg>
+                    </a>
+                    <!-- Linkedin -->
+                    <a href="https://www.linkedin.com/in/achyutasamanta/?originalSubdomain=in" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-cyan-400 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] transition-all">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/>
+                      </svg>
+                    </a>
+                    <!-- Facebook -->
+                    <a href="https://www.facebook.com/AchyutaSamanta/" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-cyan-400 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] transition-all">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- FOOTER: ATTRIBUTION (with animated heart) -->
+        <footer class="w-full py-12 px-6 flex flex-col items-center justify-center border-t border-white/5 bg-black/30">
+          <!-- AnimatedSection wrapping footer content -->
+          <div class="animated-section flex flex-col items-center">
+            <div class="flex items-center gap-2 text-gray-400 font-light tracking-[0.2em] text-xs sm:text-sm uppercase mb-4 text-center">
+              <span>Made with</span>
+              <!-- Heart icon – fill-red-500, animate-pulse, w-4 h-4 (16px) -->
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 fill-red-500 animate-pulse w-4 h-4">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
+              <span>for KIITIANS by KIITIANS</span>
+            </div>
+            <div class="h-px w-12 bg-gray-800 mb-6"></div>
+            <p class="text-[10px] text-gray-600 tracking-[0.4em] uppercase text-center">
+              KIIT Events
+            </p>
+          </div>
+        </footer>
+      </div> <!-- end outer div -->
+    </main>
+  </div>
+
+  <!-- Intersection Observer – exactly replicates AnimatedSection behavior -->
+  <script>
+    (function() {
+      'use strict';
+      function initAnimations() {
+        const animatedElements = document.querySelectorAll('.animated-section');
+        if (animatedElements.length === 0) return;
+
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              // Optional: unobserve after animation to reduce load
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.1 });
+
+        animatedElements.forEach(el => observer.observe(el));
+      }
+
+      // Run after DOM is fully loaded
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAnimations);
+      } else {
+        initAnimations();
+      }
+    })();
+  </script>
+</body>
+</html>
