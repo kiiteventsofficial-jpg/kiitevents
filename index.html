@@ -40,7 +40,7 @@
             },
         }
     </script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .custom-scrollbar::-webkit-scrollbar {
@@ -318,7 +318,7 @@
 
 
     <!-- Supabase Client (Module) -->
-    <script type="module" src="supabase.js"></script>
+    <script type="module" src="/supabase.js"></script>
 
     <script>
         // 🚨 Prevent app scripts from running during OAuth redirect
@@ -335,9 +335,9 @@
     <script>
         if (!window.__PAUSE_APP__) {
             const scripts = [
-                { src: "state.js?v=12", type: "text/javascript" },
-                { src: "storage.js?v=12", type: "module" },
-                { src: "script.js?v=12", type: "module" }
+                { src: "/state.js?v=12", type: "text/javascript" },
+                { src: "/storage.js?v=12", type: "module" },
+                { src: "/script.js?v=12", type: "module" }
             ];
 
             scripts.forEach(s => {
@@ -351,10 +351,17 @@
             console.log("🛑 App scripts skipped on index.html (OAuth redirect). Loading Auth Callback handler...");
             const callbackScript = document.createElement("script");
             callbackScript.type = "module";
-            callbackScript.src = "auth-callback.js?v=12";
+            callbackScript.src = "/auth-callback.js?v=12";
             callbackScript.async = false;
             document.body.appendChild(callbackScript);
         }
+    </script>
+    <script>
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
     </script>
 </body>
 
