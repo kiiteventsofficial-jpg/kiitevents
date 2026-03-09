@@ -6,29 +6,41 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>KIIT Events | Contact Us</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
+                    screens: {
+                        'xs': '375px',
+                        '2xs': '320px'
+                    },
                     colors: {
-                        "primary": "#2563EB",
-                        "primary-dark": "#1D4ED8",
+                        "primary": "#3B82F6",
+                        "primary-dark": "#2563EB",
                         "secondary": "#06B6D4",
-                        "background": "#0B0F1A",
+                        "accent": "#8B5CF6",
+                        "background": "#030712",
                         "surface-dark": "#111827",
-                        "surface-light": "#1F2937"
+                        "card-bg": "rgba(17, 24, 39, 0.6)"
                     },
                     fontFamily: {
                         "display": ["Plus Jakarta Sans", "sans-serif"],
                         "body": ["Inter", "sans-serif"]
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
                     }
                 }
             }
@@ -43,6 +55,14 @@
             })();
     </script>
     <style>
+        .glass-card {
+            background: rgba(17, 24, 39, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
         .contact-wrapper {
             display: grid;
             grid-template-columns: 1fr 1.6fr;
@@ -57,105 +77,171 @@
                 gap: 2rem;
             }
         }
+
+        .mesh-gradient {
+            background-color: #030712;
+            background-image:
+                radial-gradient(at 0% 0%, hsla(220, 100%, 15%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(260, 100%, 10%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(190, 100%, 10%, 1) 0, transparent 50%);
+        }
+
+        .form-input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .form-input:focus {
+            background: rgba(0, 0, 0, 0.5);
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .premium-text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Prevent back button overlap on mobile scroll */
+        header {
+            transition: transform 0.3s ease;
+        }
+
+        body:not(.scrolled-down) header {
+            transform: translateY(0);
+        }
+
+        body.scrolled-down:not(.scrolled-up) header {
+            transform: translateY(-100%);
+        }
+
+        /* Improved word wrap for email */
+        .break-all {
+            word-break: break-all;
+            overflow-wrap: break-word;
+        }
     </style>
 </head>
 
-<body class="bg-background text-white antialiased min-h-screen flex flex-col font-body">
+<body
+    class="bg-background text-white antialiased min-h-screen flex flex-col font-body mesh-gradient transition-colors duration-300">
 
     <div id="navbar-container"></div>
 
-    <!-- Universal Back Button -->
-    <button class="back-button" onclick="window.history.back()" aria-label="Go back">
-        <span class="material-icons-round">arrow_back</span>
-        <span>Back</span>
-    </button>
+    <!-- Header Section for Back Button (to avoid overlap) -->
+    <header class="fixed top-0 left-0 w-full z-[1001] px-4 pt-4 pointer-events-none">
+        <button
+            class="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-sm font-bold text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all hover:scale-105 active:scale-95 shadow-2xl"
+            onclick="window.history.back()" aria-label="Go back">
+            <span class="material-icons-round text-xl">arrow_back</span>
+            <span class="hidden xs:inline uppercase tracking-widest text-[10px]">Go Back</span>
+        </button>
+    </header>
 
     <!-- Main Content -->
-    <main class="flex-grow pt-20 sm:pt-24 pb-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <!-- Background Elements -->
-        <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-            <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px]"></div>
-            <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/20 rounded-full blur-[120px]">
-            </div>
+    <main class="flex-grow pt-24 pb-16 px-4 sm:px-6 lg:px-8 relative overflow-x-hidden">
+        <!-- Animated Blobs -->
+        <div class="absolute top-20 -left-20 w-72 h-72 bg-primary/20 rounded-full blur-[100px] animate-pulse-slow">
         </div>
+        <div class="absolute bottom-40 -right-20 w-80 h-80 bg-accent/20 rounded-full blur-[120px] animate-float"></div>
 
-        <div class="max-w-7xl mx-auto">
-            <button onclick="goHome()"
-                class="mb-6 text-sm text-slate-400 flex items-center gap-2 hover:text-white transition-colors group">
-                <span class="material-icons-round transition-transform group-hover:-translate-x-1">arrow_back</span>
-                Back to Home
-            </button>
-            <div class="text-center mb-16 animate-fade-in-up">
+        <div class="max-w-7xl mx-auto relative z-10">
+            <div class="text-center mb-20 animate-fade-in-up">
+                <span
+                    class="px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-[10px] font-black uppercase tracking-[0.3em] mb-6 inline-block">
+                    Inquiry Hub
+                </span>
                 <h1
-                    class="text-4xl md:text-5xl font-bold font-display mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-                    Get in Touch
+                    class="text-5xl md:text-7xl font-extrabold font-display mb-6 tracking-tighter premium-text-gradient">
+                    Let's Connect.
                 </h1>
-                <p class="text-slate-400 text-lg max-w-2xl mx-auto">
-                    Have questions about an event? Want to collaborate? Or just want to say hi? We'd love to hear from
-                    you.
+                <p class="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto font-medium leading-relaxed">
+                    Have a vision for a campus event? Seeking collaboration? Or just want to talk? Our team is ready to
+                    scale with you.
                 </p>
             </div>
 
             <div class="contact-wrapper">
 
-                <!-- Contact Info -->
+                <!-- Contact Info Card -->
                 <div
-                    class="bg-surface-dark border border-white/5 rounded-3xl p-8 shadow-2xl shadow-primary/5 hover:border-primary/20 transition-all duration-500 relative overflow-hidden group/info">
-                    <div
-                        class="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10 group-hover/info:bg-primary/10 transition-colors">
-                    </div>
-                    <h2 class="text-2xl font-bold text-white mb-8 font-display tracking-tight">Contact Information</h2>
+                    class="glass-card rounded-[2.5rem] p-10 group/info transition-all duration-500 hover:shadow-primary/10">
+                    <h2 class="text-3xl font-bold text-white mb-10 font-display tracking-tight flex items-center gap-3">
+                        <span class="w-8 h-1 bg-primary rounded-full"></span>
+                        Contact
+                    </h2>
 
-                    <div class="space-y-8">
-                        <div class="flex items-start gap-5">
+                    <div class="space-y-10">
+                        <div class="flex items-start gap-6 group">
                             <div
-                                class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                                <i class="fa-solid fa-envelope"></i>
+                                class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                <span class="material-icons-round text-2xl">mail</span>
                             </div>
-                            <div>
-                                <h3 class="text-white font-semibold flex items-center gap-2">
-                                    Email Us
-                                    <span class="w-1 h-1 rounded-full bg-primary/50"></span>
-                                </h3>
-                                <p class="text-slate-400 text-sm mt-1">For general queries and support</p>
+                            <div class="min-w-0">
+                                <h3 class="text-white font-bold text-lg mb-1">Email Our Team</h3>
+                                <p class="text-slate-500 text-sm mb-3">Response within 24 hours</p>
                                 <a href="mailto:kiiteventsofficial@gmail.com"
-                                    class="text-primary-light hover:text-white transition-all font-medium mt-1.5 inline-block border-b border-primary/20 hover:border-white/40">
+                                    class="text-primary-light hover:text-white transition-all font-bold text-base md:text-lg break-all border-b-2 border-primary/20 hover:border-primary">
                                     kiiteventsofficial@gmail.com
                                 </a>
                             </div>
                         </div>
 
+                        <!-- Social Icons Placeholder -->
+                        <div class="pt-8 border-t border-white/5">
+                            <h3 class="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mb-6">Find us on
+                                socials</h3>
+                            <div class="flex gap-4">
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-primary hover:border-primary transition-all cursor-pointer">
+                                    <i class="fa-brands fa-instagram text-xl"></i>
+                                </div>
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-primary hover:border-primary transition-all cursor-pointer">
+                                    <i class="fa-brands fa-linkedin text-xl"></i>
+                                </div>
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-primary hover:border-primary transition-all cursor-pointer">
+                                    <i class="fa-brands fa-x-twitter text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Contact Form -->
-                <div
-                    class="bg-surface-dark border border-white/5 rounded-3xl p-8 shadow-2xl shadow-primary/5 relative overflow-hidden group hover:border-primary/20 transition-all duration-500">
-                    <div
-                        class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10 group-hover:bg-primary/10 transition-colors">
-                    </div>
+                <!-- Contact Form Card -->
+                <div class="glass-card rounded-[3rem] p-8 md:p-12 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-40 h-40 bg-primary/10 blur-[80px] -z-10"></div>
 
-                    <h2 class="text-2xl font-bold text-white mb-8 font-display tracking-tight">Send a Message</h2>
+                    <h2 class="text-3xl font-bold text-white mb-10 font-display tracking-tight">Drop us a Line</h2>
 
-                    <form id="contact-form" onsubmit="window.sendEmail(event)" class="space-y-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="text-sm text-slate-300 font-semibold tracking-wide ml-1">Name</label>
-                                <input type="text" name="user_name" placeholder="Your Name" required
-                                    class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-3.5 text-white placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 outline-none transition-all hover:bg-black/50 hover:border-white/10">
+                    <form id="contact-form" onsubmit="window.sendEmail(event)" class="space-y-8">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                            <div class="space-y-3">
+                                <label class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] ml-1">Your
+                                    Name</label>
+                                <input type="text" name="user_name" placeholder="John Doe" required
+                                    class="w-full form-input rounded-2xl px-6 py-4 text-white placeholder:text-slate-600 outline-none">
                             </div>
-                            <div class="space-y-2">
-                                <label class="text-sm text-slate-300 font-semibold tracking-wide ml-1">Email</label>
-                                <input type="email" name="user_email" placeholder="your@email.com" required
-                                    class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-3.5 text-white placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 outline-none transition-all hover:bg-black/50 hover:border-white/10">
+                            <div class="space-y-3">
+                                <label
+                                    class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] ml-1">Email
+                                    Address</label>
+                                <input type="email" name="user_email" placeholder="john@example.com" required
+                                    class="w-full form-input rounded-2xl px-6 py-4 text-white placeholder:text-slate-600 outline-none">
                             </div>
                         </div>
 
-                        <div class="space-y-2">
-                            <label class="text-sm text-slate-300 font-semibold tracking-wide ml-1">Subject</label>
+                        <div class="space-y-3">
+                            <label
+                                class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] ml-1">Subject</label>
                             <div class="relative group/select">
                                 <select name="subject"
-                                    class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-3.5 text-white placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 outline-none transition-all hover:bg-black/50 hover:border-white/10 appearance-none cursor-pointer">
+                                    class="w-full form-input rounded-2xl px-6 py-4 text-white placeholder:text-slate-600 outline-none appearance-none cursor-pointer">
                                     <option value="General Inquiry">General Inquiry</option>
                                     <option value="Event Collaboration">Event Collaboration</option>
                                     <option value="Technical Support">Technical Support</option>
@@ -168,67 +254,104 @@
                             </div>
                         </div>
 
-                        <div class="space-y-2">
-                            <label class="text-sm text-slate-300 font-semibold tracking-wide ml-1">Message</label>
-                            <textarea name="message" rows="5" placeholder="How can we help you?" required
-                                class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-3.5 text-white placeholder:text-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 outline-none transition-all hover:bg-black/50 hover:border-white/10 resize-none"></textarea>
+                        <div class="space-y-3">
+                            <label class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] ml-1">Your
+                                Message</label>
+                            <textarea name="message" rows="5" placeholder="Tell us more about your ideas..." required
+                                class="w-full form-input rounded-[2rem] px-6 py-5 text-white placeholder:text-slate-600 outline-none resize-none"></textarea>
                         </div>
 
                         <button id="submitBtn" type="submit"
-                            class="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 transform hover:-translate-y-0.5 transition-all duration-200 mt-2 flex items-center justify-center gap-2">
-                            <span>Send Message</span>
+                            class="w-full h-16 bg-primary text-white font-black uppercase tracking-[0.2em] text-xs rounded-2xl shadow-2xl shadow-primary/20 hover:bg-primary-dark hover:shadow-primary/40 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3 group">
+                            <span>Dispatch Message</span>
+                            <span
+                                class="material-icons-round text-lg group-hover:translate-x-1 transition-transform">send</span>
                             <span id="loadingSpinner"
                                 class="hidden animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full"></span>
                         </button>
                     </form>
                 </div>
-
             </div>
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="bg-surface-dark border-t border-white/10 py-8 mt-auto">
-        <div
-            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p class="text-slate-500 text-sm">&copy; 2026 KIIT Events. All rights reserved.</p>
-            <p class="text-slate-500 text-sm flex items-center gap-1">
-                Made with <span class="text-red-500">❤️</span> for KiiTians, by KiiTians
-            </p>
+    <footer class="bg-black/40 backdrop-blur-xl border-t border-white/5 py-12 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-white p-1.5 shadow-lg">
+                    <img src="assets/logo_final.png" class="w-full h-full object-contain">
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-sm font-black tracking-tighter text-white">KIIT EVENTS</span>
+                    <span class="text-[8px] font-black uppercase tracking-[0.3em] text-primary">University Hub</span>
+                </div>
+            </div>
+            <div class="flex flex-col items-center md:items-end gap-2">
+                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">&copy; 2026 KIIT Events.
+                    International Campus.</p>
+                <p class="text-slate-400 text-xs flex items-center gap-1.5 font-medium">
+                    Crafted with <span class="text-primary animate-pulse">✦</span> for the next generation.
+                </p>
+            </div>
         </div>
     </footer>
 
     <script src="script.js"></script>
     <script>
+        // Scroll Logic for Back Button
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            if (currentScroll > 100) {
+                document.body.classList.add('scrolled-down');
+                if (currentScroll < lastScroll) {
+                    document.body.classList.add('scrolled-up');
+                } else {
+                    document.body.classList.remove('scrolled-up');
+                }
+            } else {
+                document.body.classList.remove('scrolled-down', 'scrolled-up');
+            }
+            lastScroll = currentScroll;
+        });
+
         window.sendEmail = function (e) {
             e.preventDefault();
 
             const btn = document.getElementById('submitBtn');
             const spinner = document.getElementById('loadingSpinner');
             const btnText = btn.querySelector('span:not(#loadingSpinner)');
+            const sendIcon = btn.querySelector('.material-icons-round');
 
             // Disable button and show spinner
             btn.disabled = true;
             spinner.classList.remove('hidden');
-            btnText.textContent = 'Sending...';
+            sendIcon.classList.add('hidden');
+            btnText.textContent = 'TRANSMITTING...';
 
-            // NOTE: Replace these with your actual IDs from EmailJS
             const serviceID = "service_xdtsawe";
             const templateID = "template_wz9wb4c";
             const publicKey = "UHUMTXW2XboEoX9B5";
 
             emailjs.sendForm(serviceID, templateID, e.target, publicKey)
                 .then(() => {
-                    alert("Message sent successfully! We'll get back to you soon.");
-                    e.target.reset();
+                    btnText.textContent = 'SUCCESS!';
+                    btn.style.background = '#10b981';
+                    setTimeout(() => {
+                        alert("Message sent successfully! We'll get back to you soon.");
+                        e.target.reset();
+                        btnText.textContent = 'Dispatch Message';
+                        btn.style.background = '';
+                        sendIcon.classList.remove('hidden');
+                    }, 2000);
                 }, (err) => {
                     alert("Failed to send message: " + JSON.stringify(err));
+                    btnText.textContent = 'Dispatch Message';
                 })
                 .finally(() => {
-                    // Re-enable button
                     btn.disabled = false;
                     spinner.classList.add('hidden');
-                    btnText.textContent = 'Send Message';
                 });
         };
     </script>
