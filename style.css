@@ -2835,3 +2835,61 @@ select.input-colorful {
     filter: brightness(1.2);
     transform: translateY(-2px);
 }
+
+/* --- MOBILE PERFORMANCE OPTIMIZATIONS (PHASE 5/8/11) --- */
+@media (max-width: 768px) {
+
+    /* Kill expensive blur calculations on low-end mobile devices */
+    .backdrop-blur,
+    .backdrop-blur-sm,
+    .backdrop-blur-md,
+    .backdrop-blur-lg,
+    .backdrop-blur-xl,
+    .backdrop-blur-2xl,
+    .backdrop-blur-3xl,
+    .premium-glass,
+    .glass-panel {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background-color: rgba(5, 11, 24, 0.98) !important;
+    }
+
+    /* Replace complex shadows with lightweight basic ones */
+    .shadow-2xl,
+    .shadow-xl,
+    .shadow-lg,
+    .premium-shadow {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    /* Eliminate nested fixed layout jumps */
+    .mobile-menu {
+        height: 100dvh !important;
+        /* Prevents address bar jumps */
+        overscroll-behavior: contain;
+    }
+}
+
+/* --- GLOBAL SCROLL REPAIR (PHASE 7) --- */
+/* Ensure all modals, auth pages, and overlays remain properly scrollable on mobile */
+.modal,
+.modal-content,
+[id*="Modal"],
+#addSocietyModal {
+    overflow-y: auto !important;
+    max-height: 100dvh !important;
+    overscroll-behavior: contain;
+}
+
+/* Scroll reveal initial state (Phase 6) */
+.reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(30px) scale(0.98);
+    transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+    will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
