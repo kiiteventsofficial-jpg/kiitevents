@@ -4,7 +4,8 @@
 }
 
 body {
-    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
     margin: 0;
     background: #0f172a;
     /* Fallback */
@@ -12,10 +13,16 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
     /* Prevent scrollbars from blobs */
     position: relative;
 }
+
+html,
+body {
+    height: auto;
+    min-height: 100%;
+}
+
 
 /* --- Animated Blobs --- */
 .blob {
