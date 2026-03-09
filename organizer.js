@@ -31,7 +31,7 @@ async function initOrganizer() {
 
     if (!isAdmin && !isSuper) {
         console.error('❌ organizer.js: Unauthorized access. Expected admin or super_admin. Found:', profile.role);
-        // window.location.replace('/index.html'); // DISABLED FOR DEBUG
+        window.location.replace('/index.html');
         alert('Unauthorized access. Expected Admin or Super Admin. Your role: ' + (profile.role || 'None'));
         return;
     }
