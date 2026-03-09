@@ -55,6 +55,9 @@ window.Router = {
             window.State.params = params;
         }
 
+        // Update History API for back button support
+        window.history.pushState({ path: path }, "", path === '/' ? window.location.pathname : `#${path}`);
+
         // Trigger re-render if App exists
         if (window.App && typeof window.App.render === 'function') {
             window.App.render();
@@ -63,3 +66,24 @@ window.Router = {
         window.scrollTo(0, 0);
     }
 };
+
+// Handle Browser Back Button (Popstate)
+window.addEventListener('popstate', (e) => {
+    const path = e.state ? e.state.path : (window.location.hash ? window.location.hash.replace('#', '') : '/');
+
+    let route = path;
+    let params = {};
+    if (path.startsWith('/event/')) {
+        route = '/event/:id';
+        params = { id: path.split('/')[2] };
+    }
+
+    if (window.State) {
+        window.State.route = route;
+        window.State.params = params;
+    }
+
+    if (window.App && typeof window.App.render === 'function') {
+        window.App.render();
+    }
+});
