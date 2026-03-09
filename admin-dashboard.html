@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="./admin.css">
     <link rel="stylesheet" href="./chat.css">
+    <link rel="stylesheet" href="./nexus-chat.css">
     <style>
         .custom-scrollbar::-webkit-scrollbar {
             width: 10px;
@@ -1411,7 +1412,7 @@
                         <div class="relative group cursor-pointer border-2 border-dashed border-[#1e293b] hover:border-blue-500/50 rounded-[2rem] bg-[#0f172a]/50 p-12 transition-all"
                             onclick="document.getElementById('eventImages').click()">
                             <input id="eventImages" type="file" accept="image/*" class="hidden"
-                                onchange="previewSocietyLogo(this, 'eventBannerPreview', 'eventBannerUrl')" />
+                                onchange="handleBannerUpload(this)" />
                             <div id="bannerPrompt" class="flex flex-col items-center">
                                 <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
                                     <span class="material-icons-round text-blue-500 text-4xl">add_photo_alternate</span>
@@ -1452,6 +1453,75 @@
                         <button type="button" onclick="addContactRow()"
                             class="text-blue-500 hover:text-blue-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">
                             <span class="material-icons-round text-base">add_circle</span> Add another contact
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ===== ADVANCED SECTIONS: Sponsors, Agenda, FAQs ===== -->
+                <div class="space-y-6 pt-6 border-t border-[#1e293b]">
+                    <h3 class="text-sm font-black text-gray-300 uppercase tracking-widest flex items-center gap-3">
+                        <span class="material-icons-round text-indigo-400">auto_awesome</span>
+                        Advanced Details (Optional)
+                    </h3>
+
+                    <!-- Target & Ecosystem -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Target Collective</label>
+                            <select id="eventTargetGroup"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none font-medium">
+                                <option value="KIIT Students">KIIT Students</option>
+                                <option value="External Participants">External Participants</option>
+                                <option value="Faculty Only">Faculty Only</option>
+                                <option value="Mixed Audience">Mixed Audience</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Ecosystem Tier</label>
+                            <select id="eventEcosystemTier"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none font-medium">
+                                <option value="Standard">Standard</option>
+                                <option value="Premium">Premium</option>
+                                <option value="Elite">Elite</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Sponsors -->
+                    <div class="space-y-3">
+                        <label class="block text-sm font-semibold text-gray-400 flex items-center gap-2">
+                            <span class="material-icons-round text-yellow-400 text-base">star</span> Sponsors & Partners
+                        </label>
+                        <div id="sponsorContainer" class="space-y-3"></div>
+                        <button type="button" onclick="addSponsorRow()"
+                            class="text-yellow-500 hover:text-yellow-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-yellow-500/10 transition-colors">
+                            <span class="material-icons-round text-base">add_circle</span> Add Sponsor
+                        </button>
+                    </div>
+
+                    <!-- Agenda -->
+                    <div class="space-y-3 border-t border-[#1e293b] pt-6">
+                        <label class="block text-sm font-semibold text-gray-400 flex items-center gap-2">
+                            <span class="material-icons-round text-emerald-400 text-base">schedule</span> Agenda /
+                            Timeline
+                        </label>
+                        <div id="agendaContainer" class="space-y-3"></div>
+                        <button type="button" onclick="addAgendaRow()"
+                            class="text-emerald-500 hover:text-emerald-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-emerald-500/10 transition-colors">
+                            <span class="material-icons-round text-base">add_circle</span> Add Session
+                        </button>
+                    </div>
+
+                    <!-- FAQs -->
+                    <div class="space-y-3 border-t border-[#1e293b] pt-6">
+                        <label class="block text-sm font-semibold text-gray-400 flex items-center gap-2">
+                            <span class="material-icons-round text-purple-400 text-base">help_outline</span> Frequently
+                            Asked Questions
+                        </label>
+                        <div id="faqContainer" class="space-y-3"></div>
+                        <button type="button" onclick="addFaqRow()"
+                            class="text-purple-500 hover:text-purple-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-purple-500/10 transition-colors">
+                            <span class="material-icons-round text-base">add_circle</span> Add FAQ
                         </button>
                     </div>
                 </div>
