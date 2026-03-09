@@ -257,12 +257,32 @@ body {
     border-width: 0;
     border-style: solid;
     border-color: var(--border);
+    -webkit-tap-highlight-color: transparent;
 }
 
 html {
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     scroll-behavior: smooth;
+}
+
+@media (max-width: 768px) {
+    .hero {
+        height: auto !important;
+        padding: 120px 20px !important;
+    }
+
+    .hero h1 {
+        font-size: 42px !important;
+    }
+
+    .hero p {
+        font-size: 16px !important;
+    }
+
+    .navbar {
+        padding: 10px 15px !important;
+    }
 }
 
 .navbar img {
