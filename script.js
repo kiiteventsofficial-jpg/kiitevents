@@ -2234,6 +2234,16 @@ const wrapWordsAndPhrases = (text) => {
 const formatEventDescription = (text) => {
     if (!text) return "";
 
+    // Handle JSON object strings (new format)
+    if (typeof text === 'string' && text.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(text);
+            if (parsed.html) return parsed.html;
+        } catch (e) {
+            console.warn("Failed to parse event description JSON:", e);
+        }
+    }
+
     // If it already has structured HTML (like <p>, <div>, <ul>), return as part of the inner content
     if (text.includes('<p>') || text.includes('<div') || text.includes('<ul') || text.includes('<br')) {
         return text;
@@ -2629,6 +2639,20 @@ const Views = {
         const ev = MOCK_EVENTS.find(e => e.id === window.State.params.id);
         if (!ev) return `<div class="container py-32 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">Event not found</div>`;
 
+        // Parse structured data if available
+        let advanced = { sponsors: [], agenda: [], faqs: [] };
+        let descriptionHtml = formatEventDescription(ev.description);
+
+        if (typeof ev.description === 'string' && ev.description.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(ev.description);
+                if (parsed.advanced) advanced = parsed.advanced;
+                if (parsed.html) descriptionHtml = parsed.html;
+            } catch (e) {
+                console.warn("EventDetails JSON parse error:", e);
+            }
+        }
+
         const galleryImages = ev.gallery && ev.gallery.length > 0 ? ev.gallery : [ev.image];
         const isOnline = ev.mode === 'Online' || ev.mode === 'Hybrid';
         const hasLink = ev.link && ev.link.trim() !== '';
@@ -2677,7 +2701,7 @@ const Views = {
                             <div class="w-1 h-1 rounded-full bg-white/20"></div>
                             <span class="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest">
                                 <span class="material-icons-round text-primary text-sm">groups</span>
-                                ${ev.organizer}
+                                ${ev.organizer_name || ev.organizer || 'KIIT Society'}
                             </span>
                         </div>
                         <h1 class="text-4xl md:text-6xl font-black text-white mb-8 tracking-tight leading-[1.1]">${ev.title}</h1>
@@ -2697,7 +2721,7 @@ const Views = {
                         <div class="prose prose-invert prose-slate max-w-none">
                             <div id="expandableDescription" class="collapsible-content collapsed relative">
                                 <div class="text-slate-300 leading-[1.8] text-lg font-medium space-y-6">
-                                    ${formatEventDescription(ev.description)}
+                                    ${descriptionHtml}
                                 </div>
                                 <div class="content-fade h-24 absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/80 to-transparent"></div>
                             </div>
@@ -2711,15 +2735,82 @@ const Views = {
                         </div>
                     </div>
 
+                    <!-- Agenda Section -->
+                    ${advanced.agenda && advanced.agenda.length > 0 ? `
+                    <div class="mb-16">
+                        <h3 class="text-xl md:text-2xl font-black text-white mb-10 flex items-center gap-4">
+                            <span class="w-2 h-8 rounded-full bg-cyan-500"></span>
+                            EVENT AGENDA
+                        </h3>
+                        <div class="space-y-6">
+                            ${advanced.agenda.map((item, idx) => `
+                                <div class="flex gap-6 p-6 rounded-[2rem] bg-white/[0.03] border border-white/5 hover:border-cyan-500/30 transition-all group">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <div class="text-cyan-400 font-black text-sm uppercase tracking-widest">${item.time}</div>
+                                        <div class="w-px h-full bg-white/10 group-last:hidden"></div>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-white font-black text-lg mb-2">${item.title}</h4>
+                                        <p class="text-slate-400 text-sm leading-relaxed">${item.description || ''}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Sponsors Section -->
+                    ${advanced.sponsors && advanced.sponsors.length > 0 ? `
+                    <div class="mb-16">
+                        <h3 class="text-xl md:text-2xl font-black text-white mb-10 flex items-center gap-4">
+                            <span class="w-2 h-8 rounded-full bg-emerald-500"></span>
+                            PARTNERS & SPONSORS
+                        </h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+                            ${advanced.sponsors.map(s => `
+                                <div class="p-6 rounded-3xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] transition-all flex flex-col items-center gap-4 text-center group">
+                                    <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 group-hover:scale-110 transition-transform">
+                                        <img src="${s.logo || 'assets/logo_final.png'}" class="w-full h-full object-contain p-2" onerror="this.src='assets/logo_final.png'">
+                                    </div>
+                                    <div class="text-white font-bold text-xs uppercase tracking-widest">${s.name}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- FAQs Section -->
+                    ${advanced.faqs && advanced.faqs.length > 0 ? `
+                    <div class="mb-16">
+                        <h3 class="text-xl md:text-2xl font-black text-white mb-10 flex items-center gap-4">
+                            <span class="w-2 h-8 rounded-full bg-purple-500"></span>
+                            FREQUENTLY ASKED
+                        </h3>
+                        <div class="space-y-4">
+                            ${advanced.faqs.map((faq, idx) => `
+                                <div class="rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden">
+                                    <div class="p-6 flex items-center justify-between cursor-pointer hover:bg-white/[0.05] transition-all" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                        <span class="text-white font-bold text-sm uppercase tracking-wide">${faq.question}</span>
+                                        <span class="material-icons-round text-slate-500">expand_more</span>
+                                    </div>
+                                    <div class="p-6 pt-0 text-slate-400 text-sm leading-relaxed border-t border-white/5 hidden">
+                                        ${faq.answer}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
                     <!-- Specs Lattice -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
                         <div class="p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 group hover:border-indigo-500/30 transition-all">
                             <div class="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] mb-4">Target Collective</div>
-                            <div class="text-white font-black text-2xl tracking-tight">${ev.targetAudience || 'University Collective'}</div>
+                            <div class="text-white font-black text-2xl tracking-tight">${ev.audience || ev.targetAudience || 'University Collective'}</div>
                         </div>
                         <div class="p-8 rounded-[2rem] bg-purple-500/5 border border-purple-500/10 group hover:border-purple-500/30 transition-all">
                             <div class="text-[10px] text-purple-400 font-black uppercase tracking-[0.3em] mb-4">Ecosystem Integrity</div>
-                            <div class="text-white font-black text-2xl tracking-tight">${ev.featured ? 'Elite Tier' : 'Standard Access'}</div>
+                            <div class="text-white font-black text-2xl tracking-tight">${ev.is_featured ? 'Elite Tier' : 'Standard Access'}</div>
                         </div>
                     </div>
                 </div>
@@ -2743,7 +2834,7 @@ const Views = {
                                      <div class="min-w-0 flex-1">
                                         <div class="text-[10px] text-primary/60 font-black uppercase tracking-[0.2em] mb-1">Temporal Window</div>
                                         <div class="text-xl font-black text-white tracking-tight break-all overflow-wrap-anywhere">${ev.date}</div>
-                                        <div class="text-slate-400 font-bold text-xs mt-1 uppercase tracking-widest break-words">${ev.time} ${ev.endTime ? '- ' + ev.endTime : ''}</div>
+                                        <div class="text-slate-400 font-bold text-xs mt-1 uppercase tracking-widest break-words">${ev.time || ''} ${ev.end_time || ev.endTime ? '- ' + (ev.end_time || ev.endTime) : ''}</div>
                                      </div>
                                 </div>
                                 
@@ -2753,7 +2844,7 @@ const Views = {
                                      </div>
                                      <div class="min-w-0 flex-1">
                                         <div class="text-[10px] text-cyan-400/60 font-black uppercase tracking-[0.2em] mb-1">Operational Node</div>
-                                        <div class="text-xl font-black text-white tracking-tight break-words">${ev.venue || 'TBA'}</div>
+                                        <div class="text-xl font-black text-white tracking-tight break-words">${ev.location || ev.venue || 'TBA'}</div>
                                         <div class="text-slate-400 font-bold text-xs mt-1 uppercase tracking-widest break-words">${ev.mode || 'Physical Interaction'}</div>
                                      </div>
                                 </div>
@@ -2765,17 +2856,23 @@ const Views = {
                                       <div class="min-w-0 flex-1">
                                          <div class="text-[10px] text-emerald-400/60 font-black uppercase tracking-[0.2em] mb-1">Access Token</div>
                                          <div class="text-2xl font-black text-white tracking-tighter break-all overflow-wrap-anywhere leading-tight">
-                                            ${ev.price === 'Free' || ev.price === '0' || !ev.price ? '<span class="text-emerald-400 glow-text">COMPLIMENTARY</span>' : '₹' + ev.price}
+                                            ${ev.is_paid ? '₹' + ev.price : (ev.price === 'Free' || ev.price === '0' || !ev.price ? '<span class="text-emerald-400 glow-text">COMPLIMENTARY</span>' : '₹' + ev.price)}
                                          </div>
                                       </div>
                                 </div>
                             </div>
                             
                             <div class="space-y-4">
-                                <button id="eventRegisterBtn" data-link="${ev.registration_link}" onclick="const link = this.getAttribute('data-link'); if (link && link !== 'null' && link !== 'undefined' && link.trim() !== '') { window.open(link, '_blank'); } else { alert('Registration link not available.'); }" class="event-register-btn w-full py-5 rounded-2xl bg-primary text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3 mb-3">
+                                <button id="eventRegisterBtn" data-link="${ev.link || ev.registration_link}" onclick="const link = this.getAttribute('data-link'); if (link && link !== 'null' && link !== 'undefined' && link.trim() !== '') { window.open(link, '_blank'); } else { alert('Registration link not available.'); }" class="event-register-btn w-full py-5 rounded-2xl bg-primary text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3 mb-3">
                                     Register Now <span class="material-icons-round text-base">rocket_launch</span>
                                 </button>
                                 
+                                ${ev.meeting_link ? `
+                                <button onclick="window.open('${ev.meeting_link}', '_blank')" class="w-full py-5 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-sm uppercase tracking-[0.2em] hover:bg-white/10 transition-all flex items-center justify-center gap-3">
+                                    Join Meeting <span class="material-icons-round text-sm">videocam</span>
+                                </button>
+                                ` : ''}
+
                                 <button onclick="navigator.share({title: '${ev.title}', text: 'Check out this event!', url: window.location.href})" class="w-full py-5 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-sm uppercase tracking-[0.2em] hover:bg-white/10 transition-all flex items-center justify-center gap-3">
                                     Share <span class="material-icons-round text-sm">share</span>
                                 </button>
