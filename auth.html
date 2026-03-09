@@ -13,6 +13,10 @@
             darkMode: "class",
             theme: {
                 extend: {
+                    screens: {
+                        'xs': '375px',
+                        ...tailwind.config.theme.screens,
+                    },
                     colors: {
                         primary: "#3B82F6",
                         "primary-hover": "#2563EB",
@@ -87,14 +91,16 @@
     <div class="absolute inset-0 bg-gradient-mesh-light dark:bg-gradient-mesh-dark z-0 transition-opacity duration-300">
     </div>
 
-    <button class="back-button" onclick="goHome()" aria-label="Back to Home">
-        <span class="material-icons-round">arrow_back</span>
-        <span>Back</span>
+    <button
+        class="back-button fixed top-4 left-4 flex items-center gap-1 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-sm text-white/80 hover:text-white z-50 transition-all"
+        onclick="goHome()" aria-label="Back to Home">
+        <span class="material-icons-round text-lg">arrow_back</span>
+        <span class="hidden xs:inline">Back</span>
     </button>
 
     <!-- Auth Card -->
     <div
-        class="relative w-full max-w-md bg-card-light dark:bg-card-dark/60 dark:backdrop-blur-xl border border-border-light dark:border-white/10 shadow-2xl rounded-2xl p-6 md:p-8 z-10 transition-colors duration-300">
+        class="relative w-[92%] xs:w-full max-w-md mx-auto bg-card-light dark:bg-card-dark/60 dark:backdrop-blur-xl border border-border-light dark:border-white/10 shadow-2xl rounded-2xl p-5 xs:p-8 z-10 transition-colors duration-300">
         <div class="mb-6 md:mb-8 text-center md:text-left">
             <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2" id="formTitle">Welcome Back
             </h1>
@@ -155,15 +161,15 @@
                 <div class="flex gap-2 p-1 bg-input-light dark:bg-input-dark border border-gray-300 dark:border-border-dark rounded-xl"
                     id="roleSelector">
                     <button type="button"
-                        class="role-option active flex-1 py-2 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2"
+                        class="role-option active flex-1 py-2 px-1 xs:px-3 rounded-lg text-[10px] xs:text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1 xs:gap-2"
                         data-role="student">
-                        <span class="material-icons-round text-lg">school</span>
+                        <span class="material-icons-round text-sm xs:text-lg">school</span>
                         Student
                     </button>
                     <button type="button"
-                        class="role-option flex-1 py-2 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2"
+                        class="role-option flex-1 py-2 px-1 xs:px-3 rounded-lg text-[10px] xs:text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1 xs:gap-2"
                         data-role="admin">
-                        <span class="material-icons-round text-lg">security</span>
+                        <span class="material-icons-round text-sm xs:text-lg">security</span>
                         Admin
                     </button>
                 </div>
@@ -223,7 +229,7 @@
 
     <!-- Theme Toggle -->
     <button
-        class="fixed bottom-4 right-4 p-3 rounded-full bg-white/90 dark:bg-slate-800 text-gray-800 dark:text-yellow-400 shadow-lg border border-gray-200 dark:border-gray-700 z-50 transition-all hover:scale-110 active:scale-95"
+        class="fixed bottom-6 right-6 p-3 rounded-full bg-white/90 dark:bg-slate-800 text-gray-800 dark:text-yellow-400 shadow-xl border border-gray-200 dark:border-gray-700 z-50 transition-all hover:scale-110 active:scale-95 md:bottom-8 md:right-8"
         id="theme-toggle">
         <span class="material-icons-round" id="theme-icon">dark_mode</span>
     </button>
