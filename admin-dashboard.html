@@ -1210,330 +1210,339 @@
 
     <!-- MODERNIZED CREATE EVENT MODAL -->
     <div id="addEventModal" class="modal-overlay">
-        <div class="modal-box">
-            <!-- Header -->
-            <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                        <span class="material-icons-round text-blue-500 text-2xl">add_circle</span>
-                    </div>
-                    <div>
-                        <h2 id="eventModalTitle" class="text-2xl font-bold text-white tracking-tight">Create New Event
-                        </h2>
-                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">EVENT MANAGEMENT
-                            SYSTEM</p>
-                    </div>
-                </div>
-                <button onclick="closeAddEventModal()"
-                    class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 transition-all">
-                    <span class="material-icons-round">close</span>
-                </button>
-            </div>
-
-            <!-- Scrollable Form -->
-            <form id="adminEventForm" class="p-8 space-y-8">
-                <input type="hidden" id="editEventId">
-
-                <div class="space-y-6">
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400">Event Name <span
-                                class="text-red-500">*</span></label>
-                        <input id="eventName"
-                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                            placeholder="Enter formal event title" type="text" required />
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Date <span
-                                    class="text-red-500">*</span></label>
-                            <input id="eventDate"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                                type="date" required />
+        <div class="modal-container">
+            <div class="modal-content">
+                <!-- Header -->
+                <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                            <span class="material-icons-round text-blue-500 text-2xl">add_circle</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-gray-400">Start <span
-                                        class="text-red-500">*</span></label>
-                                <input id="eventTime"
-                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                                    type="time" required />
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-gray-400">End</label>
-                                <input id="eventEndTime"
-                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                                    type="time" />
-                            </div>
+                        <div>
+                            <h2 id="eventModalTitle" class="text-2xl font-bold text-white tracking-tight">Create New
+                                Event
+                            </h2>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">EVENT
+                                MANAGEMENT
+                                SYSTEM</p>
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Venue / Location</label>
-                            <input id="eventVenue"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                                placeholder="e.g. Auditorium / Online" type="text" />
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Category</label>
-                            <select id="eventCategory"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium">
-                                <option>Technical</option>
-                                <option>Cultural</option>
-                                <option>Workshop</option>
-                                <option>Sports</option>
-                                <option>Social</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Event Type (Cost) <span
-                                    class="text-red-500">*</span></label>
-                            <select id="eventType"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
-                                onchange="togglePriceField()">
-                                <option value="free">Free</option>
-                                <option value="paid">Paid</option>
-                            </select>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Event Mode <span
-                                    class="text-red-500">*</span></label>
-                            <select id="eventMode"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
-                                onchange="toggleModeFields()">
-                                <option value="In-Person">In-Person</option>
-                                <option value="Online">Online</option>
-                                <option value="Hybrid">Hybrid</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Target Audience</label>
-                            <select id="eventAudience"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium">
-                                <option>Open for All</option>
-                                <option>Students Only</option>
-                                <option>Members Only</option>
-                                <option>Invite Only</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-gray-400">Max Capacity</label>
-                                <input id="eventMaxParticipants"
-                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                                    placeholder="e.g. 100" type="number" min="1" />
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-gray-400">Price (₹)</label>
-                                <input id="eventPrice"
-                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                    placeholder="Amount" type="number" min="0" disabled />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Registration Link</label>
-                            <input id="eventRegLink"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                                placeholder="https://..." type="url" />
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Meeting Link (Online)</label>
-                            <input id="eventMeetingLink"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                                placeholder="Zoom/Meet Link" type="url" />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Registration Deadline</label>
-                            <input id="eventRegDeadline"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                                type="date" />
-                        </div>
-                        <div class="flex items-center gap-6 pt-8">
-                            <label class="flex items-center gap-3 cursor-pointer group">
-                                <div class="relative">
-                                    <input type="checkbox" id="toggleFeatured" class="sr-only peer">
-                                    <div
-                                        class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
-                                    </div>
-                                </div>
-                                <span
-                                    class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">Featured</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 cursor-pointer group">
-                                <div class="relative">
-                                    <input type="checkbox" id="toggleShare" class="sr-only peer" checked>
-                                    <div
-                                        class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
-                                    </div>
-                                </div>
-                                <span
-                                    class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">Sharable</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400">Description <span
-                                class="text-red-500">*</span></label>
-                        <div class="rounded-2xl border border-[#1e293b] bg-[#0f172a] overflow-hidden">
-                            <div class="flex items-center gap-1 p-2 border-b border-[#1e293b] bg-white/5">
-                                <button type="button" onclick="formatDoc('bold')"
-                                    class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"><span
-                                        class="material-icons-round text-lg">format_bold</span></button>
-                                <button type="button" onclick="formatDoc('italic')"
-                                    class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"><span
-                                        class="material-icons-round text-lg">format_italic</span></button>
-                                <button type="button" onclick="formatDoc('insertUnorderedList')"
-                                    class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"><span
-                                        class="material-icons-round text-lg">format_list_bulleted</span></button>
-                            </div>
-                            <div id="eventDescEditor" contenteditable="true"
-                                class="p-6 min-h-[150px] text-gray-300 focus:outline-none"
-                                placeholder="Describe your event..."></div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <label class="block text-sm font-semibold text-gray-400">Event Banner</label>
-                        <div class="relative group cursor-pointer border-2 border-dashed border-[#1e293b] hover:border-blue-500/50 rounded-[2rem] bg-[#0f172a]/50 p-12 transition-all"
-                            onclick="document.getElementById('eventImages').click()">
-                            <input id="eventImages" type="file" accept="image/*" class="hidden"
-                                onchange="handleBannerUpload(this)" />
-                            <div id="bannerPrompt" class="flex flex-col items-center">
-                                <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
-                                    <span class="material-icons-round text-blue-500 text-4xl">add_photo_alternate</span>
-                                </div>
-                                <p class="text-white font-bold">Launch Image Picker</p>
-                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">16:9 RATIO
-                                    RECOMMENDED</p>
-                            </div>
-                            <div id="eventBannerPreview"
-                                class="hidden absolute inset-0 bg-[#0f172a] rounded-[2rem] overflow-hidden">
-                                <img src="" class="w-full h-full object-cover">
-                                <button type="button"
-                                    onclick="event.stopPropagation(); clearSocietyLogo('eventBannerPreview', 'eventBannerUrl', 'eventImages')"
-                                    class="absolute top-4 right-4 w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center shadow-lg"><span
-                                        class="material-icons-round">close</span></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-6 pt-4">
-                    <div class="space-y-3">
-                        <label class="block text-sm font-semibold text-gray-400">Organizers</label>
-                        <div id="organizerContainer" class="space-y-3">
-                            <!-- Dynamic Organizer Rows -->
-                        </div>
-                        <button type="button" onclick="addOrganizerRow()"
-                            class="text-blue-500 hover:text-blue-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">
-                            <span class="material-icons-round text-base">add_circle</span> Add another organizer
-                        </button>
-                    </div>
-
-                    <div class="space-y-3 border-t border-[#1e293b] pt-6">
-                        <label class="block text-sm font-semibold text-gray-400">Event Contacts</label>
-                        <div id="contactContainer" class="space-y-3">
-                            <!-- Dynamic Contact Rows -->
-                        </div>
-                        <button type="button" onclick="addContactRow()"
-                            class="text-blue-500 hover:text-blue-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">
-                            <span class="material-icons-round text-base">add_circle</span> Add another contact
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ===== ADVANCED SECTIONS: Sponsors, Agenda, FAQs ===== -->
-                <div class="space-y-6 pt-6 border-t border-[#1e293b]">
-                    <h3 class="text-sm font-black text-gray-300 uppercase tracking-widest flex items-center gap-3">
-                        <span class="material-icons-round text-indigo-400">auto_awesome</span>
-                        Advanced Details (Optional)
-                    </h3>
-
-                    <!-- Target & Ecosystem -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Target Collective</label>
-                            <select id="eventTargetGroup"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none font-medium">
-                                <option value="KIIT Students">KIIT Students</option>
-                                <option value="External Participants">External Participants</option>
-                                <option value="Faculty Only">Faculty Only</option>
-                                <option value="Mixed Audience">Mixed Audience</option>
-                            </select>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-400">Ecosystem Tier</label>
-                            <select id="eventEcosystemTier"
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none font-medium">
-                                <option value="Standard">Standard</option>
-                                <option value="Premium">Premium</option>
-                                <option value="Elite">Elite</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Sponsors -->
-                    <div class="space-y-3">
-                        <label class="block text-sm font-semibold text-gray-400 flex items-center gap-2">
-                            <span class="material-icons-round text-yellow-400 text-base">star</span> Sponsors & Partners
-                        </label>
-                        <div id="sponsorContainer" class="space-y-3"></div>
-                        <button type="button" onclick="addSponsorRow()"
-                            class="text-yellow-500 hover:text-yellow-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-yellow-500/10 transition-colors">
-                            <span class="material-icons-round text-base">add_circle</span> Add Sponsor
-                        </button>
-                    </div>
-
-                    <!-- Agenda -->
-                    <div class="space-y-3 border-t border-[#1e293b] pt-6">
-                        <label class="block text-sm font-semibold text-gray-400 flex items-center gap-2">
-                            <span class="material-icons-round text-emerald-400 text-base">schedule</span> Agenda /
-                            Timeline
-                        </label>
-                        <div id="agendaContainer" class="space-y-3"></div>
-                        <button type="button" onclick="addAgendaRow()"
-                            class="text-emerald-500 hover:text-emerald-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-emerald-500/10 transition-colors">
-                            <span class="material-icons-round text-base">add_circle</span> Add Session
-                        </button>
-                    </div>
-
-                    <!-- FAQs -->
-                    <div class="space-y-3 border-t border-[#1e293b] pt-6">
-                        <label class="block text-sm font-semibold text-gray-400 flex items-center gap-2">
-                            <span class="material-icons-round text-purple-400 text-base">help_outline</span> Frequently
-                            Asked Questions
-                        </label>
-                        <div id="faqContainer" class="space-y-3"></div>
-                        <button type="button" onclick="addFaqRow()"
-                            class="text-purple-500 hover:text-purple-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-purple-500/10 transition-colors">
-                            <span class="material-icons-round text-base">add_circle</span> Add FAQ
-                        </button>
-                    </div>
-                </div>
-
-                <div class="pt-6">
-                    <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-3">
-                        <span id="eventSubmitText">PUBLISH EVENT</span>
-                        <span class="material-icons-round">rocket_launch</span>
+                    <button onclick="closeAddEventModal()"
+                        class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 transition-all">
+                        <span class="material-icons-round">close</span>
                     </button>
                 </div>
-            </form>
+
+                <!-- Scrollable Form -->
+                <form id="adminEventForm" class="p-8 space-y-8">
+                    <input type="hidden" id="editEventId">
+
+                    <div class="space-y-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Event Name <span
+                                    class="text-red-500">*</span></label>
+                            <input id="eventName"
+                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                placeholder="Enter formal event title" type="text" required />
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Date <span
+                                        class="text-red-500">*</span></label>
+                                <input id="eventDate"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    type="date" required />
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-400">Start <span
+                                            class="text-red-500">*</span></label>
+                                    <input id="eventTime"
+                                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                        type="time" required />
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-400">End</label>
+                                    <input id="eventEndTime"
+                                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                        type="time" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Venue / Location</label>
+                                <input id="eventVenue"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    placeholder="e.g. Auditorium / Online" type="text" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Category</label>
+                                <select id="eventCategory"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium">
+                                    <option>Technical</option>
+                                    <option>Cultural</option>
+                                    <option>Workshop</option>
+                                    <option>Sports</option>
+                                    <option>Social</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Event Type (Cost) <span
+                                        class="text-red-500">*</span></label>
+                                <select id="eventType"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
+                                    onchange="togglePriceField()">
+                                    <option value="free">Free</option>
+                                    <option value="paid">Paid</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Event Mode <span
+                                        class="text-red-500">*</span></label>
+                                <select id="eventMode"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
+                                    onchange="toggleModeFields()">
+                                    <option value="In-Person">In-Person</option>
+                                    <option value="Online">Online</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Target Audience</label>
+                                <select id="eventAudience"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium">
+                                    <option>Open for All</option>
+                                    <option>Students Only</option>
+                                    <option>Members Only</option>
+                                    <option>Invite Only</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-400">Max Capacity</label>
+                                    <input id="eventMaxParticipants"
+                                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                        placeholder="e.g. 100" type="number" min="1" />
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-400">Price (₹)</label>
+                                    <input id="eventPrice"
+                                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                        placeholder="Amount" type="number" min="0" disabled />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Registration Link</label>
+                                <input id="eventRegLink"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    placeholder="https://..." type="url" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Meeting Link (Online)</label>
+                                <input id="eventMeetingLink"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    placeholder="Zoom/Meet Link" type="url" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Registration Deadline</label>
+                                <input id="eventRegDeadline"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                    type="date" />
+                            </div>
+                            <div class="flex items-center gap-6 pt-8">
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <div class="relative">
+                                        <input type="checkbox" id="toggleFeatured" class="sr-only peer">
+                                        <div
+                                            class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                                        </div>
+                                    </div>
+                                    <span
+                                        class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">Featured</span>
+                                </label>
+
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <div class="relative">
+                                        <input type="checkbox" id="toggleShare" class="sr-only peer" checked>
+                                        <div
+                                            class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                                        </div>
+                                    </div>
+                                    <span
+                                        class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">Sharable</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-400">Description <span
+                                    class="text-red-500">*</span></label>
+                            <div class="rounded-2xl border border-[#1e293b] bg-[#0f172a] overflow-hidden">
+                                <div class="flex items-center gap-1 p-2 border-b border-[#1e293b] bg-white/5">
+                                    <button type="button" onclick="formatDoc('bold')"
+                                        class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"><span
+                                            class="material-icons-round text-lg">format_bold</span></button>
+                                    <button type="button" onclick="formatDoc('italic')"
+                                        class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"><span
+                                            class="material-icons-round text-lg">format_italic</span></button>
+                                    <button type="button" onclick="formatDoc('insertUnorderedList')"
+                                        class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"><span
+                                            class="material-icons-round text-lg">format_list_bulleted</span></button>
+                                </div>
+                                <div id="eventDescEditor" contenteditable="true"
+                                    class="p-6 min-h-[150px] text-gray-300 focus:outline-none"
+                                    placeholder="Describe your event..."></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <label class="block text-sm font-semibold text-gray-400">Event Banner</label>
+                            <div class="relative group cursor-pointer border-2 border-dashed border-[#1e293b] hover:border-blue-500/50 rounded-[2rem] bg-[#0f172a]/50 p-12 transition-all"
+                                onclick="document.getElementById('eventImages').click()">
+                                <input id="eventImages" type="file" accept="image/*" class="hidden"
+                                    onchange="handleBannerUpload(this)" />
+                                <div id="bannerPrompt" class="flex flex-col items-center">
+                                    <div
+                                        class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
+                                        <span
+                                            class="material-icons-round text-blue-500 text-4xl">add_photo_alternate</span>
+                                    </div>
+                                    <p class="text-white font-bold">Launch Image Picker</p>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">16:9
+                                        RATIO
+                                        RECOMMENDED</p>
+                                </div>
+                                <div id="eventBannerPreview"
+                                    class="hidden absolute inset-0 bg-[#0f172a] rounded-[2rem] overflow-hidden">
+                                    <img src="" class="w-full h-full object-cover">
+                                    <button type="button"
+                                        onclick="event.stopPropagation(); clearSocietyLogo('eventBannerPreview', 'eventBannerUrl', 'eventImages')"
+                                        class="absolute top-4 right-4 w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center shadow-lg"><span
+                                            class="material-icons-round">close</span></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6 pt-4">
+                        <div class="space-y-3">
+                            <label class="block text-sm font-semibold text-gray-400">Organizers</label>
+                            <div id="organizerContainer" class="space-y-3">
+                                <!-- Dynamic Organizer Rows -->
+                            </div>
+                            <button type="button" onclick="addOrganizerRow()"
+                                class="text-blue-500 hover:text-blue-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">
+                                <span class="material-icons-round text-base">add_circle</span> Add another organizer
+                            </button>
+                        </div>
+
+                        <div class="space-y-3 border-t border-[#1e293b] pt-6">
+                            <label class="block text-sm font-semibold text-gray-400">Event Contacts</label>
+                            <div id="contactContainer" class="space-y-3">
+                                <!-- Dynamic Contact Rows -->
+                            </div>
+                            <button type="button" onclick="addContactRow()"
+                                class="text-blue-500 hover:text-blue-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">
+                                <span class="material-icons-round text-base">add_circle</span> Add another contact
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ===== ADVANCED SECTIONS: Sponsors, Agenda, FAQs ===== -->
+                    <div class="space-y-6 pt-6 border-t border-[#1e293b]">
+                        <h3 class="text-sm font-black text-gray-300 uppercase tracking-widest flex items-center gap-3">
+                            <span class="material-icons-round text-indigo-400">auto_awesome</span>
+                            Advanced Details (Optional)
+                        </h3>
+
+                        <!-- Target & Ecosystem -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Target Collective</label>
+                                <select id="eventTargetGroup"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none font-medium">
+                                    <option value="KIIT Students">KIIT Students</option>
+                                    <option value="External Participants">External Participants</option>
+                                    <option value="Faculty Only">Faculty Only</option>
+                                    <option value="Mixed Audience">Mixed Audience</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Ecosystem Tier</label>
+                                <select id="eventEcosystemTier"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none font-medium">
+                                    <option value="Standard">Standard</option>
+                                    <option value="Premium">Premium</option>
+                                    <option value="Elite">Elite</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Sponsors -->
+                        <div class="space-y-3">
+                            <label class="block text-sm font-semibold text-gray-400 flex items-center gap-2">
+                                <span class="material-icons-round text-yellow-400 text-base">star</span> Sponsors &
+                                Partners
+                            </label>
+                            <div id="sponsorContainer" class="space-y-3"></div>
+                            <button type="button" onclick="addSponsorRow()"
+                                class="text-yellow-500 hover:text-yellow-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-yellow-500/10 transition-colors">
+                                <span class="material-icons-round text-base">add_circle</span> Add Sponsor
+                            </button>
+                        </div>
+
+                        <!-- Agenda -->
+                        <div class="space-y-3 border-t border-[#1e293b] pt-6">
+                            <label class="block text-sm font-semibold text-gray-400 flex items-center gap-2">
+                                <span class="material-icons-round text-emerald-400 text-base">schedule</span> Agenda /
+                                Timeline
+                            </label>
+                            <div id="agendaContainer" class="space-y-3"></div>
+                            <button type="button" onclick="addAgendaRow()"
+                                class="text-emerald-500 hover:text-emerald-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-emerald-500/10 transition-colors">
+                                <span class="material-icons-round text-base">add_circle</span> Add Session
+                            </button>
+                        </div>
+
+                        <!-- FAQs -->
+                        <div class="space-y-3 border-t border-[#1e293b] pt-6">
+                            <label class="block text-sm font-semibold text-gray-400 flex items-center gap-2">
+                                <span class="material-icons-round text-purple-400 text-base">help_outline</span>
+                                Frequently
+                                Asked Questions
+                            </label>
+                            <div id="faqContainer" class="space-y-3"></div>
+                            <button type="button" onclick="addFaqRow()"
+                                class="text-purple-500 hover:text-purple-400 font-semibold text-sm flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-purple-500/10 transition-colors">
+                                <span class="material-icons-round text-base">add_circle</span> Add FAQ
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pt-6">
+                        <button type="submit"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-3">
+                            <span id="eventSubmitText">PUBLISH EVENT</span>
+                            <span class="material-icons-round">rocket_launch</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -2004,7 +2013,8 @@
                     </div>
                     <div style="display: flex; gap: 10px; align-items: flex-start;">
                         <button type="button" class="pm-download-btn">
-                            <span class="material-icons-round" style="font-size: 14px;">download</span> DOWNLOAD AS PNG
+                            <span class="material-icons-round" style="font-size: 14px;">download</span> DOWNLOAD AS
+                            PNG
                         </button>
                         <button type="button" onclick="closeAddAdminModal()"
                             class="w-10 h-10 bg-white/50 hover:bg-white text-gray-500 hover:text-red-500 rounded-xl flex items-center justify-center transition-all shadow-sm border border-gray-200">
@@ -2071,7 +2081,8 @@
                             <div class="pm-perm-group">
                                 <div class="pm-perm-title">SOCIETIES <span class="pm-badge">2</span></div>
                                 <label class="pm-check-row"><input type="checkbox"
-                                        class="pm-checkbox permission-checkbox" value="add_societies" checked> Create
+                                        class="pm-checkbox permission-checkbox" value="add_societies" checked>
+                                    Create
                                     New</label>
                                 <label class="pm-check-row" style="margin-left: 20px;"><input type="checkbox"
                                         class="pm-checkbox permission-checkbox" value="delete_societies">
@@ -2092,7 +2103,8 @@
                             <div class="pm-perm-group" style="margin-bottom: 0;">
                                 <div class="pm-perm-title">SYSTEM</div>
                                 <label class="pm-check-row"><input type="checkbox"
-                                        class="pm-checkbox permission-checkbox" value="view_logs"> Action Logs</label>
+                                        class="pm-checkbox permission-checkbox" value="view_logs"> Action
+                                    Logs</label>
                             </div>
                         </div>
                     </div>
@@ -2100,7 +2112,8 @@
 
                 <div class="pm-card pm-card-blue">
                     <div class="pm-section">
-                        <div class="pm-section-title"><span style="color: #f59e0b;">🔑</span> PASSWORD GENERATOR</div>
+                        <div class="pm-section-title"><span style="color: #f59e0b;">🔑</span> PASSWORD GENERATOR
+                        </div>
                         <div class="pm-pass-box">
                             <input type="text" id="genPassword" value="Generating..." readonly>
                             <button type="button" class="pm-pass-copy" id="copyPasswordBtn"
@@ -2111,11 +2124,13 @@
                     </div>
 
                     <div class="pm-section" style="margin-top: 24px;">
-                        <div class="pm-section-title"><span style="color: #3b82f6;">🛡️</span> SECURITY & CREDENTIALS
+                        <div class="pm-section-title"><span style="color: #3b82f6;">🛡️</span> SECURITY &
+                            CREDENTIALS
                         </div>
 
                         <div class="pm-sec-row">
-                            <div class="pm-sec-label"><span style="font-size: 16px;">🔒</span> TEMPORARY PASSWORD</div>
+                            <div class="pm-sec-label"><span style="font-size: 16px;">🔒</span> TEMPORARY PASSWORD
+                            </div>
                             <div class="pm-sec-value">Generating <span class="dots">•••</span></div>
                         </div>
 
@@ -2139,7 +2154,8 @@
                         <div class="pm-notice">
                             <strong><span class="material-icons-round" style="font-size: 16px;">info</span> Security
                                 Requirement</strong>
-                            Credentials will be emailed automatically to the user if selected. Ensure the email address
+                            Credentials will be emailed automatically to the user if selected. Ensure the email
+                            address
                             is correct as this action cannot be undone.
                         </div>
                     </div>
@@ -2228,7 +2244,8 @@
                             </div>
                         </div>
                         <div class="flex-1 w-full space-y-2">
-                            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Or Logo URL</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Or Logo
+                                URL</label>
                             <input id="socImageUrl"
                                 class="w-full px-5 py-3 rounded-xl bg-[#0f172a] border border-[#1e293b] text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                                 placeholder="https://path-to-logo.png" type="url" />
@@ -2337,7 +2354,8 @@
                         </div>
                         <div>
                             <h4 class="text-white font-bold text-xl">Create Admin Group</h4>
-                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Initialize
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                                Initialize
                                 a new Workspace</p>
                         </div>
                     </div>
@@ -3206,7 +3224,8 @@
     <div class="nexus-modal" id="nexusAddMemberModal">
         <div class="nexus-modal-content">
             <h3><i class="fas fa-user-plus" style="color:#7c4dff;margin-right:8px;"></i>Add People</h3>
-            <p style="font-size:0.8rem;color:#8f9bc0;margin-bottom:15px;">Search by name or email to add to the chat.
+            <p style="font-size:0.8rem;color:#8f9bc0;margin-bottom:15px;">Search by name or email to add to the
+                chat.
             </p>
             <input class="nexus-modal-input" type="text" id="nexusAddPeopleSearch" placeholder="Search users...">
             <div class="nexus-member-list" id="nexusAddPeopleResults"
@@ -3223,7 +3242,8 @@
 
             <div
                 style="margin-top:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:10px;">
-                <h4 style="font-size:0.85rem; color:#8f9bc0; margin-bottom:10px; text-transform:uppercase;">Members</h4>
+                <h4 style="font-size:0.85rem; color:#8f9bc0; margin-bottom:10px; text-transform:uppercase;">Members
+                </h4>
                 <div id="nexusChannelMembersList"
                     style="max-height:200px; overflow-y:auto; border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:5px;">
                     <!-- Members populated by JS -->
@@ -3234,7 +3254,8 @@
                 <button class="nexus-modal-btn danger" id="nexusLeaveChannelBtn" style="width:100%; text-align:left;"><i
                         class="fas fa-sign-out-alt"></i> Leave Channel</button>
                 <button class="nexus-modal-btn danger" id="nexusDeleteChannelBtn"
-                    style="width:100%; text-align:left;"><i class="fas fa-trash"></i> Delete Channel (Admin)</button>
+                    style="width:100%; text-align:left;"><i class="fas fa-trash"></i> Delete Channel
+                    (Admin)</button>
             </div>
 
             <div class="nexus-modal-footer">
