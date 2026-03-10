@@ -1566,6 +1566,25 @@ window.showAddEventModal = function () {
             const cc = document.getElementById('contactContainer');
             if (cc) cc.innerHTML = '';
 
+            // Reset advanced sections
+            const sc = document.getElementById('sponsorContainer');
+            if (sc) sc.innerHTML = '';
+            const ac = document.getElementById('agendaContainer');
+            if (ac) ac.innerHTML = '';
+            const fc = document.getElementById('faqContainer');
+            if (fc) fc.innerHTML = '';
+
+            // Reset banner image state
+            window.bannerImageFile = null;
+            const bannerPreview = document.getElementById('eventBannerPreview');
+            if (bannerPreview) {
+                bannerPreview.classList.add('hidden');
+                const bImg = bannerPreview.querySelector('img');
+                if (bImg) bImg.src = '';
+            }
+            const bannerPrompt = document.getElementById('bannerPrompt');
+            if (bannerPrompt) bannerPrompt.style.display = '';
+
             document.querySelectorAll('.flag-btn').forEach(btn => btn.classList.remove('active'));
 
             document.getElementById('eventModalTitle').textContent = 'Create New Event';
@@ -1685,7 +1704,10 @@ window.addSponsorRow = function (name = '', tier = '', logo = '') {
             <option value="Silver" ${tier === 'Silver' ? 'selected' : ''}>Silver</option>
             <option value="Partner" ${tier === 'Partner' ? 'selected' : ''}>Partner</option>
         </select>
-        <input type="url" placeholder="Logo URL" class="sponsor-logo" value="${logo}">
+        <div class="flex items-center gap-2" style="flex: 1; min-width: 150px;">
+            <input type="file" accept="image/*" class="sponsor-logo-file text-xs text-gray-400" ${logo ? '' : ''}>
+            ${logo ? `<img src="${logo}" width="24" height="24" class="rounded-full sponsor-existing-logo" data-url="${logo}">` : ''}
+        </div>
         <button type="button" onclick="this.closest('.sponsor-row').remove()" class="remove-btn">
             <i class="fas fa-trash"></i>
         </button>
@@ -1733,75 +1755,42 @@ window.addFaqRow = function (question = '', answer = '') {
     container.appendChild(div);
 };
 
-// --- IMAGE HANDLING (16:9 BANNER) ---
-window.bannerImageData = null;
+// --- IMAGE HANDLING ---
+window.bannerImageFile = null;
 
 window.handleBannerUpload = function (input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
-        const reader = new FileReader();
+        window.bannerImageFile = file; // Store the original file
 
-        reader.onload = function (e) {
-            const img = new Image();
-            img.onload = function () {
-                // Resize/Crop to 16:9
-                const canvas = document.getElementById('bannerCanvas') || document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+        // Preview logic (admin specific ID 'imagePreviewContainer')
+        const previewUrl = URL.createObjectURL(file);
 
-                // Target dimensions (HD 720p base or full uploaded width)
-                // Let's fix to a standard 1280x720 for consistent quality/storage
-                const targetRatio = 16 / 9;
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        if (previewContainer) {
+            previewContainer.innerHTML = `
+                <div style="position:relative;">
+                    <img src="${previewUrl}" style="width:100%; border-radius:12px; object-fit: cover;">
+                    <button type="button" onclick="window.bannerImageFile=null; const p = document.getElementById('imagePreviewContainer'); if(p) p.innerHTML='';" 
+                            style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.6); color:white; border:none; cursor:pointer; padding:5px; border-radius:50%;">
+                        <span class="material-icons-round" style="font-size:14px;">close</span>
+                    </button>
+                </div>
+            `;
+        }
 
-                // Calculate crop dimensions
-                let sourceWidth = img.width;
-                let sourceHeight = img.height;
-                let sourceRatio = sourceWidth / sourceHeight;
-
-                let renderWidth, renderHeight, cropX, cropY;
-
-                if (sourceRatio > targetRatio) {
-                    // Too wide: Crop width
-                    renderHeight = sourceHeight;
-                    renderWidth = sourceHeight * targetRatio;
-                    cropX = (sourceWidth - renderWidth) / 2;
-                    cropY = 0;
-                } else {
-                    // Too tall: Crop height
-                    renderWidth = sourceWidth;
-                    renderHeight = sourceWidth / targetRatio;
-                    cropX = 0;
-                    cropY = (sourceHeight - renderHeight) / 2;
-                }
-
-                canvas.width = 1280;
-                canvas.height = 720;
-
-                // Draw cropped image
-                ctx.drawImage(img, cropX, cropY, renderWidth, renderHeight, 0, 0, 1280, 720);
-
-                // Save base64
-                window.bannerImageData = canvas.toDataURL('image/jpeg', 0.85); // 85% quality
-
-                // Preview logic (admin specific ID 'imagePreviewContainer')
-                const previewContainer = document.getElementById('imagePreviewContainer');
-                if (previewContainer) {
-                    previewContainer.innerHTML = `
-                        <div style="position:relative;">
-                            <img src="${window.bannerImageData}" style="width:100%; border-radius:12px;">
-                            <button type="button" onclick="window.bannerImageData=null; const p = document.getElementById('imagePreviewContainer'); if(p) p.innerHTML='';" 
-                                    style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.6); color:white; border:none; cursor:pointer; padding:5px; border-radius:50%;">
-                                <span class="material-icons-round" style="font-size:14px;">close</span>
-                            </button>
-                            <div style="position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.6); color:white; padding:2px 6px; font-size:10px; border-radius:4px;">
-                                16:9 Auto-Crop
-                            </div>
-                        </div>
-                    `;
-                }
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+        // ALSO update the new admin-dashboard.html preview UI
+        const newBannerPreview = document.getElementById('eventBannerPreview');
+        const bannerPrompt = document.getElementById('bannerPrompt');
+        if (newBannerPreview) {
+            const img2 = newBannerPreview.querySelector('img');
+            if (img2) {
+                img2.src = previewUrl;
+                img2.style.objectFit = 'cover';
+            }
+            newBannerPreview.classList.remove('hidden');
+        }
+        if (bannerPrompt) bannerPrompt.style.display = 'none';
     }
 };
 
@@ -2039,11 +2028,44 @@ const attachEventFormListener = () => {
                     .filter(Boolean);
 
                 // 8. Advanced Fields (Sponsors, Agenda, FAQs)
-                const sponsors = [...document.querySelectorAll('.sponsor-row')].map(row => ({
-                    name: row.querySelector('.sponsor-name')?.value,
-                    tier: row.querySelector('.sponsor-tier')?.value,
-                    logo: row.querySelector('.sponsor-logo')?.value
-                })).filter(s => s.name);
+                const sponsorsElements = [...document.querySelectorAll('.sponsor-row')];
+                const sponsors = [];
+                for (const row of sponsorsElements) {
+                    const name = row.querySelector('.sponsor-name')?.value;
+                    const tier = row.querySelector('.sponsor-tier')?.value;
+                    const fileInput = row.querySelector('.sponsor-logo-file');
+                    const existingImg = row.querySelector('.sponsor-existing-logo');
+
+                    if (!name) continue;
+
+                    let logoUrl = existingImg ? existingImg.getAttribute('data-url') : '';
+
+                    if (fileInput && fileInput.files && fileInput.files[0]) {
+                        try {
+                            const file = fileInput.files[0];
+                            const fileExt = file.name.split('.').pop();
+                            const fileName = Date.now() + "_" + Math.random().toString(36).substring(2, 9) + "." + fileExt;
+
+                            const { error } = await supabase.storage
+                                .from("event-sponsors")
+                                .upload(`sponsors/${fileName}`, file, { cacheControl: '3600', upsert: false });
+
+                            if (error) throw error;
+
+                            const { data: { publicUrl } } = supabase.storage
+                                .from("event-sponsors")
+                                .getPublicUrl(`sponsors/${fileName}`);
+
+                            logoUrl = publicUrl;
+                        } catch (err) {
+                            console.error("Sponsor logo upload failed", err);
+                            alert("Failed to upload sponsor logo for " + name);
+                            return; // Stop form submission
+                        }
+                    }
+
+                    sponsors.push({ name, tier, logo: logoUrl });
+                }
 
                 const agenda = [...document.querySelectorAll('.agenda-row')].map(row => ({
                     time: row.querySelector('.agenda-time')?.value,
@@ -2056,6 +2078,9 @@ const attachEventFormListener = () => {
                     answer: row.querySelector('.faq-answer')?.value
                 })).filter(f => f.question);
 
+                const targetGroup = getVal('eventTargetGroup');
+                const ecosystemTier = getVal('eventEcosystemTier');
+
                 // 9. Additional Settings
                 const moreOptions = {
                     registration: getVal('settingRegistration'),
@@ -2065,10 +2090,7 @@ const attachEventFormListener = () => {
                     hashtag: getVal('settingHashtag'),
                     language: getVal('settingLanguage'),
                     visibility: getVal('settingVisibility'),
-                    tags: getVal('settingTags'),
-                    sponsors,
-                    agenda,
-                    faqs
+                    tags: getVal('settingTags')
                 };
 
                 // Embed advanced data into description as JSON
@@ -2080,25 +2102,42 @@ const attachEventFormListener = () => {
                 // 10. Image Handling
                 let finalImage = 'assets/logo_final.png';
 
-                if (window.bannerImageData) {
+                if (window.bannerImageFile) {
                     try {
-                        const res = await fetch(window.bannerImageData);
-                        const blob = await res.blob();
-                        const file = new File([blob], "banner.jpg", { type: "image/jpeg" });
+                        const file = window.bannerImageFile;
+                        const fileExt = file.name.split('.').pop();
+                        // Generate a safe unique filename to avoid overriding issues
+                        const fileName = Date.now() + "_" + Math.random().toString(36).substring(2, 9) + "." + fileExt;
 
-                        if (window.AppStorage && window.AppStorage.saveImage) {
-                            finalImage = await window.AppStorage.saveImage(file);
-                        } else {
-                            console.warn("AppStorage.saveImage not found!");
-                        }
+                        console.log("Uploading file:", fileName, "to Supabase Storage...");
+
+                        // Direct upload to Supabase Storage 'event-images' bucket
+                        const { data, error } = await supabase.storage
+                            .from("event-images")
+                            .upload(`events/${fileName}`, file, {
+                                cacheControl: '3600',
+                                upsert: false
+                            });
+
+                        if (error) throw error;
+
+                        // Get the public URL
+                        const { data: { publicUrl } } = supabase.storage
+                            .from("event-images")
+                            .getPublicUrl(`events/${fileName}`);
+
+                        finalImage = publicUrl;
+                        console.log("Uploaded Image URL:", finalImage);
+
                     } catch (uploadErr) {
                         console.error("Upload failed", uploadErr);
                         alert("Image upload failed: " + uploadErr.message);
-                        return;
+                        return; // Stop form submission if image fails
                     }
                 } else if (editingEventId) {
                     const ev = events.find(e => e.id === editingEventId);
-                    if (ev && ev.image) finalImage = ev.image;
+                    if (ev && ev.banner_url) finalImage = ev.banner_url;
+                    else if (ev && ev.image) finalImage = ev.image;
                 }
 
                 const eventData = {
@@ -2111,20 +2150,27 @@ const attachEventFormListener = () => {
                     category: category,
                     audience: audience,
                     max_participants: maxParticipants ? parseInt(maxParticipants) : null,
-                    is_paid: costType === 'Paid',
+                    is_paid: costType.toLowerCase() === 'paid',
                     price: priceValue,
                     banner_url: finalImage,
                     organizer_name: organizers.join(', ') || 'Independent',
                     is_featured: isFeatured,
                     allow_sharing: allowShare,
-                    link: regLink,
-                    meeting_link: meetingLink,
-                    reg_deadline: regDeadline,
+                    link: regLink || null,
+                    meeting_link: meetingLink || null,
+                    reg_deadline: regDeadline || null,
                     status: 'Approved',
-                    created_by: user.id
+                    created_by: user.id,
+                    agenda: agenda,
+                    sponsors: sponsors,
+                    faq: faqs,
+                    target_group: targetGroup,
+                    ecosystem_tier: ecosystemTier
                 };
 
                 const submissionId = document.getElementById('editEventId')?.value || editingEventId;
+
+                console.log("Saving Event Data:", eventData);
 
                 if (submissionId) {
                     const { error } = await supabase
@@ -2328,6 +2374,8 @@ window.previewSocietyLogo = function (input, previewId, urlFieldId) {
                 const urlField = document.getElementById(urlFieldId);
                 if (urlField) urlField.value = e.target.result;
             }
+            // CRITICAL: Set the global banner data for the form submission logic
+            window.bannerImageData = e.target.result;
         };
         reader.readAsDataURL(file);
     }
@@ -2337,12 +2385,20 @@ window.clearSocietyLogo = function (previewId, urlFieldId, inputId) {
     const preview = document.getElementById(previewId);
     if (preview) {
         preview.classList.add('hidden');
-        preview.querySelector('img').src = '';
+        const img = preview.querySelector('img');
+        if (img) img.src = '';
     }
     const urlField = document.getElementById(urlFieldId);
     if (urlField) urlField.value = '';
     const input = document.getElementById(inputId);
     if (input) input.value = '';
+
+    // CRITICAL: Clear the global banner data
+    window.bannerImageFile = null;
+
+    // Also restore the upload prompt in admin-dashboard.html
+    const bannerPrompt = document.getElementById('bannerPrompt');
+    if (bannerPrompt) bannerPrompt.style.display = '';
 };
 
 // Toggle logic
