@@ -2902,3 +2902,8 @@ select.input-colorful {
     opacity: 1;
     transform: translateY(0) scale(1);
 }
+
+/* --- MOBILE SCROLL PERFORMANCE FIX --- */
+body.is-scrolling * {
+    pointer-events: none !important;
+}
