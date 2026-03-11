@@ -281,28 +281,42 @@ class NexusChatUI {
     }
 
     async _ensureAIRoom() {
-        try {
-            // Check if AI room exists for this user
-            const { data: myMembers } = await this.sb.from('chat_room_members')
-                .select('room_id, chat_rooms(id, type, name)')
-                .eq('user_id', this.userId);
-            const aiRoom = (myMembers || []).find(m => m.chat_rooms?.type === 'assistant');
-            if (aiRoom) return;
+        // Find existing AI room for this specific user
+        const { data: existing } = await this.sb.from('chat_rooms')
+            .select('id')
+            .eq('type', 'assistant')
+            .eq('created_by', this.userId)
+            .maybeSingle();
 
-            // Check if any AI room exists (create or join)
-            const { data: existing } = await this.sb.from('chat_rooms')
-                .select('id').eq('type', 'assistant').limit(1).maybeSingle();
-            if (existing) {
-                await this.sb.from('chat_room_members').insert({ room_id: existing.id, user_id: this.userId, role: 'member' }).select();
-                return;
+        if (existing) {
+            if (!this.rooms.find(r => r.id === existing.id)) {
+                this.rooms.unshift({
+                    id: existing.id,
+                    name: 'NEXUS AI',
+                    type: 'assistant',
+                    partnerId: 'nexus-ai',
+                    lastMsg: 'AI ready',
+                    lastAt: new Date().toISOString()
+                });
             }
-            // Create new AI room — scope must be 'ai' per DB constraint
-            const { data: room, error: rErr } = await this.sb.from('chat_rooms')
-                .insert({ name: 'AI Assistant', type: 'assistant', scope: 'ai', created_by: this.userId })
-                .select().single();
-            if (rErr) { console.warn('AI room create error:', rErr.message); return; }
-            if (room) await this.sb.from('chat_room_members').insert({ room_id: room.id, user_id: this.userId, role: 'admin' });
-        } catch (e) { console.warn('_ensureAIRoom error:', e.message); }
+            return;
+        }
+
+        // Create new scoped AI room
+        const { data: newRoom, error } = await this.sb.from('chat_rooms')
+            .insert({ name: 'NEXUS_AI_' + this.userId, type: 'assistant', scope: 'private', created_by: this.userId })
+            .select('id').single();
+
+        if (error || !newRoom) return;
+
+        this.rooms.unshift({
+            id: newRoom.id,
+            name: 'NEXUS AI',
+            type: 'assistant',
+            partnerId: 'nexus-ai',
+            lastMsg: 'Hello! I am Nexus AI.',
+            lastAt: new Date().toISOString()
+        });
     }
 
     async _loadRooms() {
@@ -327,7 +341,7 @@ class NexusChatUI {
             // Fetch partner info and last message in parallel
             const [partnerRes, lastMsgRes] = await Promise.all([
                 r.type === 'direct' ? this.sb.from('chat_room_members')
-                    .select('user_id, profiles(id, full_name, email, avatar_url)')
+                    .select('user_id, profiles(id, full_name, email)')
                     .eq('room_id', r.id).neq('user_id', this.userId).maybeSingle() : Promise.resolve({ data: null }),
                 this.sb.from('chat_messages')
                     .select('content, file_url, file_name, created_at').eq('room_id', r.id)
@@ -352,7 +366,10 @@ class NexusChatUI {
         });
 
         const resolvedRooms = await Promise.all(roomPromises);
-        this.rooms = resolvedRooms.filter(r => r !== null).sort((a, b) => (b.lastAt || '') > (a.lastAt || '') ? 1 : -1);
+        this.rooms = resolvedRooms
+            .filter(r => r !== null)
+            .filter(r => !(r.type === 'direct' && this.blockedUsers.includes(r.partnerId)))
+            .sort((a, b) => (b.lastAt || '') > (a.lastAt || '') ? 1 : -1);
         this._renderSidebar();
     }
 
@@ -434,13 +451,17 @@ class NexusChatUI {
         }
 
         const preview = this._getPreviewContent(room.lastMsg) || (room.type === 'assistant' ? 'always here to help' : 'no messages');
+        const timeHtml = room.lastAt ? `<div class="nexus-item-time" style="font-size:0.65rem; color:#6b7390;">${nexusFmtTime(room.lastAt)}</div>` : '';
 
         div.innerHTML = `
             ${iconHtml}
             <div class="nexus-item-body">
-                <div class="nexus-item-name">
-                    ${nexusEsc(room.name)}
-                    ${badgeHtml}
+                <div class="nexus-item-name" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="display:flex; align-items:center; gap:6px;">${nexusEsc(room.name)} ${badgeHtml}</span>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        ${timeHtml}
+                        ${room.type === 'direct' ? `<div class="nexus-dm-opts-btn" title="Options" style="color:#6b7390; padding:2px 6px; cursor:pointer;" onclick="event.stopPropagation();"><i class="fas fa-ellipsis-v"></i></div>` : ''}
+                    </div>
                 </div>
                 <div class="nexus-item-preview">${preview}</div>
             </div>
@@ -448,7 +469,100 @@ class NexusChatUI {
 `;
 
         div.addEventListener('click', () => this.openRoom(room.id));
+
+        if (room.type === 'direct') {
+            const optsBtn = div.querySelector('.nexus-dm-opts-btn');
+            if (optsBtn) {
+                optsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this._showDMContextMenu(e, room, optsBtn);
+                });
+            }
+
+            // Mobile Long Press Logic
+            let pressTimer;
+            div.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => {
+                    this._showDMContextMenu(e, room);
+                }, 500);
+            }, { passive: true });
+            div.addEventListener('touchend', () => clearTimeout(pressTimer));
+            div.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
+            div.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                this._showDMContextMenu(e, room);
+            });
+        }
+
         return div;
+    }
+
+    _showDMContextMenu(e, room, anchor = null) {
+        document.querySelectorAll('.nexus-context-menu').forEach(el => el.remove());
+        
+        // Resolve Coordinates (Desktop Click/Touch vs Anchor Bound)
+        let cX = e.clientX;
+        let cY = e.clientY;
+        
+        if (e.type === 'touchstart' && e.touches && e.touches.length > 0) {
+            cX = e.touches[0].clientX;
+            cY = e.touches[0].clientY;
+        } else if (anchor && e.type === 'click') {
+            const rect = anchor.getBoundingClientRect();
+            cX = rect.right - 180;
+            cY = rect.bottom;
+            if (cX < 10) cX = 10;
+        }
+
+        const menu = document.createElement('div');
+        menu.className = 'nexus-context-menu';
+        menu.style.cssText = `position:fixed; top:${cY}px; left:${cX}px; background:#1e2433; box-shadow:0 10px 30px rgba(0,0,0,0.8); border-radius:12px; border:1px solid rgba(255,255,255,0.1); z-index:9999; padding:8px; min-width:180px; display:flex; flex-direction:column; gap:4px; font-size:0.85rem; color:#c5cbe3;`;
+        
+        const btnStyle = "background:transparent; border:none; color:inherit; text-align:left; padding:10px 12px; cursor:pointer; border-radius:8px; transition:0.2s; width:100%; display:flex; align-items:center; gap:10px; font-family:inherit;";
+
+        menu.innerHTML = `
+            <button style="${btnStyle}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" id="ctxOpenChat"><i class="fas fa-comment"></i> Open Chat</button>
+            <button style="${btnStyle}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" id="ctxMute"><i class="fas fa-bell-slash"></i> Mute Notifications</button>
+            <button style="${btnStyle}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" id="ctxViewProfile"><i class="fas fa-user-circle"></i> View Profile</button>
+            <hr style="border-top:1px solid rgba(255,255,255,0.05); margin:4px 0; border-bottom:0; width:100%;">
+            <button style="${btnStyle}; color:#f39c12;" onmouseover="this.style.background='rgba(243,156,18,0.1)'" onmouseout="this.style.background='transparent'" id="ctxBlock"><i class="fas fa-ban"></i> Block User</button>
+            <button style="${btnStyle}; color:#ff5252;" onmouseover="this.style.background='rgba(255,82,82,0.1)'" onmouseout="this.style.background='transparent'" id="ctxDelete"><i class="fas fa-trash-alt"></i> Delete Conversation</button>
+        `;
+
+        document.body.appendChild(menu);
+
+        menu.querySelector('#ctxOpenChat').onclick = () => { this.openRoom(room.id); menu.remove(); };
+        menu.querySelector('#ctxMute').onclick = () => { alert('Notifications muted for this user.'); menu.remove(); };
+        menu.querySelector('#ctxViewProfile').onclick = () => { this.openProfileModal(room.partnerId); menu.remove(); };
+        menu.querySelector('#ctxBlock').onclick = async () => { 
+            if(confirm('Block this user? You will no longer receive messages from them.')) {
+                await this.toggleBlockUser(room.partnerId);
+                await this._loadRooms();
+                if(this.currentRoomId === room.id) this.leaveChannel(); // Hide layout if currently open
+            }
+            menu.remove(); 
+        };
+        menu.querySelector('#ctxDelete').onclick = async () => { 
+            if(confirm('Permanently delete this conversation for yourself?')) {
+                menu.remove(); 
+                if(this.currentRoomId === room.id) {
+                    await this.leaveChannel(); // Uses the internal cleanup wrapper safely
+                } else {
+                    await this.sb.from('chat_room_members').delete().eq('room_id', room.id).eq('user_id', this.userId);
+                    await this._loadRooms();
+                }
+            }
+            if (menu.parentNode) menu.remove(); 
+        };
+
+        const closeMenu = (evt) => {
+            if (!menu.contains(evt.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 10);
     }
 
     async openRoom(roomId) {
@@ -545,8 +659,8 @@ class NexusChatUI {
     async searchAddMembers(query) {
         if (!query || query.length < 1) return [];
         const { data } = await window.supabase.from('profiles')
-            .select('id, full_name, email, avatar_url')
-            .or(`full_name.ilike.%${nexusEsc(query)}%, email.ilike.%${nexusEsc(query)}%`)
+            .select('id, full_name, email')
+            .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
             .limit(10);
         return data || [];
     }
@@ -733,10 +847,11 @@ class NexusChatUI {
                 <div class="nexus-msg-text">${nexusRenderContent(fullContent)}</div>
                 <div class="nexus-msg-reactions-area"></div>
             </div>
-            <div class="nexus-msg-actions">
+            <div class="nexus-msg-actions" style="display:flex; gap:4px; opacity:0; transition:0.2s; position:absolute; right:20px; top:-10px; background:rgba(22,28,45,0.9); padding:4px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); z-index:10; box-shadow:0 4px 10px rgba(0,0,0,0.5);">
                 <button class="nexus-msg-action-btn rx" title="React"><i class="far fa-smile"></i></button>
-                ${isOwn ? `<button class="nexus-msg-action-btn del" title="Delete"><i class="far fa-trash-alt"></i></button>` : ''}
-                <button class="nexus-msg-action-btn pin" title="Pin"><i class="fas fa-thumbtack"></i></button>
+                <button class="nexus-msg-action-btn reply" title="Reply"><i class="fas fa-reply"></i></button>
+                <button class="nexus-msg-action-btn copy" title="Copy"><i class="far fa-copy"></i></button>
+                ${isOwn ? `<button class="nexus-msg-action-btn del" title="Delete"><i class="far fa-trash-alt" style="color:#ff5252;"></i></button>` : ''}
             </div>`;
 
         // Reactions
@@ -746,7 +861,7 @@ class NexusChatUI {
         // Events
         div.querySelector('.rx')?.addEventListener('click', (e) => this._showReactionPicker(msg.id, e.currentTarget));
         div.querySelector('.del')?.addEventListener('click', async () => {
-            if (!confirm('Delete this message?')) return;
+            if (!confirm('Delete this message for everyone?')) return;
             const { error } = await this.sb.from('chat_messages').delete().eq('id', msg.id).eq('sender_id', this.userId);
             if (error) {
                 console.error('Delete error:', error);
@@ -755,18 +870,36 @@ class NexusChatUI {
                 div.remove();
             }
         });
-        div.querySelector('.pin')?.addEventListener('click', async () => {
-            // Show a toast notification for pin (visual-only for now)
-            const toast = document.createElement('div');
-            toast.style.cssText = 'position:fixed;bottom:80px;right:24px;background:#7c4dff;color:#fff;padding:10px 18px;border-radius:10px;font-size:0.85rem;z-index:9999;box-shadow:0 4px 20px rgba(124,77,255,0.4);animation:fadeIn 0.2s ease';
-            toast.innerHTML = '<i class="fas fa-thumbtack" style="margin-right:6px;"></i> Message pinned!';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2500);
+        
+        div.querySelector('.copy')?.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(msg.content || '');
+                const t = document.createElement('div');
+                t.style.cssText = 'position:fixed;bottom:80px;right:24px;background:#7c4dff;color:#fff;padding:10px 18px;border-radius:10px;font-size:0.85rem;z-index:9999;box-shadow:0 4px 20px rgba(124,77,255,0.4);animation:fadeIn 0.2s ease';
+                t.innerHTML = '<i class="far fa-copy" style="margin-right:6px;"></i> Message copied!';
+                document.body.appendChild(t);
+                setTimeout(() => t.remove(), 2500);
+            } catch (err) { }
+        });
 
-            // Add visual indicator to the message
-            div.style.borderLeft = '3px solid #7c4dff';
-            div.style.paddingLeft = '8px';
-            div.style.background = 'rgba(124,77,255,0.05)';
+        div.querySelector('.reply')?.addEventListener('click', () => {
+             const preview = document.getElementById('nexusReplyPreview');
+             if(preview) {
+                 const name = evt => nexusEsc(msg.profiles?.full_name || 'User');
+                 const text = nexusEsc((msg.content || '').substring(0, 60)) + ((msg.content || '').length > 60 ? '...' : '');
+                 preview.innerHTML = `
+                 <div style="flex:1; border-left:3px solid #7c4dff; padding-left:10px; margin-left:10px;">
+                    <div style="font-size:0.75rem; color:#7c4dff; font-weight:700;">Replying to ${name()}</div>
+                    <div style="font-size:0.85rem; color:#8f9bc0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${text}</div>
+                 </div>
+                 <i class="fas fa-times" style="cursor:pointer; padding:10px; color:#8f9bc0;" onclick="document.getElementById('nexusReplyPreview').style.display='none'; window.nexusReplyMsgId=null;"></i>
+                 `;
+                 preview.style.display = 'flex';
+                 window.nexusReplyMsgId = msg.id;
+                 window.nexusReplyText = text;
+                 window.nexusReplyAuthor = name();
+                 document.getElementById('nexusMsgInput')?.focus();
+             }
         });
 
         if (!isAI) {
@@ -1004,9 +1137,38 @@ class NexusChatUI {
 
     // ── DM ───────────────────────────────────────────────────────────────────
     async startDM(partnerId, partnerName) {
-        // Check if DM room already exists
+        if (this.blockedUsers.includes(partnerId)) {
+            if (confirm('You have blocked this user. Do you want to unblock them to start a direct message?')) {
+                await this.toggleBlockUser(partnerId);
+            } else {
+                const dmModal = document.getElementById('nexusDMModal');
+                if (dmModal) dmModal.classList.remove('show');
+                return;
+            }
+        }
+
+        // Check if DM room already exists locally or in DB
         const existing = this.rooms.find(r => r.type === 'direct' && r.partnerId === partnerId);
-        if (existing) { this.openRoom(existing.id); return; }
+        if (existing) { 
+            alert('This person already exists in your Direct Messages.');
+            this.openRoom(existing.id); 
+            const sbElem = document.getElementById('nexusSidebar');
+            if (sbElem) sbElem.classList.remove('open');
+            return; 
+        }
+
+        const roomQuery = await this.sb.rpc('get_dm_room', { user1: this.userId, user2: partnerId });
+        
+        if (roomQuery.data) {
+             alert('This person already exists in your Direct Messages.');
+             if (!this.rooms.find(r => r.id === roomQuery.data)) {
+                 await this._loadRooms(); // Guarantee room exists in local mapping before opening
+             }
+             this.openRoom(roomQuery.data); 
+             const sbElem = document.getElementById('nexusSidebar');
+             if (sbElem) sbElem.classList.remove('open');
+             return; 
+        }
 
         const { data: room, error } = await this.sb.from('chat_rooms').insert({
             name: `dm_${this.userId}_${partnerId}`,
@@ -1022,11 +1184,21 @@ class NexusChatUI {
         ]);
         await this._loadRooms();
         this.openRoom(room.id);
+        const sbElem = document.getElementById('nexusSidebar');
+        if (sbElem) sbElem.classList.remove('open');
     }
 
     // ── MESSAGING ────────────────────────────────────────────────────────────
     async sendMessage() {
         if (!this.currentRoomId) return;
+
+        // Check block restriction defensively
+        const activeRoom = this.rooms.find(r => r.id === this.currentRoomId);
+        if (activeRoom && activeRoom.type === 'direct' && this.blockedUsers.includes(activeRoom.partnerId)) {
+            alert('You have blocked this user. Unblock them to send a message.');
+            return;
+        }
+
         const msgInp = document.getElementById('nexusMsgInput');
         if (!msgInp) return;
         const content = msgInp.value.trim();
@@ -1034,18 +1206,73 @@ class NexusChatUI {
 
         msgInp.value = '';
 
+        // OPTIMISTIC UI RENDER
+        const msgArea = document.getElementById('nexusMessages');
+        if (msgArea) {
+            const empty = msgArea.querySelector('.nexus-empty-msgs');
+            if (empty) empty.remove();
+            
+            const tempId = 'temp_' + Date.now();
+            const tempMsgData = {
+                id: tempId,
+                room_id: this.currentRoomId,
+                sender_id: this.userId,
+                content: content,
+                message_type: 'text',
+                created_at: new Date().toISOString(),
+                profiles: { full_name: this.userName }
+            };
+            
+            // Check grouping
+            const lastRow = msgArea.querySelector('.nexus-msg-row:last-of-type');
+            let prevMsgLocal = null;
+            if (lastRow) {
+                const lastAvatar = lastRow.querySelector('.nexus-msg-avatar');
+                const lastAvatarTitle = lastAvatar ? lastAvatar.getAttribute('title') : null;
+                const sameSender = lastAvatarTitle === this.userName;
+
+                prevMsgLocal = {
+                    sender_id: sameSender ? this.userId : null,
+                    created_at: lastRow.dataset.time ? new Date() : new Date(0),
+                    message_type: 'text'
+                };
+            }
+
+            const tempEl = this._buildMsgEl(tempMsgData, prevMsgLocal);
+            tempEl.style.opacity = '0.7'; // Indicate pending state
+            tempEl.setAttribute('data-temp-msg', 'true');
+            msgArea.appendChild(tempEl);
+            msgArea.scrollTop = msgArea.scrollHeight;
+        }
+
         // Insert user message
-        const { error } = await this.sb.from('chat_messages').insert({
+        const finalContent = window.nexusReplyMsgId ? 
+            `<blockquote data-reply="${window.nexusReplyMsgId}"><strong>${window.nexusReplyAuthor}:</strong> ${window.nexusReplyText}</blockquote>` + content : 
+            content;
+
+        const { data: insertedMsg, error } = await this.sb.from('chat_messages').insert({
             room_id: this.currentRoomId,
             sender_id: this.userId,
-            content: content,
+            content: finalContent,
             message_type: 'text'
-        });
+        }).select().single();
 
         if (error) {
             console.error('Send error:', error);
             msgInp.value = content;
+             // Remove optimistic UI if failed
+             const failedEl = msgArea?.querySelector('[data-temp-msg="true"]');
+             if(failedEl) failedEl.remove();
             return;
+        }
+
+        // Cleanup reply state
+        if (window.nexusReplyMsgId) {
+            const preview = document.getElementById('nexusReplyPreview');
+            if (preview) preview.style.display = 'none';
+            window.nexusReplyMsgId = null;
+            window.nexusReplyText = null;
+            window.nexusReplyAuthor = null;
         }
 
         // Check the room type directly from DB — reliable, no flag dependency
@@ -1164,7 +1391,7 @@ class NexusChatUI {
     async searchAddMembers(q) {
         if (!q || !q.trim()) return [];
         const { data, error } = await this.sb.from('profiles').select('id, full_name, email')
-            .or(`full_name.ilike.%${q}%, email.ilike.%${q}%`)
+            .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
             .neq('id', this.userId)
             .limit(10);
         if (error) { console.error('Search error:', error); return []; }
@@ -1408,16 +1635,28 @@ class NexusChatUI {
 function _nexusAttachEvents(ctrl) {
     const $ = (id) => document.getElementById(id);
 
-    // Sidebar Toggle
-    $('nexusSidebarToggle')?.addEventListener('click', () => {
+    const closeSidebar = () => {
+        const sb = $('nexusSidebar');
+        if (sb) sb.classList.remove('open');
+    };
+
+    // Sidebar Toggle (Desktop Collapse / Mobile Close)
+    $('nexusSidebarToggle')?.addEventListener('click', (e) => {
+        e.stopPropagation();
         const sb = $('nexusSidebar');
         if (sb) {
-            sb.classList.toggle('collapsed');
+            if (sb.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                sb.classList.toggle('collapsed');
+            }
         }
     });
 
-    // Mobile Sidebar Toggle (Also used to un-collapse on desktop)
-    $('nexusMobileToggle')?.addEventListener('click', () => {
+
+    // Mobile Sidebar Toggle (Open Drawer)
+    $('nexusMobileToggle')?.addEventListener('click', (e) => {
+        e.stopPropagation();
         const sb = $('nexusSidebar');
         if (sb) {
             sb.classList.remove('collapsed');
@@ -1425,10 +1664,15 @@ function _nexusAttachEvents(ctrl) {
         }
     });
 
-    // Mobile Sidebar Close
-    $('nexusSidebarClose')?.addEventListener('click', () => {
-        $('nexusSidebar')?.classList.remove('open');
+    // Mobile Sidebar Overlay Close
+    $('nexusSidebarOverlay')?.addEventListener('click', closeSidebar);
+
+    // Mobile Sidebar Close Button
+    $('nexusSidebarClose')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeSidebar();
     });
+
 
     // Mobile Back Button (Chat to Sidebar)
     $('nexusBackBtn')?.addEventListener('click', () => {
@@ -1440,6 +1684,7 @@ function _nexusAttachEvents(ctrl) {
             sb.classList.add('open');
         }
     });
+
 
     // Header Search Toggle
     $('nexusSearchToggleBtn')?.addEventListener('click', () => {
@@ -1462,14 +1707,29 @@ function _nexusAttachEvents(ctrl) {
     $('nexusInfoToggleBtn')?.addEventListener('click', () => {
         const cbar = $('nexusContextualBar');
         if (cbar) {
-            cbar.style.display = cbar.style.display === 'none' ? 'flex' : 'none';
-            if (cbar.style.display === 'flex') ctrl._populateRoomInfo();
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                cbar.style.display = 'flex';
+                setTimeout(() => cbar.classList.add('open'), 10);
+                ctrl._populateRoomInfo();
+            } else {
+                cbar.style.display = cbar.style.display === 'none' ? 'flex' : 'none';
+                if (cbar.style.display === 'flex') ctrl._populateRoomInfo();
+            }
         }
     });
 
     $('nexusCloseCBar')?.addEventListener('click', () => {
         const cbar = $('nexusContextualBar');
-        if (cbar) cbar.style.display = 'none';
+        if (cbar) {
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                cbar.classList.remove('open');
+                setTimeout(() => { if (!cbar.classList.contains('open')) cbar.style.display = 'none'; }, 300);
+            } else {
+                cbar.style.display = 'none';
+            }
+        }
     });
 
     // Contextual Tabs
@@ -1616,13 +1876,35 @@ function _nexusAttachEvents(ctrl) {
         } else {
             // Render basic emojis if empty
             if (picker.innerHTML === '') {
-                const emojis = ['😀', '😂', '🥰', '😎', '🔥', '👍', '🎉', '👀', '🙌', '❤️'];
-                picker.innerHTML = emojis.map(e => `<span style="cursor:pointer;font-size:1.2rem;padding:4px;" onclick="document.getElementById('nexusMsgInput').value += '${e}'">${e}</span>`).join('');
-                // Need to set grid style for picker in CSS or here
+                const emojis = [
+                    '😀', '😂', '🥰', '😎', '🔥', '👍', '🎉', '👀', '🙌', '❤️',
+                    '😁', '😅', '🤣', '😉', '😊', '😋', '😌', '😍', '😘', '😜',
+                    '🤔', '😐', '😑', '😶', '🙄', '😏', '😣', '😥', '😮', '🤐',
+                    '😯', '😪', '😫', '🥱', '😴', '😌', '😛', '😜', '😝', '🤤',
+                    '😒', '😓', '😔', '😕', '🙃', '🤑', '😲', '☹️', '🙁', '😖',
+                    '😞', '😟', '😤', '😢', '😭', '😦', '😧', '😨', '😩', '🤯',
+                    '😬', '😰', '😱', '🥵', '🥶', '😳', '🤪', '😵', '😡', '😠',
+                    '🤬', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😇', '🥳', '🥺',
+                    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯',
+                    '🐸', '🐒', '🐔', '🐧', '🐦', '🐤', '🦋', '🐌', '🐛', '🐜',
+                    '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒',
+                    '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥗', '🥘', '🥫',
+                    '⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱'
+                ];
+                picker.innerHTML = emojis.map(e => `<span style="cursor:pointer;font-size:1.4rem;padding:6px;border-radius:6px;transition:0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'" onclick="document.getElementById('nexusMsgInput').value += '${e}'">${e}</span>`).join('');
+                
                 picker.style.display = 'flex';
                 picker.style.flexWrap = 'wrap';
-                picker.style.gap = '8px';
+                picker.style.gap = '5px';
                 picker.style.padding = '12px';
+                picker.style.height = '200px';
+                picker.style.overflowY = 'auto';
+                picker.style.alignContent = 'flex-start';
+                picker.style.background = 'rgba(22,28,45,0.95)';
+                picker.style.backdropFilter = 'blur(10px)';
+                picker.style.border = '1px solid rgba(255,255,255,0.08)';
+                picker.style.borderRadius = '12px';
+                picker.style.boxShadow = '0 10px 40px rgba(0,0,0,0.5)';
             } else {
                 picker.style.display = 'flex';
             }
@@ -1788,7 +2070,7 @@ function _nexusAttachEvents(ctrl) {
 
         try {
             const { data } = await ctrl.sb.from('profiles')
-                .select('id, full_name, email, avatar_url')
+                .select('id, full_name, email')
                 .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
                 .neq('id', ctrl.userId)
                 .limit(10);
@@ -1867,6 +2149,8 @@ function _nexusAttachEvents(ctrl) {
             $('nexusCreateGroupModal')?.classList.remove('show');
             await ctrl._loadRooms();
             ctrl.openRoom(room.id);
+            const sbElem = document.getElementById('nexusSidebar');
+            if (sbElem) sbElem.classList.remove('open');
         } catch (err) {
             console.error('Error creating channel:', err);
             alert('Failed to create channel.');
@@ -1978,8 +2262,8 @@ function _nexusAttachEvents(ctrl) {
                         <div style="font-size:0.75rem;color:#8f9bc0;">Public Channel</div>
                     </div>
                     ${isJoined
-                        ? '<span style="color:#2ecc71; font-size:0.85rem; font-weight:600;"><i class="fas fa-check-circle"></i> Joined</span>'
-                        : '<button class="nexus-modal-btn primary" style="padding:6px 16px; font-size:0.85rem;">Join</button>'
+                        ? `<span style="color:#2ecc71; font-size:0.85rem; font-weight:600;"><i class="fas fa-check-circle"></i> Joined</span>`
+                        : `<button class="nexus-modal-btn primary" style="padding:6px 16px; font-size:0.85rem;" onclick="event.stopPropagation(); window._execJoinChannel('${ch.id}')">Join</button>`
                     }
                 </div>
                 `;
@@ -2003,6 +2287,8 @@ function _nexusAttachEvents(ctrl) {
             $('nexusBrowseChannelsModal')?.classList.remove('show');
             await ctrl._loadRooms();
             ctrl.openRoom(roomId);
+            const sbElem = document.getElementById('nexusSidebar');
+            if (sbElem) sbElem.classList.remove('open');
         } catch (err) {
             console.error('Join channel error:', err);
             alert('Failed to join channel.');
@@ -2047,8 +2333,8 @@ function _nexusAttachEvents(ctrl) {
                 }
             }
 
-            let qb = ctrl.sb.from('profiles').select('id, full_name, email, avatar_url').neq('id', ctrl.userId);
-            if (query && query.length > 1) {
+            let qb = ctrl.sb.from('profiles').select('id, full_name, email').neq('id', ctrl.userId);
+            if (query && query.length > 0) {
                 qb = qb.or(`full_name.ilike.%${query}%,email.ilike.%${query}%`);
             } else if (connectedIds.size > 0) {
                 // If no query, show recent contacts
@@ -2087,35 +2373,17 @@ function _nexusAttachEvents(ctrl) {
             // First check if a DM room already exists between these users
             const existingRoom = ctrl.rooms.find(r => r.type === 'direct' && r.partnerId === userId);
             if (existingRoom) {
-                $('nexusDMModal')?.classList.remove('show');
+                const dmModal = document.getElementById('nexusDMModal');
+                if (dmModal) dmModal.classList.remove('show');
                 ctrl.openRoom(existingRoom.id);
                 return;
             }
 
-            // Create new direct room
-            const { data: room, error: roomErr } = await ctrl.sb.from('chat_rooms')
-                .insert({
-                    name: `dm_${ctrl.userId}_${userId}`,
-                    type: 'direct',
-                    scope: 'direct',
-                    created_by: ctrl.userId
-                })
-                .select('id').single();
+            // We use startDM heavily now
+            ctrl.startDM(userId, 'Direct Message');
+            const dmModal = document.getElementById('nexusDMModal');
+            if (dmModal) dmModal.classList.remove('show');
 
-            if (roomErr) throw roomErr;
-
-            // Prepare members
-            const membersToInsert = [
-                { room_id: room.id, user_id: ctrl.userId, role: 'member' },
-                { room_id: room.id, user_id: userId, role: 'member' }
-            ];
-
-            const { error: memErr } = await ctrl.sb.from('chat_room_members').insert(membersToInsert);
-            if (memErr) throw memErr;
-
-            $('nexusDMModal')?.classList.remove('show');
-            await ctrl._loadRooms();
-            ctrl.openRoom(room.id);
         } catch (err) {
             console.error('Error starting DM:', err);
             alert('Failed to start direct message.');
@@ -2173,7 +2441,52 @@ function _nexusAttachEvents(ctrl) {
 
     window.addEventListener('click', (e) => {
         if (e.target.classList.contains('nexus-modal')) e.target.classList.remove('show');
+        document.getElementById('nexusOpenSettingsBtn')?.addEventListener('click', () => {
+        document.getElementById('nexusProfileModal')?.classList.remove('show');
+        const setModal = document.getElementById('nexusSettingsModal');
+        if (setModal) {
+            setModal.classList.add('show');
+            // Load saved bg
+            const savedBg = localStorage.getItem(`nexus_bg_${ctrl.userId}`);
+            const bgInp = document.getElementById('nexusBgImageInput');
+            if (bgInp && savedBg) {
+                bgInp.value = savedBg;
+            }
+        }
     });
+
+    document.getElementById('nexusSaveSettingsBtn')?.addEventListener('click', () => {
+        const bgInp = document.getElementById('nexusBgImageInput');
+        if (bgInp) {
+            const url = bgInp.value.trim();
+            if (url) {
+                localStorage.setItem(`nexus_bg_${ctrl.userId}`, url);
+                const layout = document.getElementById('nexusChatLayout');
+                if (layout) {
+                    layout.style.backgroundImage = `url('${url}')`;
+                    layout.style.backgroundSize = 'cover';
+                    layout.style.backgroundPosition = 'center';
+                }
+            } else {
+                localStorage.removeItem(`nexus_bg_${ctrl.userId}`);
+                const layout = document.getElementById('nexusChatLayout');
+                if (layout) layout.style.backgroundImage = 'none';
+            }
+        }
+        document.getElementById('nexusSettingsModal')?.classList.remove('show');
+    });
+
+    // Final Init tasks
+    const initBg = localStorage.getItem(`nexus_bg_${ctrl.userId}`);
+    if (initBg) {
+        const layout = document.getElementById('nexusChatLayout');
+        if (layout) {
+            layout.style.backgroundImage = `url('${initBg}')`;
+            layout.style.backgroundSize = 'cover';
+            layout.style.backgroundPosition = 'center';
+        }
+    }
+});
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
