@@ -1304,6 +1304,20 @@ window.saveWatchlistFn = () => {
 const SocietiesState = { filter: 'All', search: '' };
 
 // --- GLOBAL HANDLERS ---
+window.shareEvent = async (data) => {
+    if (navigator.share) {
+        try {
+            await navigator.share(data);
+        } catch (error) {
+            if (error.name === "AbortError") {
+                // User cancelled share – ignore silently
+                return;
+            }
+            console.error("Share failed:", error);
+        }
+    }
+};
+
 window.toggleEventView = (view) => {
     window.State.calendarView = view;
     App.render();
@@ -2894,7 +2908,7 @@ const Views = {
                                 </button>
                                 ` : ''}
 
-                                <button onclick="navigator.share({title: '${ev.title}', text: 'Check out this event!', url: window.location.href})" class="w-full py-5 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-sm uppercase tracking-[0.2em] hover:bg-white/10 transition-all flex items-center justify-center gap-3">
+                                <button onclick="window.shareEvent({title: '${ev.title.replace(/'/g, "\\'")}', text: 'Check out this event!', url: window.location.href})" class="w-full py-5 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-sm uppercase tracking-[0.2em] hover:bg-white/10 transition-all flex items-center justify-center gap-3">
                                     Share <span class="material-icons-round text-sm">share</span>
                                 </button>
                             </div>
