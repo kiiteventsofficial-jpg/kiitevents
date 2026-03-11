@@ -422,7 +422,7 @@ window.fetchData = async function () {
                 time: e.start_date ? new Date(e.start_date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A',
                 society: e.organizer || e.society || 'Unknown',
                 fullDate: e.start_date || e.date,
-                image: e.banner_url || e.image_url
+                banner_url: e.banner_url
             }));
             console.log("✅ fetchData: Events loaded:", events.length);
         }
@@ -2109,7 +2109,7 @@ const attachEventFormListener = () => {
                         // Generate a safe unique filename to avoid overriding issues
                         const fileName = Date.now() + "_" + Math.random().toString(36).substring(2, 9) + "." + fileExt;
 
-                        console.log("Uploading file:", fileName, "to Supabase Storage...");
+                        console.log("Uploading image:", file);
 
                         // Direct upload to Supabase Storage 'event-images' bucket
                         const { data, error } = await supabase.storage
@@ -2127,7 +2127,7 @@ const attachEventFormListener = () => {
                             .getPublicUrl(`events/${fileName}`);
 
                         finalImage = publicUrl;
-                        console.log("Uploaded Image URL:", finalImage);
+                        console.log("Uploaded URL:", finalImage);
 
                     } catch (uploadErr) {
                         console.error("Upload failed", uploadErr);
@@ -2378,6 +2378,11 @@ window.previewSocietyLogo = function (input, previewId, urlFieldId) {
             window.bannerImageData = e.target.result;
         };
         reader.readAsDataURL(file);
+
+        // CRITICAL FIX: Also store the File object so the Supabase upload pipeline
+        // can access it. Without this, window.bannerImageFile stays null and
+        // the upload is skipped, causing banner_url to default to the placeholder.
+        window.bannerImageFile = file;
     }
 };
 
