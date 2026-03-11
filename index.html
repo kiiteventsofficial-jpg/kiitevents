@@ -335,9 +335,9 @@
     <script>
         if (!window.__PAUSE_APP__) {
             const scripts = [
-                { src: "/state.js?v=12", type: "text/javascript" },
-                { src: "/storage.js?v=12", type: "module" },
-                { src: "/script.js?v=12", type: "module" }
+                { src: "/state.js?v=13", type: "text/javascript" },
+                { src: "/storage.js?v=13", type: "module" },
+                { src: "/script.js?v=13", type: "module" }
             ];
 
             scripts.forEach(s => {
@@ -351,7 +351,7 @@
             console.log("🛑 App scripts skipped on index.html (OAuth redirect). Loading Auth Callback handler...");
             const callbackScript = document.createElement("script");
             callbackScript.type = "module";
-            callbackScript.src = "/auth-callback.js?v=12";
+            callbackScript.src = "/auth-callback.js?v=13";
             callbackScript.async = false;
             document.body.appendChild(callbackScript);
         }
