@@ -677,6 +677,36 @@ button {
     line-height: 1.5;
 }
 
+/* --- Subscribe View Mobile Responsiveness --- */
+@media (max-width: 768px) {
+    .subscribe-view .auth-container {
+        padding: 16px;
+    }
+
+    .subscribe-view .auth-card {
+        padding: 24px 20px;
+        border-radius: 16px;
+    }
+
+    .subscribe-view h2 {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+
+    .subscribe-view .subtitle {
+        font-size: 0.85rem;
+        margin-bottom: 24px;
+    }
+
+    .subscribe-view .checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .subscribe-view .btn.subscribe-btn {
+        padding: 14px;
+    }
+}
+
 /* --- MERGED: SOCIETY-STYLES.CSS --- */
 /* --- New Society Vertical Card & Utilities --- */
 
