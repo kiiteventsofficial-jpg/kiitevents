@@ -88,7 +88,7 @@ async function fetchEvents() {
         // Map fields that might differ
         fullDate: e.start_date || e.date, // Migration safety
         createdBy: e.created_by, // UUID
-        image: e.banner_url || e.image_url // Migration safety
+        banner_url: e.banner_url // Use banner_url exclusively
     }));
 
     renderEvents();
@@ -228,7 +228,7 @@ eventForm.addEventListener("submit", async e => {
         const newEvent = {
             title: document.getElementById('eventName').value,
             description: eventDescDiv.innerHTML,
-            banner_url: imageUrl || (editingEventId ? (events.find(e => e.id === editingEventId)?.banner_url || events.find(e => e.id === editingEventId)?.image_url) : null),
+            banner_url: imageUrl || (editingEventId ? (events.find(e => e.id === editingEventId)?.banner_url) : null),
             start_date: startTimestamp,
             end_date: null,
             location: eventVenue.value,
@@ -407,13 +407,13 @@ window.editEvent = async function (id) {
     registrationLink.value = ev.link || '';
 
     // Image Preview
-    if (ev.image) {
-        const imageUrl = await AppStorage.getImageUrl(ev.image);
+    if (ev.banner_url) {
+        const imageUrl = await AppStorage.getImageUrl(ev.banner_url);
         if (imageUrl) {
             imagePreview.src = imageUrl;
             imagePreview.hidden = false;
-        } else if (ev.image.startsWith('http') || ev.image.startsWith('data:')) {
-            imagePreview.src = ev.image;
+        } else if (ev.banner_url.startsWith('http') || ev.banner_url.startsWith('data:')) {
+            imagePreview.src = ev.banner_url;
             imagePreview.hidden = false;
         } else {
             imagePreview.hidden = true;
