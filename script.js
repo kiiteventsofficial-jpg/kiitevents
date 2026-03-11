@@ -11,6 +11,21 @@ window.State = window.State || {
     savedEvents: { free: [], paid: [], societies: [] }
 };
 
+// --- GLOBAL SCROLL TRACKER FOR PERFORMANCE ---
+window.isScrolling = false;
+let scrollTimeoutTracker;
+window.addEventListener('scroll', () => {
+    if (!document.body.classList.contains('is-scrolling')) {
+        document.body.classList.add('is-scrolling');
+    }
+    window.isScrolling = true;
+    clearTimeout(scrollTimeoutTracker);
+    scrollTimeoutTracker = setTimeout(() => {
+        window.isScrolling = false;
+        document.body.classList.remove('is-scrolling');
+    }, 150);
+}, { passive: true });
+
 // --- NAVBAR UTILS ---
 window.updateNavbar = () => {
     const navContainer = document.getElementById('navbar-container');
@@ -3739,16 +3754,23 @@ window.initHeroAnimations = () => {
         }
         bgLayer.innerHTML = html;
 
-        // Parallax scroll listener
+        // Parallax scroll listener optimized with requestAnimationFrame
+        let ticking = false;
         window.addEventListener('scroll', () => {
-            const scrolled = window.scrollY;
-            const elements = bgLayer.children;
-            for (let el of elements) {
-                const speed = parseFloat(el.getAttribute('data-speed')) || 0.1;
-                const yPos = -(scrolled * speed);
-                el.style.transform = `${el.style.transform.split('translateY')[0]} translateY(${yPos}px)`;
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const scrolled = window.scrollY;
+                    const elements = bgLayer.children;
+                    for (let el of elements) {
+                        const speed = parseFloat(el.getAttribute('data-speed')) || 0.1;
+                        const yPos = -(scrolled * speed);
+                        el.style.transform = `${el.style.transform.split('translateY')[0]} translateY(${yPos}px)`;
+                    }
+                    ticking = false;
+                });
+                ticking = true;
             }
-        });
+        }, { passive: true });
     }
 
     // Clean up
@@ -3829,6 +3851,11 @@ class Global3DBackground {
     animate() {
         if (!this.canvas) return;
 
+        requestAnimationFrame(() => this.animate());
+        
+        // PAUSE RENDERING DURING SCROLL ON MOBILE FOR 60FPS
+        if (window.isScrolling && window.innerWidth < 1024) return;
+
         // Clear with slight trail for motion blur feel - optional, sticking to clean clear
         this.ctx.clearRect(0, 0, this.width, this.height);
 
@@ -3864,21 +3891,14 @@ class Global3DBackground {
                 this.ctx.arc(x2d, y2d, size, 0, Math.PI * 2);
                 this.ctx.fillStyle = `rgba(${s.color}, ${opacity})`;
                 this.ctx.fill();
-
-                // Glow Effect
-                if (size > 2) {
-                    this.ctx.shadowBlur = size * 3;
-                    this.ctx.shadowColor = `rgba(${s.color}, ${opacity})`;
-                } else {
-                    this.ctx.shadowBlur = 0;
-                }
+                
+                // Disable shadowBlur as it's extremely expensive on mobile GPUs
+                this.ctx.shadowBlur = 0;
             }
         });
 
         // Interactive Cursor Follower (optional flashy effect)
         // this.drawCursorEffect(); 
-
-        requestAnimationFrame(() => this.animate());
     }
 
     // Optional: Draw something at mouse cursor in 3D space if needed
