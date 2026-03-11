@@ -131,7 +131,7 @@ function renderWatchlist() {
     allSaved.forEach(ev => {
         watchlistGrid.innerHTML += `
             <div class="event-card">
-                <img src="${ev.image}" alt="${ev.title || ev.name}">
+                <img src="${ev.banner_url || 'assets/logo_final.png'}" alt="${ev.title || ev.name}">
                 <div class="event-info">
                     <h4>${ev.title || ev.name}</h4>
                     <div class="event-meta">
