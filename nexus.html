@@ -18,17 +18,25 @@
     <!-- Custom Styles -->
     <link rel="stylesheet" href="nexus-chat.css">
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             background: #020617;
             overflow: hidden;
+            overflow-x: hidden;
+            width: 100%;
+            height: 100%;
             font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
 
         .nexus-standalone-wrapper {
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100dvh;
             display: flex;
             position: relative;
             background: radial-gradient(circle at 10% 20%, rgba(124, 77, 255, 0.05) 0%, transparent 40%),
@@ -65,8 +73,8 @@
             position: relative;
             z-index: 10;
             background: transparent !important;
-            height: 100vh;
-            width: 100vw;
+            height: 100dvh;
+            width: 100%;
             display: flex;
         }
 
@@ -205,6 +213,7 @@
                     </button>
                 </div>
             </div>
+            <div class="nexus-sidebar-overlay" id="nexusSidebarOverlay"></div>
 
             <!-- MAIN -->
             <div class="nexus-main">
@@ -279,6 +288,9 @@
                         <div class="nexus-typing" id="nexusTyping" style="display:none;">
                             <div class="nexus-typing-dots"><span></span><span></span><span></span></div>
                             <span class="nexus-typing-name"></span>
+                        </div>
+                        <div id="nexusReplyPreview" style="display:none; background:rgba(15,23,42,0.9); border-top:1px solid rgba(255,255,255,0.08); padding:10px 15px; flex-direction:row; align-items:center; z-index:5;">
+                            <!-- Content injected via JS -->
                         </div>
                         <div class="nexus-input-area">
                             <div id="nexusEmojiPicker" class="nexus-emoji-picker"></div>
@@ -449,7 +461,26 @@
                 <div style="display: flex; gap: 10px; justify-content: center;">
                     <button class="nexus-modal-btn primary" id="nexusProfileChatBtn" style="flex: 1;">Message</button>
                     <button class="nexus-modal-btn cancel" id="nexusCloseProfile" style="flex: 1;">Close</button>
+                    <button class="nexus-modal-btn" id="nexusOpenSettingsBtn" style="flex: 1; background:rgba(255,255,255,0.1); color:#fff;"><i class="fas fa-cog"></i></button>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="nexus-modal" id="nexusSettingsModal">
+        <div class="nexus-modal-content" style="max-width: 400px;">
+            <h3><i class="fas fa-sliders-h" style="color:#7c4dff;margin-right:8px;"></i>Chat Settings</h3>
+            <div style="margin: 15px 0 10px;">
+                <label style="display:block;font-size:0.75rem;color:#8f9bc0;margin-bottom:5px;font-weight:600;">CHAT BACKGROUND URL</label>
+                <input class="nexus-modal-input" type="text" id="nexusBgImageInput" placeholder="https://example.com/image.jpg">
+            </div>
+            <div style="margin: 15px 0 10px; display:flex; justify-content:space-between; align-items:center;">
+                <label style="font-size:0.85rem;color:#e2e8f0;font-weight:500;">Message Sounds</label>
+                <input type="checkbox" id="nexusToggleSounds" checked style="accent-color:#7c4dff; transform:scale(1.2);">
+            </div>
+            <div class="nexus-modal-footer" style="margin-top:20px;">
+                <button class="nexus-modal-btn cancel" onclick="document.getElementById('nexusSettingsModal').classList.remove('show')">Close</button>
+                <button class="nexus-modal-btn primary" id="nexusSaveSettingsBtn">Save</button>
             </div>
         </div>
     </div>
