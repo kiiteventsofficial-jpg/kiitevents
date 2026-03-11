@@ -3047,8 +3047,8 @@ const Views = {
         <div class="blob blob-2"></div>
         <div class="blob blob-3"></div>
 
-        <div class="max-w-7xl mx-auto px-6 pt-12">
-            <button onclick="window.goBack()" class="group flex items-center gap-3 text-slate-400 hover:text-white transition-all uppercase text-[10px] font-black tracking-[0.3em]">
+        <div class="absolute top-0 left-0 w-full px-6 pt-8 z-50 pointer-events-none">
+            <button onclick="window.goBack()" class="pointer-events-auto group flex items-center gap-3 text-slate-400 hover:text-white transition-all uppercase text-[10px] font-black tracking-[0.3em]">
                 <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary/20 group-hover:border-primary/40 group-hover:-translate-x-1 transition-all">
                     <span class="material-icons-round text-sm">arrow_back</span>
                 </div>
