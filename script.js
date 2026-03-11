@@ -117,7 +117,8 @@ async function fetchEvents() {
                 title: event.title || 'Untitled Event',
                 date: formattedDate,
                 start_date: event.start_date || startStr,
-                image: event.banner_url || event.image_url,
+                banner_url: event.banner_url,
+                venue: event.location || '',   // alias for templates that use venue
                 status: 'Approved',
                 organizer: event.organizer_name || event.organizer || event.society || 'KIIT Society',
                 link: event.registration_link || event.link || ""
@@ -1785,12 +1786,12 @@ const Components = {
 
 
 
-        // Resolve Image Source: Check window.State.imageMap for ID, else use direct (if legacy), else fallback
-        let primaryImgId = (event.images && event.images.length > 0) ? event.images[0] : event.image;
-        let displayImage = window.State.imageMap[primaryImgId] || primaryImgId || 'assets/logo_final.png';
-
-        // If it starts with 'img_', it expects a blob but if missing in map, it might be broken.
-        // But for legacy data (assets/...), it works fine.
+        // Resolve Image Source: Use banner_url directly, fallback to logo
+        let displayImage = event.banner_url || 'assets/logo_final.png';
+        // Skip relative paths (legacy default) — use fallback instead
+        if (displayImage === 'assets/logo_final.png' && (event.banner_url && event.banner_url.startsWith('http'))) {
+            displayImage = event.banner_url;
+        }
 
         const clickAction = `Router.push('/event/${event.id}')`;
 
@@ -1847,7 +1848,7 @@ const Components = {
                 <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-primary border border-white/5 group-hover:border-primary/30 transition-colors">
                     <span class="material-icons-round text-base">place</span>
                 </div>
-                <span class="truncate max-w-[140px]">${event.venue}</span>
+                <span class="truncate max-w-[140px]">${event.location || event.venue || 'TBA'}</span>
             </div>
             
              <!-- Action Buttons -->
@@ -2636,24 +2637,29 @@ const Views = {
         </section>
 `,
     EventDetails: () => {
-        const ev = MOCK_EVENTS.find(e => e.id === window.State.params.id);
+        const eventIdStr = String(window.State.params.id);
+        const ev = (window.State.events && window.State.events.length > 0 ? window.State.events : MOCK_EVENTS).find(e => String(e.id) === eventIdStr);
         if (!ev) return `<div class="container py-32 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">Event not found</div>`;
 
         // Parse structured data if available
-        let advanced = { sponsors: [], agenda: [], faqs: [] };
+        let advanced = { sponsors: ev.sponsors || [], agenda: ev.agenda || [], faqs: ev.faq || [] };
         let descriptionHtml = formatEventDescription(ev.description);
 
         if (typeof ev.description === 'string' && ev.description.trim().startsWith('{')) {
             try {
                 const parsed = JSON.parse(ev.description);
-                if (parsed.advanced) advanced = parsed.advanced;
+                if (parsed.advanced) {
+                    if (!advanced.sponsors || !advanced.sponsors.length) advanced.sponsors = parsed.advanced.sponsors || [];
+                    if (!advanced.agenda || !advanced.agenda.length) advanced.agenda = parsed.advanced.agenda || [];
+                    if (!advanced.faqs || !advanced.faqs.length) advanced.faqs = parsed.advanced.faqs || [];
+                }
                 if (parsed.html) descriptionHtml = parsed.html;
             } catch (e) {
                 console.warn("EventDetails JSON parse error:", e);
             }
         }
 
-        const galleryImages = ev.gallery && ev.gallery.length > 0 ? ev.gallery : [ev.image];
+        const galleryImages = ev.gallery && ev.gallery.length > 0 ? ev.gallery : [ev.banner_url || 'assets/logo_final.png'];
         const isOnline = ev.mode === 'Online' || ev.mode === 'Hybrid';
         const hasLink = ev.link && ev.link.trim() !== '';
 
@@ -2806,11 +2812,11 @@ const Views = {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
                         <div class="p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 group hover:border-indigo-500/30 transition-all">
                             <div class="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] mb-4">Target Collective</div>
-                            <div class="text-white font-black text-2xl tracking-tight">${ev.audience || ev.targetAudience || 'University Collective'}</div>
+                            <div class="text-white font-black text-2xl tracking-tight">${ev.target_group || ev.audience || ev.targetAudience || 'University Collective'}</div>
                         </div>
                         <div class="p-8 rounded-[2rem] bg-purple-500/5 border border-purple-500/10 group hover:border-purple-500/30 transition-all">
                             <div class="text-[10px] text-purple-400 font-black uppercase tracking-[0.3em] mb-4">Ecosystem Integrity</div>
-                            <div class="text-white font-black text-2xl tracking-tight">${ev.is_featured ? 'Elite Tier' : 'Standard Access'}</div>
+                            <div class="text-white font-black text-2xl tracking-tight">${ev.ecosystem_tier || (ev.is_featured ? 'Elite Tier' : 'Standard Access')}</div>
                         </div>
                     </div>
                 </div>
