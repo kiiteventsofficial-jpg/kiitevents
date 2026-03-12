@@ -46,7 +46,7 @@
     display: flex;
     flex-direction: column;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border 0.3s;
-    z-index: 100;
+    z-index: 50; /* Recommended: 5, using 50 for safety against inner elements */
 }
 
 .nexus-sidebar.modern-sidebar.collapsed {
@@ -809,14 +809,27 @@
 }
 
 .nexus-msg-text {
-    font-size: 15px;
+    font-size: var(--nexus-font-size, 15px);
     line-height: 1.5;
     color: var(--nexus-text-main);
     word-wrap: break-word;
+    background: var(--nexus-bubble-in);
+    padding: 8px 12px;
+    border-radius: 4px 12px 12px 12px;
+    display: inline-block;
+    max-width: 85%;
 }
 
 .nexus-msg-row.own .nexus-msg-text {
-    color: var(--nexus-text-main);
+    background: var(--nexus-bubble-out);
+    color: #fff;
+    border-radius: 12px 4px 12px 12px;
+}
+
+/* Compact Mode Toggle */
+.compact-mode .nexus-msg-text {
+    padding: 2px 8px;
+    font-size: 13px !important;
 }
 
 /* Attachments */
@@ -1315,9 +1328,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: 10000; /* Priority over everything */
     display: none;
     padding: 16px;
+    backdrop-filter: blur(8px);
 }
 
 .nexus-modal.show {
@@ -2170,6 +2184,476 @@
    ========================== */
 
 /* ======================================================
+   NEXUS SETTINGS V3 - PREMIUM REDESIGN
+   ====================================================== */
+
+.settings-modal-content {
+    padding: 0 !important;
+    background: #1f2940 !important;
+    border-radius: 18px !important;
+    max-width: 720px !important; /* Slightly wider for two-column logic */
+    width: 90% !important;
+    overflow: hidden !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.settings-container-v3 {
+    display: flex;
+    height: 520px;
+    background: #1f2940;
+}
+
+/* Sidebar V3 */
+.settings-sidebar-v3 {
+    width: 220px;
+    background: rgba(15, 23, 42, 0.5);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-sidebar-header-v3 {
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.settings-sidebar-header-v3 h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.settings-close-top-v3 {
+    display: none; /* Only show on mobile if needed, or in main area */
+    background: none;
+    border: none;
+    color: #8f9bc0;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.settings-nav-v3 {
+    padding: 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: none;
+    border: none;
+    color: #8f9bc0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.settings-nav-item i {
+    font-size: 1.1rem;
+    width: 20px;
+}
+
+.settings-nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.settings-nav-item.active {
+    background: var(--nexus-primary);
+    color: #fff;
+}
+
+/* Main Content V3 */
+.settings-main-v3 {
+    flex: 1;
+    padding: 32px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.settings-section {
+    display: none;
+}
+
+.settings-section.show {
+    display: block;
+    animation: nexusFadeIn 0.3s ease;
+}
+
+.settings-section h2 {
+    margin: 0 0 24px 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.settings-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.settings-section-header h2 {
+    margin: 0;
+}
+
+/* Shared Components */
+.settings-group-v3 {
+    margin-bottom: 20px;
+}
+
+.settings-group-v3 label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #8f9bc0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+}
+
+.settings-group-v3 input[type="text"] {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+}
+
+.settings-group-v3 input:focus {
+    border-color: var(--nexus-primary);
+    outline: none;
+}
+
+/* Profile V3 */
+.settings-profile-card {
+    display: flex;
+    gap: 24px;
+    background: rgba(15, 23, 42, 0.3);
+    padding: 20px;
+    border-radius: 14px;
+    margin-bottom: 24px;
+}
+
+.settings-avatar-edit-v3 {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+.settings-avatar-edit-v3 .nexus-sidebar-user-avatar {
+    width: 100% !important;
+    height: 100% !important;
+    font-size: 40px !important;
+    border-radius: 24px !important;
+    background: var(--nexus-primary) !important;
+}
+
+.avatar-edit-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 32px;
+    height: 32px;
+    background: #fff;
+    color: #1f2940;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.settings-form-v3 {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-readonly-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.readonly-item {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.readonly-item span {
+    color: #8f9bc0;
+    font-size: 0.9rem;
+}
+
+.readonly-item strong, .readonly-item code {
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+/* Theme Toggle V3 */
+.theme-toggle-v3 {
+    display: flex;
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 6px;
+    border-radius: 12px;
+}
+
+.theme-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    background: none;
+    border: none;
+    color: #8f9bc0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.theme-btn:hover {
+    color: #fff;
+}
+
+.theme-btn.active {
+    background: var(--nexus-primary);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
+}
+
+/* Color Presets V3 */
+.color-presets-v3 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.color-swatch-v3 {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.color-swatch-v3.active {
+    border-color: #fff;
+    transform: scale(1.1);
+}
+
+.color-swatch-v3.custom {
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.8rem;
+}
+
+/* Other UI Components V3 */
+.nexus-select-v3 {
+    width: 100%;
+    padding: 12px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.input-with-action-v3 {
+    display: flex;
+    gap: 8px;
+}
+
+.settings-toggles-v3 {
+    background: rgba(15, 23, 42, 0.3);
+    padding: 8px 16px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+.toggle-row-v3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.toggle-row-v3:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.toggle-row-v3 span {
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.bubble-customizer-v3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.blocked-list-v3 {
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 12px;
+    min-height: 80px;
+    padding: 8px;
+}
+
+.blocked-empty {
+    color: #515b7a;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 24px;
+}
+
+/* Storage & About */
+.storage-card-v3 {
+    background: rgba(15, 23, 42, 0.5);
+    padding: 20px;
+    border-radius: 14px;
+    margin-bottom: 24px;
+}
+
+.storage-info-v3 {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    color: #fff;
+}
+
+.storage-bar-v3 {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.storage-used {
+    height: 100%;
+    background: var(--nexus-primary);
+}
+
+.storage-actions-v3 {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.about-hero-v3 {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.about-logo-v3 {
+    width: 80px;
+    height: 80px;
+    background: var(--nexus-primary);
+    border-radius: 20px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 40px;
+    font-weight: 700;
+}
+
+.about-connection-v3 {
+    display: inline-block;
+    background: rgba(124, 77, 255, 0.1);
+    padding: 6px 16px;
+    border-radius: 20px;
+    color: var(--nexus-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin: 16px 0;
+}
+
+.about-copyright-v3 {
+    color: #515b7a;
+    font-size: 0.8rem;
+    margin-top: 24px;
+}
+
+/* Modal Overlay Blur */
+.nexus-modal.show {
+    backdrop-filter: blur(8px) !important;
+}
+
+/* RESPONSIVE V3 */
+@media (max-width: 768px) {
+    .settings-container-v3 {
+        flex-direction: column;
+        height: 85vh;
+    }
+
+    .settings-sidebar-v3 {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .settings-nav-v3 {
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 8px 16px 16px;
+        gap: 8px;
+    }
+
+    .settings-nav-item {
+        white-space: nowrap;
+        padding: 8px 14px;
+    }
+
+    .settings-main-v3 {
+        padding: 24px 16px;
+    }
+
+    .settings-profile-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .bubble-customizer-v3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ======================================================
    MOBILE OVERHAUL (Phase 4)
    Full spectrum from 320px to 768px
    ====================================================== */
@@ -2183,14 +2667,14 @@
     }
 
     /* Mobile Sidebar Drawer - using LEFT instead of TRANSFORMS for better overlay logic */
-    .nexus-sidebar {
+    .nexus-sidebar.modern-sidebar {
         position: fixed !important;
         left: -100% !important;
         top: 0 !important;
         bottom: 0 !important;
         width: 85vw !important;
         max-width: 300px !important;
-        z-index: 2000 !important;
+        z-index: 2000 !important; /* Above chat input (100) */
         transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         display: flex !important;
         flex-direction: column !important;
@@ -2199,8 +2683,13 @@
         border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
     }
 
-    .nexus-sidebar.open {
+    .nexus-sidebar.modern-sidebar.open {
         left: 0 !important;
+    }
+
+    .nexus-sidebar-footer {
+        padding: 16px 16px calc(24px + env(safe-area-inset-bottom)) 16px !important;
+        background: #0f172a !important;
     }
 
     /* Better visibility for close actions on mobile */
@@ -2292,16 +2781,13 @@
     #nexusMessages {
         flex: 1 !important;
         overflow-y: auto !important;
-        padding: 12px 12px 100px 12px !important; /* extra padding to clear fixed input */
+        padding: 12px 12px 24px 12px !important; /* Reduced padding since input is not fixed */
     }
 
-    /* Input area - stick and expand */
+    /* Input area - Refactored to relative to stay within chat container */
     .nexus-input-area {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        z-index: 100 !important;
+        position: relative !important;
+        z-index: 10 !important;
         background: #15191e !important;
         padding: 10px 10px calc(10px + env(safe-area-inset-bottom)) 10px !important;
         border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
@@ -2315,6 +2801,21 @@
     }
 
     /* Modal Mobile Fixes */
+    .settings-modal-content {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow-y: auto !important;
+    }
+
+    .nexus-modal {
+        z-index: 9000 !important;
+    }
+
     .nexus-modal-box,
     .nexus-modal-content {
         width: 92vw !important;
@@ -2352,4 +2853,38 @@
     .nexus-msg-text {
         font-size: 0.9rem !important;
     }
+}
+
+/* Sidebar/Modal Stacking & Interaction Fix */
+body.settings-open,
+body.sidebar-open {
+    overflow: hidden !important;
+}
+
+/* Hide chat input entirely when side panels or settings are open on mobile */
+@media (max-width: 768px) {
+    body.settings-open .nexus-input-area,
+    body.sidebar-open .nexus-input-area {
+        display: none !important;
+    }
+}
+
+body.settings-open .nexus-chat-root,
+body.sidebar-open .nexus-chat-root {
+    pointer-events: none !important;
+}
+
+body.sidebar-open .nexus-sidebar {
+    pointer-events: auto !important;
+    z-index: 9000 !important;
+}
+
+body.settings-open .nexus-modal {
+    pointer-events: auto !important;
+    z-index: 10000 !important;
+}
+
+.settings-container-v3 {
+    position: relative;
+    z-index: 10001 !important;
 }
