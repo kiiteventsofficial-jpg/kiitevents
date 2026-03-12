@@ -205,15 +205,21 @@
                     </div>
                 </div>
 
-                <div class="nexus-sidebar-footer">
+                <div class="nexus-sidebar-footer" style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
                     <button class="nexus-add-people-btn" id="nexusBtnBroadcast"
                         style="width: 100%; justify-content: center; background: rgba(124, 77, 255, 0.1); border: 1px solid rgba(124, 77, 255, 0.2);">
                         <i class="fas fa-bullhorn" style="margin-right: 8px;"></i>
                         <span>Broadcast</span>
                     </button>
+                    <button class="nexus-add-people-btn" id="nexusOpenSettingsV3"
+                        style="width: 100%; justify-content: center; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <i class="fas fa-cog" style="margin-right: 8px;"></i>
+                        <span>Settings</span>
+                    </button>
                 </div>
             </div>
             <div class="nexus-sidebar-overlay" id="nexusSidebarOverlay"></div>
+
 
             <!-- MAIN -->
             <div class="nexus-main">
@@ -362,7 +368,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- MODALS -->
     <div class="nexus-modal" id="nexusAddMemberModal">
@@ -606,6 +611,195 @@
             bootstrap();
         })();
     </script>
+
+    <!-- FULL SETTINGS MODAL V3 -->
+    <div class="nexus-modal" id="nexusSettingsModalV3">
+        <div class="nexus-modal-content settings-modal-content">
+            <div class="settings-container-v3">
+                <div class="settings-sidebar-v3">
+                    <div class="settings-sidebar-header-v3">
+                        <h3>Settings</h3>
+                        <button class="settings-close-top-v3" id="nexusCloseSettingsV3"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="settings-nav-v3">
+                        <button class="settings-nav-item active" data-section="profile"><i class="fas fa-user-circle"></i> Profile</button>
+                        <button class="settings-nav-item" data-section="appearance"><i class="fas fa-palette"></i> Appearance</button>
+                        <button class="settings-nav-item" data-section="chat"><i class="fas fa-comment-dots"></i> Chat Settings</button>
+                        <button class="settings-nav-item" data-section="privacy"><i class="fas fa-lock"></i> Privacy</button>
+                        <button class="settings-nav-item" data-section="notifications"><i class="fas fa-bell"></i> Notifications</button>
+                        <button class="settings-nav-item" data-section="storage"><i class="fas fa-hdd"></i> Storage</button>
+                        <button class="settings-nav-item" data-section="about"><i class="fas fa-info-circle"></i> About</button>
+                    </div>
+                </div>
+                <div class="settings-main-v3">
+                    <!-- Profile Section -->
+                    <div class="settings-section show" id="settings-profile">
+                        <div class="settings-section-header">
+                            <h2>Profile</h2>
+                            <button class="nexus-modal-btn primary" id="btnSaveProfileV3">Save Changes</button>
+                        </div>
+                        <div class="settings-profile-card">
+                            <div class="settings-avatar-edit-v3">
+                                <div class="nexus-sidebar-user-avatar" id="settingsAvatarV3">?</div>
+                                <button class="avatar-edit-badge" id="btnEditAvatarV3"><i class="fas fa-camera"></i></button>
+                                <input type="file" id="settingsAvatarInputV3" style="display:none" accept="image/*">
+                            </div>
+                            <div class="settings-form-v3">
+                                <div class="settings-group-v3">
+                                    <label>Display Name</label>
+                                    <input type="text" id="settingsNameInp" placeholder="Your name">
+                                </div>
+                                <div class="settings-group-v3">
+                                    <label>Status / Bio</label>
+                                    <input type="text" id="settingsStatusInp" placeholder="What's on your mind?">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="settings-readonly-list">
+                            <div class="readonly-item"><span>Email</span> <strong id="settingsEmailView">...</strong></div>
+                            <div class="readonly-item"><span>Role</span> <strong id="settingsRoleView">...</strong></div>
+                            <div class="readonly-item"><span>User ID</span> <code id="settingsUidView">...</code></div>
+                        </div>
+                    </div>
+
+                    <!-- Appearance Section -->
+                    <div class="settings-section" id="settings-appearance">
+                        <h2>Appearance</h2>
+                        <div class="settings-group-v3">
+                            <label>Theme Mode</label>
+                            <div class="theme-toggle-v3">
+                                <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i> Dark</button>
+                                <button class="theme-btn" data-theme="light"><i class="fas fa-sun"></i> Light</button>
+                                <button class="theme-btn" data-theme="system"><i class="fas fa-desktop"></i> System</button>
+                            </div>
+                        </div>
+                        <div class="settings-group-v3">
+                            <label>Accent Color</label>
+                            <div class="color-presets-v3" id="accentPresets">
+                                <div class="color-swatch-v3 active" style="background:#7c4dff" data-color="#7c4dff"></div>
+                                <div class="color-swatch-v3" style="background:#2ecc71" data-color="#2ecc71"></div>
+                                <div class="color-swatch-v3" style="background:#3498db" data-color="#3498db"></div>
+                                <div class="color-swatch-v3" style="background:#e74c3c" data-color="#e74c3c"></div>
+                                <div class="color-swatch-v3" style="background:#f1c40f" data-color="#f1c40f"></div>
+                                <input type="color" id="accentCustomColor" style="display:none">
+                                <div class="color-swatch-v3 custom" title="Custom"><i class="fas fa-plus"></i></div>
+                            </div>
+                        </div>
+                        <div class="settings-group-v3">
+                            <label>Font Size</label>
+                            <select id="settingsFontSize" class="nexus-select-v3">
+                                <option value="small">Small</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="large">Large</option>
+                                <option value="xlarge">Extra Large</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Chat Settings Section -->
+                    <div class="settings-section" id="settings-chat">
+                        <h2>Chat Settings</h2>
+                        <div class="settings-group-v3">
+                            <label>Chat Wallpaper URL</label>
+                            <div class="input-with-action-v3">
+                                <input type="text" id="settingsChatBgInp" placeholder="Image URL...">
+                                <button class="nexus-modal-btn" id="btnPreviewBg">Apply</button>
+                            </div>
+                        </div>
+                        <div class="settings-toggles-v3">
+                            <div class="toggle-row-v3">
+                                <span>Show Timestamps</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsShowTime" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-row-v3">
+                                <span>Compact Mode</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsCompactMode"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="bubble-customizer-v3">
+                            <div class="settings-group-v3">
+                                <label>Incoming Bubble</label>
+                                <input type="color" id="settingsBubbleInColor" value="#1e293b">
+                            </div>
+                            <div class="settings-group-v3">
+                                <label>Outgoing Bubble</label>
+                                <input type="color" id="settingsBubbleOutColor" value="#7c4dff">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Privacy Section -->
+                    <div class="settings-section" id="settings-privacy">
+                        <h2>Privacy</h2>
+                        <div class="settings-group-v3">
+                            <label>Last Seen Visibility</label>
+                            <select id="settingsLastSeen" class="nexus-select-v3">
+                                <option value="everyone">Everyone</option>
+                                <option value="contacts">Contacts Only</option>
+                                <option value="nobody">Nobody</option>
+                            </select>
+                        </div>
+                        <div class="settings-group-v3">
+                            <label>Blocked Users</label>
+                            <div id="settingsBlockedList" class="blocked-list-v3">
+                                <div class="blocked-empty">No blocked users</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications Section -->
+                    <div class="settings-section" id="settings-notifications">
+                        <h2>Notifications</h2>
+                        <div class="settings-toggles-v3">
+                            <div class="toggle-row-v3">
+                                <span>Enable Notifications</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsNotifEnable" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-row-v3">
+                                <span>Message Sounds</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsSoundEnable" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-row-v3">
+                                <span>Desktop Alerts</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsDesktopNotif"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Storage Section -->
+                    <div class="settings-section" id="settings-storage">
+                        <h2>Storage</h2>
+                        <div class="storage-card-v3">
+                            <div class="storage-info-v3">
+                                <span>Used Storage</span>
+                                <strong>15.2 MB / 100 MB</strong>
+                            </div>
+                            <div class="storage-bar-v3">
+                                <div class="storage-used" style="width: 15%;"></div>
+                            </div>
+                        </div>
+                        <div class="storage-actions-v3">
+                            <button class="nexus-modal-btn outline" style="width:100%">Clear Chat Cache</button>
+                            <button class="nexus-modal-btn danger" style="width:100%">Delete All Media</button>
+                        </div>
+                    </div>
+
+                    <!-- About Section -->
+                    <div class="settings-section" id="settings-about">
+                        <div class="about-hero-v3">
+                            <div class="about-logo-v3">N</div>
+                            <h3>NEXUS Chat</h3>
+                            <p>Version 1.1.0 Premium</p>
+                            <div class="about-connection-v3">
+                                CONNECTED: OLLAMA + SUPABASE
+                            </div>
+                            <p class="about-copyright-v3">© 2026 NEXUS Labs. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
