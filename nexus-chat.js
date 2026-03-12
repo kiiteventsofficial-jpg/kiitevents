@@ -633,6 +633,7 @@ class NexusChatUI {
         const main = $id('nexusChatLayout'); if (main) main.style.display = 'flex';
         // Mobile: hide sidebar, show main
         if (this.isMobile) {
+            document.body.classList.remove('sidebar-open');
             const sidebar = $id('nexusSidebar');
             if (sidebar) sidebar.classList.remove('open');
             const root = $id('nexusChatRoot');
@@ -713,6 +714,282 @@ class NexusChatUI {
                 listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7390;">No members found.</div>';
             }
         }
+    }
+
+    /* ======================================================
+       SETTINGS V3 CONTROLLER
+       ====================================================== */
+
+    async initSettingsV3() {
+        if (!this.userId) return;
+        const { data, error } = await window.supabase.from('user_settings').select('*').eq('user_id', this.userId).single();
+        if (error && error.code === 'PGRST116') {
+            // No settings found, create default
+            const defaults = {
+                user_id: this.userId,
+                theme: 'system',
+                accent_color: '#7c4dff',
+                incoming_bubble_color: 'rgba(255,255,255,0.05)',
+                outgoing_bubble_color: '#7c4dff',
+                font_size: 'medium'
+            };
+            await window.supabase.from('user_settings').insert(defaults);
+            this.userSettings = defaults;
+        } else if (data) {
+            this.userSettings = data;
+        }
+        this.applySettingsV3(this.userSettings);
+    }
+
+    applySettingsV3(settings) {
+        if (!settings) return;
+        const root = document.documentElement;
+        
+        // 1. Accent & Bubble Colors
+        if (settings.accent_color) {
+            root.style.setProperty('--nexus-primary', settings.accent_color);
+            root.style.setProperty('--nexus-accent', settings.accent_color);
+        }
+        if (settings.incoming_bubble_color) root.style.setProperty('--nexus-bubble-in', settings.incoming_bubble_color);
+        if (settings.outgoing_bubble_color) root.style.setProperty('--nexus-bubble-out', settings.outgoing_bubble_color);
+
+        // 2. Font Size
+        const sizes = { small: '12px', medium: '14px', large: '16px', xlarge: '18px' };
+        if (settings.font_size) root.style.setProperty('--nexus-font-size', sizes[settings.font_size] || '14px');
+
+        // 3. Theme Mode
+        const theme = settings.theme || 'system';
+        document.body.classList.remove('light-mode');
+        
+        if (theme === 'light') {
+            document.body.classList.add('light-mode');
+        } else if (theme === 'system') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (!prefersDark) document.body.classList.add('light-mode');
+        }
+
+        // Update Theme Buttons UI
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === theme);
+        });
+
+        // 4. Chat Wallpaper
+        const chatLayout = document.getElementById('nexusChatLayout');
+        if (chatLayout) {
+            if (settings.chat_bg_url) {
+                chatLayout.style.backgroundImage = `url(${settings.chat_bg_url})`;
+                chatLayout.style.backgroundSize = 'cover';
+                chatLayout.style.backgroundPosition = 'center';
+                chatLayout.style.backgroundBlendMode = 'overlay';
+            } else {
+                chatLayout.style.backgroundImage = 'none';
+            }
+        }
+
+        // 5. UI Toggles
+        const msgArea = document.getElementById('nexusMessages');
+        if (msgArea) {
+            msgArea.classList.toggle('compact-mode', !!settings.compact_mode);
+            msgArea.classList.toggle('no-timestamps', settings.show_timestamps === false);
+        }
+    }
+
+    async openSettingsV3() {
+        if (!this.userId) return;
+        
+        document.body.classList.add('settings-open');
+        const modal = document.getElementById('nexusSettingsModalV3');
+        if (!modal) return;
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden'; // Stop background scroll
+
+        // 1. Profile Data
+        const profile = this.userProfile || {};
+        const $id = (id) => document.getElementById(id);
+        
+        if ($id('settingsNameInp')) $id('settingsNameInp').value = profile.full_name || '';
+        if ($id('settingsStatusInp')) $id('settingsStatusInp').value = profile.status || '';
+        if ($id('settingsEmailView')) $id('settingsEmailView').innerText = profile.email || 'N/A';
+        if ($id('settingsRoleView')) $id('settingsRoleView').innerText = profile.role || 'user';
+        if ($id('settingsUidView')) $id('settingsUidView').innerText = this.userId;
+        
+        const av = $id('settingsAvatarV3');
+        if (av) {
+            av.innerText = profile.avatar_url ? '' : nexusInitials(profile.full_name || '?');
+            av.style.backgroundImage = profile.avatar_url ? `url(${profile.avatar_url})` : 'none';
+        }
+
+        // 2. Settings Persistence
+        const s = this.userSettings || {};
+        if ($id('settingsFontSize')) $id('settingsFontSize').value = s.font_size || 'medium';
+        if ($id('settingsShowTime')) $id('settingsShowTime').checked = s.show_timestamps !== false;
+        if ($id('settingsCompactMode')) $id('settingsCompactMode').checked = !!s.compact_mode;
+        if ($id('settingsChatBgInp')) $id('settingsChatBgInp').value = s.chat_bg_url || '';
+        if ($id('settingsBubbleInColor')) $id('settingsBubbleInColor').value = s.incoming_bubble_color || '#1e293b';
+        if ($id('settingsBubbleOutColor')) $id('settingsBubbleOutColor').value = s.outgoing_bubble_color || '#7c4dff';
+
+        // Set active theme button
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === (s.theme || 'system'));
+        });
+
+        // Set active accent
+        document.querySelectorAll('#accentPresets .color-swatch-v3').forEach(swatch => {
+            swatch.classList.toggle('active', swatch.dataset.color === s.accent_color);
+        });
+
+        this.updateBlockedListV3();
+    }
+
+    closeSettingsV3() {
+        document.body.classList.remove('settings-open');
+        const modal = document.getElementById('nexusSettingsModalV3');
+        if (modal) modal.classList.remove('show');
+        document.body.style.overflow = ''; // Restore scroll
+    }
+
+    handleSettingsNav(btn) {
+        document.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const sectionId = btn.dataset.section;
+        document.querySelectorAll('.settings-section').forEach(sec => {
+            sec.classList.toggle('show', sec.id === `settings-${sectionId}`);
+        });
+    }
+
+    async updateAvatarV3(file) {
+        if (!file || !this.userId) return;
+        
+        try {
+            const ext = file.name.split('.').pop();
+            const path = `avatars/${this.userId}_${Date.now()}.${ext}`;
+            
+            const { data, error } = await window.supabase.storage.from('avatars').upload(path, file);
+            if (error) throw error;
+            
+            const { data: urlData } = window.supabase.storage.from('avatars').getPublicUrl(path);
+            const avatarUrl = urlData.publicUrl;
+            
+            // Update profile
+            await window.supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', this.userId);
+            this.userProfile.avatar_url = avatarUrl;
+            
+            // Refresh UI
+            const av = document.getElementById('settingsAvatarV3');
+            if (av) {
+                av.innerText = '';
+                av.style.backgroundImage = `url(${avatarUrl})`;
+            }
+            
+            const sbAv = document.getElementById('nexusSidebarUserAvatar');
+            if (sbAv) {
+                sbAv.innerText = '';
+                sbAv.style.backgroundImage = `url(${avatarUrl})`;
+            }
+            
+            alert('Avatar updated!');
+        } catch (err) {
+            console.error('updateAvatarV3 error:', err);
+            alert('Failed to upload avatar.');
+        }
+    }
+
+    async saveProfileV3() {
+        if (!this.userId) return;
+        const nameInp = document.getElementById('settingsNameInp');
+        const statusInp = document.getElementById('settingsStatusInp');
+        
+        const profileUpdates = {
+            full_name: nameInp?.value || this.userProfile.full_name,
+            status: statusInp?.value || this.userProfile.status,
+            updated_at: new Date()
+        };
+
+        const { error } = await window.supabase.from('profiles').update(profileUpdates).eq('id', this.userId);
+        if (error) {
+            console.error('saveProfileV3 error:', error);
+            alert('Failed to update profile.');
+            return;
+        }
+
+        this.userProfile = { ...this.userProfile, ...profileUpdates };
+        
+        // Sync Sidebar & Header
+        const sbName = document.getElementById('nexusSidebarUserName');
+        if (sbName) sbName.innerText = this.userProfile.full_name;
+        const sbAvatar = document.getElementById('nexusSidebarUserAvatar');
+        if (sbAvatar) {
+            sbAvatar.innerText = this.userProfile.avatar_url ? '' : nexusInitials(this.userProfile.full_name);
+            sbAvatar.style.backgroundImage = this.userProfile.avatar_url ? `url(${this.userProfile.avatar_url})` : 'none';
+        }
+        
+        alert('Profile saved successfully!');
+    }
+
+    async saveSettingsV3(newPartial) {
+        if (!this.userId) return;
+        const updated = { ...this.userSettings, ...newPartial };
+        this.userSettings = updated;
+        this.applySettingsV3(updated);
+
+        // Persistent Settings Save
+        await window.supabase.from('user_settings').upsert({
+            user_id: this.userId,
+            ...updated,
+            updated_at: new Date()
+        });
+    }
+
+    async updateBlockedListV3() {
+        const listEl = document.getElementById('settingsBlockedList');
+        if (!listEl) return;
+        
+        // Using view or table joins would be better, but assuming blocked_users table structure
+        // blcoker_id, blocked_id
+        const { data: blocked, error } = await window.supabase
+            .from('blocked_users')
+            .select('blocked_id, profiles:blocked_id(full_name, avatar_url)')
+            .eq('blocker_id', this.userId);
+
+        if (error) {
+            console.error('updateBlockedListV3 error:', error);
+            return;
+        }
+
+        if (blocked && blocked.length > 0) {
+            listEl.innerHTML = blocked.map(b => `
+                <div class="blocked-item-v3" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div class="blocked-avatar-v3" style="width:32px; height:32px; border-radius:8px; background:var(--nexus-primary); display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:700;">
+                            ${nexusInitials(b.profiles?.full_name || '?')}
+                        </div>
+                        <span style="color:#fff; font-size:14px;">${nexusEsc(b.profiles?.full_name || 'Unknown')}</span>
+                    </div>
+                    <button class="nexus-modal-btn danger" style="padding:4px 10px; font-size:11px;" onclick="window.nexusChatCtrl.unblockUserV3('${b.blocked_id}')">Unblock</button>
+                </div>
+            `).join('');
+        } else {
+            listEl.innerHTML = '<div class="blocked-empty">No blocked users</div>';
+        }
+    }
+
+    async unblockUserV3(blockedId) {
+        if (!confirm('Are you sure you want to unblock this user?')) return;
+        
+        const { error } = await window.supabase
+            .from('blocked_users')
+            .delete()
+            .eq('blocker_id', this.userId)
+            .eq('blocked_id', blockedId);
+
+        if (error) {
+            alert('Failed to unblock user.');
+            return;
+        }
+
+        this.blockedUsers = this.blockedUsers.filter(id => id !== blockedId);
+        this.updateBlockedListV3();
+        alert('User unblocked.');
     }
 
     async leaveChannel() {
@@ -1638,6 +1915,7 @@ function _nexusAttachEvents(ctrl) {
     const closeSidebar = () => {
         const sb = $('nexusSidebar');
         if (sb) sb.classList.remove('open');
+        document.body.classList.remove('sidebar-open');
     };
 
     // Sidebar Toggle (Desktop Collapse / Mobile Close)
@@ -1661,6 +1939,7 @@ function _nexusAttachEvents(ctrl) {
         if (sb) {
             sb.classList.remove('collapsed');
             sb.classList.add('open');
+            document.body.classList.add('sidebar-open');
         }
     });
 
@@ -1671,6 +1950,101 @@ function _nexusAttachEvents(ctrl) {
     $('nexusSidebarClose')?.addEventListener('click', (e) => {
         e.stopPropagation();
         closeSidebar();
+    });
+
+    // OPEN SETTINGS V3
+    $('nexusOpenSettingsV3')?.addEventListener('click', () => {
+        ctrl.openSettingsV3();
+        closeSidebar();
+    });
+
+    // CLOSE SETTINGS V3
+    $('nexusCloseSettingsV3')?.addEventListener('click', () => {
+        ctrl.closeSettingsV3();
+    });
+
+    // SETTINGS NAV TOGGLE
+    document.querySelectorAll('.settings-nav-item').forEach(btn => {
+        btn.onclick = () => ctrl.handleSettingsNav(btn);
+    });
+
+    // PROFILE ACTIONS V3
+    $('btnSaveProfileV3')?.addEventListener('click', () => ctrl.saveProfileV3());
+    $('btnEditAvatarV3')?.addEventListener('click', () => $('settingsAvatarInputV3')?.click());
+    $('settingsAvatarInputV3')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) ctrl.updateAvatarV3(file);
+    });
+
+    // APPEARANCE V3
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.onclick = () => {
+            const theme = btn.dataset.theme;
+            ctrl.saveSettingsV3({ theme });
+        };
+    });
+
+    document.querySelectorAll('#accentPresets .color-swatch-v3:not(.custom)').forEach(swatch => {
+        swatch.onclick = () => {
+            ctrl.saveSettingsV3({ accent_color: swatch.dataset.color });
+        };
+    });
+
+    $('accentPresets')?.querySelector('.color-swatch-v3.custom')?.addEventListener('click', () => {
+        $('accentCustomColor')?.click();
+    });
+
+    $('accentCustomColor')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ accent_color: e.target.value });
+    });
+
+    $('settingsFontSize')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ font_size: e.target.value });
+    });
+
+    // CHAT SETTINGS V3
+    $('settingsShowTime')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ show_timestamps: e.target.checked });
+    });
+
+    $('settingsCompactMode')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ compact_mode: e.target.checked });
+    });
+
+    $('btnPreviewBg')?.addEventListener('click', () => {
+        const url = $('settingsChatBgInp')?.value;
+        ctrl.saveSettingsV3({ chat_bg_url: url });
+    });
+
+    $('settingsBubbleInColor')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ incoming_bubble_color: e.target.value });
+    });
+
+    $('settingsBubbleOutColor')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ outgoing_bubble_color: e.target.value });
+    });
+
+    // GLOBAL MODAL DISMISS (Backdrop & ESC)
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const settingsModal = $('nexusSettingsModalV3');
+            if (settingsModal?.classList.contains('show')) ctrl.closeSettingsV3();
+            // Add other modals here if they should close on ESC
+            document.querySelectorAll('.nexus-modal.show').forEach(m => m.classList.remove('show'));
+            document.body.style.overflow = '';
+        }
+    });
+
+    document.querySelectorAll('.nexus-modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                if (modal.id === 'nexusSettingsModalV3') ctrl.closeSettingsV3();
+                else {
+                    modal.classList.remove('show');
+                    document.body.style.overflow = '';
+                }
+            }
+        });
     });
 
 
@@ -2439,64 +2813,24 @@ function _nexusAttachEvents(ctrl) {
     $('nexusCloseProfile')?.addEventListener('click', () => $('nexusProfileModal').classList.remove('show'));
     $('nexusCloseAddPeople')?.addEventListener('click', () => $('nexusAddPeopleModal').classList.remove('show'));
 
+    // GLOBAL BACKDROP CLICK (Close Modals)
     window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('nexus-modal')) e.target.classList.remove('show');
-        document.getElementById('nexusOpenSettingsBtn')?.addEventListener('click', () => {
-        document.getElementById('nexusProfileModal')?.classList.remove('show');
-        const setModal = document.getElementById('nexusSettingsModal');
-        if (setModal) {
-            setModal.classList.add('show');
-            // Load saved bg
-            const savedBg = localStorage.getItem(`nexus_bg_${ctrl.userId}`);
-            const bgInp = document.getElementById('nexusBgImageInput');
-            if (bgInp && savedBg) {
-                bgInp.value = savedBg;
-            }
+        if (e.target.classList.contains('nexus-modal')) {
+            e.target.classList.remove('show');
         }
     });
 
-    document.getElementById('nexusSaveSettingsBtn')?.addEventListener('click', () => {
-        const bgInp = document.getElementById('nexusBgImageInput');
-        if (bgInp) {
-            const url = bgInp.value.trim();
-            if (url) {
-                localStorage.setItem(`nexus_bg_${ctrl.userId}`, url);
-                const layout = document.getElementById('nexusChatLayout');
-                if (layout) {
-                    layout.style.backgroundImage = `url('${url}')`;
-                    layout.style.backgroundSize = 'cover';
-                    layout.style.backgroundPosition = 'center';
-                }
-            } else {
-                localStorage.removeItem(`nexus_bg_${ctrl.userId}`);
-                const layout = document.getElementById('nexusChatLayout');
-                if (layout) layout.style.backgroundImage = 'none';
-            }
-        }
-        document.getElementById('nexusSettingsModal')?.classList.remove('show');
-    });
-
-    // Final Init tasks
-    const initBg = localStorage.getItem(`nexus_bg_${ctrl.userId}`);
-    if (initBg) {
-        const layout = document.getElementById('nexusChatLayout');
-        if (layout) {
-            layout.style.backgroundImage = `url('${initBg}')`;
-            layout.style.backgroundSize = 'cover';
-            layout.style.backgroundPosition = 'center';
-        }
-    }
-});
-
+    // GLOBAL KEYBOARD SHORTCUTS
     window.addEventListener('keydown', (e) => {
+        // ESC to close modals
         if (e.key === 'Escape') {
-            document.querySelectorAll('.nexus-modal').forEach(m => m.classList.remove('show'));
-            const searchBar = $('nexusInlineSearchBar'); if (searchBar) searchBar.style.display = 'none';
-            const cBar = $('nexusContextualBar'); if (cBar) cBar.style.display = 'none';
+            document.querySelectorAll('.nexus-modal:not(.nexus-auth-modal)').forEach(m => m.classList.remove('show'));
         }
-        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        // Ctrl + K to focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
-            $('nexusSidebarSearch')?.focus();
+            const search = $('nexusSidebarSearch') || $('nexusSearchRooms');
+            if (search) search.focus();
         }
     });
 
