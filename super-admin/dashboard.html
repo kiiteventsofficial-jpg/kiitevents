@@ -291,7 +291,7 @@
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
-                window.location.replace("../auth.html");
+                window.goAuth();
                 return;
             }
 
@@ -310,7 +310,7 @@
                 .single();
 
             if (!profile || profile.role !== "super_admin") {
-                window.location.replace("../index.html");
+                window.goHome();
             }
         });
     </script>
@@ -432,7 +432,7 @@
                 <div class="py-2 mt-4 border-t border-blue-800/20">
                     <button
                         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.04] transition-all duration-200 group nav-item"
-                        onclick="window.history.length > 1 ? window.history.back() : window.location.replace('../index.html')">
+                        onclick="window.history.length > 1 ? window.history.back() : window.goHome()">
                         <span
                             class="material-symbols-outlined text-[20px] group-hover:text-slate-300 transition-colors">arrow_back</span>
                         <span class="text-sm font-medium menu-text">Back</span>
