@@ -1145,22 +1145,31 @@ const HARDCODED_SOCIETIES = [
         image: "assets/societies/enactus.png"
     },
     {
-        id: "usc",
-        name: "USC KIIT",
-        category: "Technical",
-        description: "USC KIIT - A premier student society at KIIT University.",
-        overview: "USC KIIT - A premier student society at KIIT University.",
-        howItWorks: "",
-        achievements: [],
-        stats: { events: "0+", members: "0+" },
-        recruitment: "",
-        impact: "",
-        website: "",
-        linkedin: "",
-        instagram: "",
-        logo: "assets/societies/usc-CLDSSEC3.jpeg",
-        image: "assets/societies/usc-CLDSSEC3.jpeg"
-    },
+  id: "usc",
+  name: "USC KIIT",
+  category: "Technical",
+  description: "UiPath Student Community at KIIT focused on automation, Robotic Process Automation (RPA), and intelligent workflow development.",
+  overview: "USC KIIT (UiPath Student Community – KIIT) is a technology community powered by UiPath that enables students to learn automation technologies, develop RPA solutions, and collaborate on innovative automation projects. The community connects students interested in AI-driven automation and provides industry exposure through workshops, events, and collaborative projects.",
+  howItWorks: [
+    "Workshops and training sessions on UiPath and Robotic Process Automation.",
+    "Hands-on automation projects and workflow development.",
+    "Coding challenges and automation competitions.",
+    "Community mentorship and peer learning sessions."
+  ],
+  achievements: [
+    "Organized automation and coding events such as CodeSprint challenges.",
+    "Conducted RPA workshops and technical training for students.",
+    "Built a strong automation-focused student developer community."
+  ],
+  stats: { events: "10+", members: "200+" },
+  recruitment: "Open to students interested in automation, AI workflows, and software development.",
+  impact: "Provides hands-on exposure to Robotic Process Automation and prepares students for industry automation roles.",
+  website: "",
+  linkedin: "https://www.linkedin.com/company/uipath-community-kiit/",
+  instagram: "https://www.instagram.com/usc.kiit/",
+  logo: "assets/societies/usc.png",
+  image: "assets/societies/usc.png"
+},
     {
         id: "ctsoc",
         name: "IEEE CTSOC KIIT",
