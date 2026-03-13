@@ -53,10 +53,17 @@ window.updateNavbar = () => {
         console.log("♻️ Navbar Updated | User:", window.State.user ? window.State.user.email : 'None');
     }
 };
+let sessionLoading = false;
 
 // 🔐 Centralized User Context Loader (Single Source of Truth)
 async function loadUserContextAndRender() {
+
+    if (sessionLoading) return;
+    sessionLoading = true;
+
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    sessionLoading = false;
 
     // 🚨 DASHBOARD DEBUG
     console.log("🚨 DASHBOARD DEBUG | Session Found:", !!session);
