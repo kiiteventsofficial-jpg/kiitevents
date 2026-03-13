@@ -32,7 +32,7 @@ async function initAdminAuth() {
                     <p>There might be a connection issue with Supabase.</p>
                     <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
                         <button onclick="window.location.reload()" style="background:#3b82f6; color:white; padding:10px 20px; border-radius:8px; border:none; cursor:pointer">Retry</button>
-                        <button onclick="window.location.replace('index.html')" style="background:#475569; color:white; padding:10px 20px; border-radius:8px; border:none; cursor:pointer">Back Home</button>
+                        <button onclick="window.goHome()" style="background:#475569; color:white; padding:10px 20px; border-radius:8px; border:none; cursor:pointer">Back Home</button>
                     </div>
                 </div>`;
         }
@@ -59,7 +59,7 @@ async function initAdminAuth() {
     if (error || !session) {
         console.warn('❌ admin.js: No session found. Redirecting to Login.');
         loadingOverlay.innerHTML = '<div style="text-align:center"><h3>Session Missing</h3><p>Redirecting to login...</p></div>';
-        setTimeout(() => window.location.replace('auth.html'), 1500);
+        setTimeout(() => window.goAuth(), 1500);
         return;
     }
 
@@ -115,7 +115,7 @@ async function initAdminAuth() {
                 return;
             }
 
-            loadingOverlay.innerHTML = `<div style="text-align:center;color:red;"><h3>User Profile Not Found</h3><p>Please ensure you are registered in the system.</p><button onclick="window.location.replace('index.html')" style="margin-top:20px; padding:10px 20px; cursor:pointer;">Back to Home</button></div>`;
+            loadingOverlay.innerHTML = `<div style="text-align:center;color:red;"><h3>User Profile Not Found</h3><p>Please ensure you are registered in the system.</p><button onclick="window.goHome()" style="margin-top:20px; padding:10px 20px; cursor:pointer;">Back to Home</button></div>`;
             return;
         }
 
@@ -148,14 +148,14 @@ async function initAdminAuth() {
             finishAuth();
         } else {
             console.error("❌ admin.js: Access Denied. Role:", profile.role);
-            const errorMsg = `<div style="text-align:center;color:red;padding:20px;background:#0f172a;position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;"><h3>Access Denied</h3><p>You (Role: ${profile.role}) do not have permission to access the admin panel.</p><button onclick="window.location.replace('index.html')" style="margin-top:20px;padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;">Back to Home</button></div>`;
+            const errorMsg = `<div style="text-align:center;color:red;padding:20px;background:#0f172a;position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;"><h3>Access Denied</h3><p>You (Role: ${profile.role}) do not have permission to access the admin panel.</p><button onclick="window.goHome()" style="margin-top:20px;padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;">Back to Home</button></div>`;
             if (htmlLoadingOverlay) htmlLoadingOverlay.innerHTML = errorMsg;
             else loadingOverlay.innerHTML = errorMsg;
         }
 
     } catch (error) {
         console.error("❌ admin.js: Critical Permission error:", error);
-        loadingOverlay.innerHTML = `<div style="text-align:center;color:red;"><h3>System Error</h3><button onclick="window.location.replace('index.html')">Back to Home</button></div>`;
+        loadingOverlay.innerHTML = `<div style="text-align:center;color:red;"><h3>System Error</h3><button onclick="window.goHome()">Back to Home</button></div>`;
     }
 }
 
@@ -704,7 +704,7 @@ window.logout = async function () {
         sessionStorage.clear();
 
         // Always bounce to login properly
-        window.location.replace('auth.html');
+        window.goAuth();
     }
 };
 
