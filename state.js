@@ -22,7 +22,9 @@ window.State = {
         paid: [],
         societies: []
     },
-    imageMap: {}
+    imageMap: {},
+    eventsPage: 1,
+    eventsLimit: 15
 };
 
 // ===============================
