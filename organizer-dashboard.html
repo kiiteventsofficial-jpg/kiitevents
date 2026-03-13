@@ -1964,40 +1964,49 @@
         <script type="module" src="./supabase.js"></script>
         <script type="module" src="./admin.js?v=19"></script>
 
-<!-- ── CUSTOM NEXUS MODALS FOR MEMBERS AND SETTINGS ── -->
-<div class="nexus-modal" id="nexusAddMemberModal">
-    <div class="nexus-modal-content">
-        <h3><i class="fas fa-user-plus" style="color:#7c4dff;margin-right:8px;"></i>Add People</h3>
-        <p style="font-size:0.8rem;color:#8f9bc0;margin-bottom:15px;">Search by name or email to add to the chat.</p>
-        <input class="nexus-modal-input" type="text" id="nexusAddPeopleSearch" placeholder="Search users...">
-        <div class="nexus-member-list" id="nexusAddPeopleResults" style="max-height:200px;overflow-y:auto;margin-top:10px;"></div>
-        <div class="nexus-modal-footer">
-            <button class="nexus-modal-btn cancel" id="nexusCloseAddPeople">Close</button>
-        </div>
-    </div>
-</div>
-
-<div class="nexus-modal" id="nexusChannelSettingsModal">
-    <div class="nexus-modal-content" style="max-width:500px;">
-        <h3><i class="fas fa-cog" style="color:#7c4dff;margin-right:8px;"></i>Channel Settings</h3>
-        
-        <div style="margin-top:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:10px;">
-            <h4 style="font-size:0.85rem; color:#8f9bc0; margin-bottom:10px; text-transform:uppercase;">Members</h4>
-            <div id="nexusChannelMembersList" style="max-height:200px; overflow-y:auto; border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:5px;">
-                <!-- Members populated by JS -->
+        <!-- ── CUSTOM NEXUS MODALS FOR MEMBERS AND SETTINGS ── -->
+        <div class="nexus-modal" id="nexusAddMemberModal">
+            <div class="nexus-modal-content">
+                <h3><i class="fas fa-user-plus" style="color:#7c4dff;margin-right:8px;"></i>Add People</h3>
+                <p style="font-size:0.8rem;color:#8f9bc0;margin-bottom:15px;">Search by name or email to add to the
+                    chat.</p>
+                <input class="nexus-modal-input" type="text" id="nexusAddPeopleSearch" placeholder="Search users...">
+                <div class="nexus-member-list" id="nexusAddPeopleResults"
+                    style="max-height:200px;overflow-y:auto;margin-top:10px;"></div>
+                <div class="nexus-modal-footer">
+                    <button class="nexus-modal-btn cancel" id="nexusCloseAddPeople">Close</button>
+                </div>
             </div>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:8px;">
-            <button class="nexus-modal-btn danger" id="nexusLeaveChannelBtn" style="width:100%; text-align:left;"><i class="fas fa-sign-out-alt"></i> Leave Channel</button>
-            <button class="nexus-modal-btn danger" id="nexusDeleteChannelBtn" style="width:100%; text-align:left;"><i class="fas fa-trash"></i> Delete Channel (Admin)</button>
-        </div>
+        <div class="nexus-modal" id="nexusChannelSettingsModal">
+            <div class="nexus-modal-content" style="max-width:500px;">
+                <h3><i class="fas fa-cog" style="color:#7c4dff;margin-right:8px;"></i>Channel Settings</h3>
 
-        <div class="nexus-modal-footer">
-            <button class="nexus-modal-btn cancel" id="nexusCloseChannelSettings">Close</button>
+                <div
+                    style="margin-top:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:10px;">
+                    <h4 style="font-size:0.85rem; color:#8f9bc0; margin-bottom:10px; text-transform:uppercase;">Members
+                    </h4>
+                    <div id="nexusChannelMembersList"
+                        style="max-height:200px; overflow-y:auto; border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:5px;">
+                        <!-- Members populated by JS -->
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <button class="nexus-modal-btn danger" id="nexusLeaveChannelBtn"
+                        style="width:100%; text-align:left;"><i class="fas fa-sign-out-alt"></i> Leave Channel</button>
+                    <button class="nexus-modal-btn danger" id="nexusDeleteChannelBtn"
+                        style="width:100%; text-align:left;"><i class="fas fa-trash"></i> Delete Channel
+                        (Admin)</button>
+                </div>
+
+                <div class="nexus-modal-footer">
+                    <button class="nexus-modal-btn cancel" id="nexusCloseChannelSettings">Close</button>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
-\n</body>
+        \n
+</body>
 
 </html>
