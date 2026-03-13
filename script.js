@@ -26,6 +26,25 @@ window.addEventListener('scroll', () => {
     }, 150);
 }, { passive: true });
 
+// --- PERFORMANCE UTILITIES ---
+const debounce = (func, delay) => {
+    let timeout;
+    return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+};
+
+// Intersection Observer for smooth reveal of cards
+const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            cardObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.1, rootMargin: '50px' });
+
 // --- NAVBAR UTILS ---
 window.updateNavbar = () => {
     const navContainer = document.getElementById('navbar-container');
@@ -338,14 +357,34 @@ window.forceRenderEvents = () => {
             }
         } else {
             container.classList.add('grid', 'md:grid-cols-2');
-            container.innerHTML = displayList.map(ev => {
+            
+            // Optimization: Use DocumentFragment to batch DOM updates
+            const fragment = document.createDocumentFragment();
+            displayList.forEach(ev => {
                 try {
-                    return (Components && Components.EventCard) ? Components.EventCard(ev) : '';
+                    const cardHtml = (Components && Components.EventCard) ? Components.EventCard(ev) : '';
+                    if (cardHtml) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = cardHtml.trim();
+                        const cardElement = tempDiv.firstChild;
+                        cardElement.classList.add('animated-section'); // Reuse existing animation class
+                        fragment.appendChild(cardElement);
+                        cardObserver.observe(cardElement);
+                    }
                 } catch (err) {
                     console.error("Render Error for event:", ev, err);
-                    return "";
                 }
-            }).join('');
+            });
+            container.appendChild(fragment);
+            
+            // Trigger animation for those already in view
+            setTimeout(() => {
+               document.querySelectorAll('.event-card.animated-section').forEach(el => {
+                   if (el.getBoundingClientRect().top < window.innerHeight) {
+                       el.classList.add('visible');
+                   }
+               });
+            }, 50);
         }
     });
 
@@ -394,10 +433,22 @@ window.forceRenderEvents = () => {
                     pastGrid.innerHTML = Components && Components.Calendar ? Components.Calendar(pastDisplayList) : '';
                 } else {
                     pastGrid.classList.add('grid', 'md:grid-cols-2');
-                    pastGrid.innerHTML = pastDisplayList.map(ev => {
-                        try { return (Components && Components.EventCard) ? Components.EventCard(ev) : ''; }
-                        catch (err) { return ""; }
-                    }).join('');
+                    const pastFragment = document.createDocumentFragment();
+                    pastDisplayList.forEach(ev => {
+                        try {
+                            const cardHtml = (Components && Components.EventCard) ? Components.EventCard(ev) : '';
+                            if (cardHtml) {
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = cardHtml.trim();
+                                const cardElement = tempDiv.firstChild;
+                                cardElement.classList.add('animated-section');
+                                pastFragment.appendChild(cardElement);
+                                cardObserver.observe(cardElement);
+                            }
+                        } catch (err) { }
+                    });
+                    pastGrid.innerHTML = '';
+                    pastGrid.appendChild(pastFragment);
                 }
 
                 // Scroll animation
@@ -1593,11 +1644,11 @@ window.applyFilter = (filter, label) => {
     });
 };
 
-// Updated Home Search with Debounce support if needed
-window.updateHomeSearch = (query) => {
+// Updated Home Search with Debounce to prevent lag
+window.updateHomeSearch = debounce((query) => {
     window.State.homeSearch = query.toLowerCase();
     window.applyFilters(); // Centralized filter application
-};
+}, 300);
 
 // Global Handlers moved to top section
 
@@ -1855,7 +1906,9 @@ const Components = {
     
     <!-- Image Section with Gradient Overlay -->
     <div class="relative h-56 overflow-hidden event-card-image-container">
-        <img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-in-out" src="${displayImage}" alt="${event.title}" loading="lazy">
+        <img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-in-out" 
+             src="${displayImage}" alt="${event.title}" 
+             loading="lazy" width="600" height="400">
         <div class="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-60"></div>
         
         <!-- Premium Date Badge (Floating) -->
@@ -1919,7 +1972,7 @@ const Components = {
     <div class="flex items-center gap-4 group cursor-pointer" onclick="window.openSocietyModal('${society.id}')">
         <div class="w-12 h-12 rounded-xl bg-surface-dark-light border border-white/5 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all overflow-hidden">
              ${(society.logo || society.image) && !(society.logo || society.image).includes('placeholder')
-            ? `<img src="${society.logo || society.image}" class="w-full h-full object-cover">`
+            ? `<img src="${society.logo || society.image}" class="w-full h-full object-cover" loading="lazy" width="60" height="60">`
             : `<span class="material-icons-round">groups</span>`
         }
         </div>
@@ -1941,7 +1994,7 @@ const Components = {
             </button>
 
             <div class="relative h-48 md:h-64 w-full overflow-hidden shrink-0">
-                <img src="${s.image}" alt="${s.name}" class="h-full w-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800&q=80'">
+                <img src="${s.image}" alt="${s.name}" class="h-full w-full object-cover" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800&q=80'">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                 <div class="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
                     <h2 class="text-2xl md:text-3xl font-bold text-white mb-2 leading-tight">${s.name}</h2>
@@ -2029,11 +2082,11 @@ const Components = {
     <div class="group relative overflow-hidden rounded-xl bg-[#1e293b] border border-transparent hover:border-white/10 transition-all duration-300 shadow-lg cursor-pointer flex flex-col h-full" onclick="window.openSocietyModal('${s.id}')">
         <!-- Banner Section -->
         <div class="relative h-48 w-full overflow-hidden shrink-0">
-            <img src="${s.image}" alt="${s.name}" class="h-full w-full object-cover">
+            <img src="${s.image}" alt="${s.name}" class="h-full w-full object-cover" loading="lazy" width="600" height="300">
             
             <!-- Circular inset logo -->
             <div class="absolute top-4 left-4 w-12 h-12 rounded-full border border-white/20 overflow-hidden shadow-lg bg-black/50">
-                <img src="${s.logo || s.image}" alt="Logo" class="w-full h-full object-cover">
+                <img src="${s.logo || s.image}" alt="Logo" class="w-full h-full object-cover" loading="lazy" width="100" height="100">
             </div>
 
             <!-- Category badge (Top Right) -->
@@ -2063,7 +2116,7 @@ const Components = {
 
     GalleryCard: (item) => `
         <div class="gallery-item group">
-            <img src="${item.image}" alt="${item.title}">
+            <img src="${item.image}" alt="${item.title}" loading="lazy" width="800" height="600">
             <div class="gallery-overlay">
                 <span class="text-xs font-bold bg-primary px-2 py-1 rounded mb-2 inline-block">${item.type}</span>
                 <h3 class="font-bold text-lg leading-tight mb-1">${item.title}</h3>
@@ -3474,7 +3527,8 @@ class ParticleNetwork3D {
 
     initParticles() {
         this.particles = [];
-        const particleCount = Math.min(100, (this.width * this.height) / 9000); // Responsive count
+        const isMobile = window.innerWidth < 768;
+        const particleCount = isMobile ? 30 : Math.min(100, (this.width * this.height) / 9000); // Responsive count
 
         for (let i = 0; i < particleCount; i++) {
             this.particles.push({
@@ -3507,6 +3561,12 @@ class ParticleNetwork3D {
 
     animate() {
         if (!document.getElementById(this.canvas.id)) return;
+
+        // Optimization: Skip rendering during active scroll on mobile/tablet to save GPU
+        if (window.isScrolling && window.innerWidth < 1024) {
+            requestAnimationFrame(() => this.animate());
+            return;
+        }
 
         this.ctx.clearRect(0, 0, this.width, this.height);
 
@@ -3694,10 +3754,12 @@ window.initHeroAnimations = () => {
 
     let currentImg = 0;
     const updateCrawler = () => {
+        const isFirst = crawler.innerHTML === "";
         crawler.innerHTML = `
             <img src="${images[currentImg]}" 
                  class="absolute inset-0 w-full h-full object-cover transition-opacity duration-2000" 
-                 style="opacity: 0" onload="this.style.opacity='1'">
+                 style="opacity: 0" onload="this.style.opacity='1'"
+                 ${!isFirst ? 'loading="lazy"' : ''}>
             <div class="absolute inset-0 bg-gradient-to-b from-[#020617]/10 via-[#020617]/40 to-[#020617]"></div>
         `;
         currentImg = (currentImg + 1) % images.length;
@@ -3731,9 +3793,12 @@ window.initHeroAnimations = () => {
             'pyramid', 'sphere-3d', 'ring-3d', 'cube-mini', 'octahedron', 'hex-prism'
         ];
 
-        // Generate 25-30 random shapes for richer variety
+        // Generate shapes - reduced count on mobile for performance
         let html = '';
-        for (let i = 0; i < 28; i++) {
+        const isMobile = window.innerWidth < 768;
+        const shapeCount = isMobile ? 12 : 28;
+        
+        for (let i = 0; i < shapeCount; i++) {
             const type = shapes[Math.floor(Math.random() * shapes.length)];
             const top = (Math.random() * 120) - 10; // Extra bleed for a fuller look
             const left = Math.random() * 100;
