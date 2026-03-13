@@ -7,7 +7,7 @@ let currentUser = null;
 async function initOrganizer() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-        window.location.replace('auth.html');
+        window.goAuth();
         return;
     }
 
@@ -31,7 +31,7 @@ async function initOrganizer() {
 
     if (!isAdmin && !isSuper) {
         console.error('❌ organizer.js: Unauthorized access. Expected admin or super_admin. Found:', profile.role);
-        window.location.replace('/index.html');
+        window.goHome();
         alert('Unauthorized access. Expected Admin or Super Admin. Your role: ' + (profile.role || 'None'));
         return;
     }
@@ -486,7 +486,7 @@ window.goBack = function () {
     if (window.history.length > 1) {
         window.history.back();
     } else {
-        window.location.href = "index.html";
+        window.goHome();
     }
 };
 
