@@ -1757,44 +1757,11 @@ window.addFaqRow = function (question = '', answer = '') {
 
 // --- IMAGE HANDLING ---
 window.bannerImageFile = null;
+window.bannerImageData = null;
 
-window.handleBannerUpload = function (input) {
-    if (input.files && input.files[0]) {
-        const file = input.files[0];
-        window.bannerImageFile = file; // Store the original file
+// The handleBannerUpload function has been removed. 
+// Please use window.previewSocietyLogo(input, previewId, urlFieldId) instead.
 
-        // Preview logic (admin specific ID 'imagePreviewContainer')
-        const previewUrl = URL.createObjectURL(file);
-
-        const previewContainer = document.getElementById('imagePreviewContainer');
-        if (previewContainer) {
-            previewContainer.innerHTML = `
-                <div style="position:relative;">
-                    <img src="${previewUrl}" style="width:100%; border-radius:12px; object-fit: cover;">
-                    <button type="button" onclick="window.bannerImageFile=null; const p = document.getElementById('imagePreviewContainer'); if(p) p.innerHTML='';" 
-                            style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.6); color:white; border:none; cursor:pointer; padding:5px; border-radius:50%;">
-                        <span class="material-icons-round" style="font-size:14px;">close</span>
-                    </button>
-                </div>
-            `;
-        }
-
-        // ALSO update the new admin-dashboard.html preview UI
-        const newBannerPreview = document.getElementById('eventBannerPreview');
-        const bannerPrompt = document.getElementById('bannerPrompt');
-        if (newBannerPreview) {
-            const img2 = newBannerPreview.querySelector('img');
-            if (img2) {
-                img2.src = previewUrl;
-                img2.style.objectFit = 'cover';
-            }
-            newBannerPreview.classList.remove('hidden');
-        }
-        if (bannerPrompt) bannerPrompt.style.display = 'none';
-    }
-};
-
-// IMAGE HANDLING STATE (Preserved old variable but likely unused now)
 // IMAGE HANDLING STATE
 let uploadedImages = []; // Stores objects: { type: 'new'|'existing', file?: File, id?: string, preview: string }
 
@@ -2688,94 +2655,12 @@ window.previewImage = function (input) {
 // SINGLE IMAGE UPLOAD HANDLER (ADMIN)
 // --- DYNAMIC FORM HANDLERS ---
 
-let bannerImageData = null;
-
-// 1. BANNER UPLOAD & AUTO-CROP (16:9)
-window.handleBannerUpload = function (input) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const img = new Image();
-    const reader = new FileReader();
-
-    reader.onload = e => img.src = e.target.result;
-    reader.readAsDataURL(file);
-
-    img.onload = () => {
-        const canvas = document.getElementById('bannerCanvas') || document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        // 16:9 ratio
-        const targetRatio = 16 / 9;
-        let sw = img.width;
-        let sh = img.height;
-        let sx = 0, sy = 0;
-
-        if (sw / sh > targetRatio) {
-            const newW = sh * targetRatio;
-            sx = (sw - newW) / 2;
-            sw = newW;
-        } else {
-            const newH = sw / targetRatio;
-            sy = (sh - newH) / 2;
-            sh = newH;
-        }
-
-        canvas.width = 1600;
-        canvas.height = 900;
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1600, 900);
-        bannerImageData = canvas.toDataURL('image/jpeg', 0.9);
-
-        // Preview Logic for all dashboards
-        const imgPreviewContainer = document.getElementById('imagePreviewContainer');
-        const eventBannerPreview = document.getElementById('eventBannerPreview');
-
-        if (eventBannerPreview) {
-            // Organizer dashboard style
-            eventBannerPreview.classList.remove('hidden');
-            const previewImg = eventBannerPreview.querySelector('img');
-            if (previewImg) previewImg.src = bannerImageData;
-            const prompt = document.getElementById('bannerPrompt');
-            if (prompt) prompt.classList.add('hidden');
-        } else if (imgPreviewContainer) {
-            // Super/Admin dashboard style
-            imgPreviewContainer.innerHTML = `
-                <div style="position:relative; width:100%; max-width:400px; margin:0 auto;">
-                    <img src="${bannerImageData}"
-                         style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:12px; border:2px solid #6366f1;">
-                    <button type="button" onclick="window.bannerImageData=null; const p=document.getElementById('imagePreviewContainer'); if(p)p.innerHTML='';"
-                        style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.6); color:white; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer;">
-                        ✕
-                    </button>
-                </div>
-            `;
-        }
-
-        const err = document.getElementById('imageError');
-        if (err) err.style.display = 'none';
-        input.value = '';
-    };
-};
+// 1. BANNER UPLOAD HANDLER
+// Handled by window.previewSocietyLogo below.
 
 
 // 2. CLEAR LOGO/BANNER
-window.clearSocietyLogo = function (previewId, urlInputId, fileInputId) {
-    const preview = document.getElementById(previewId);
-    const fileInput = document.getElementById(fileInputId);
-    if (preview) {
-        preview.classList.add('hidden');
-        const img = preview.querySelector('img');
-        if (img) img.src = '';
-    }
-    if (fileInput) fileInput.value = '';
-    window.bannerImageData = null;
-
-    const prompt = document.getElementById('bannerPrompt');
-    if (prompt) prompt.classList.remove('hidden');
-
-    const pContainer = document.getElementById('imagePreviewContainer');
-    if (pContainer) pContainer.innerHTML = '';
-};
+// Handled by window.clearSocietyLogo defined earlier.
 
 // 3. CONTACT ROWS
 function addContactRow() {
