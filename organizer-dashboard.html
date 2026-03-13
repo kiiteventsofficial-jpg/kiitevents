@@ -1103,8 +1103,7 @@
                             <div class="relative group cursor-pointer border-2 border-dashed border-slate-200 hover:border-blue-500/50 rounded-[2rem] bg-slate-50 p-12 transition-all hover:bg-white hover:shadow-md"
                                 onclick="document.getElementById('eventImages').click()">
                                 <input id="eventImages" type="file" accept="image/*" class="hidden"
-                                    onchange="handleBannerUpload(this)" />
-                                <canvas id="bannerCanvas" style="display: none;"></canvas>
+                                    onchange="previewSocietyLogo(this, 'eventBannerPreview', null)" />
                                 <div id="bannerPrompt" class="flex flex-col items-center">
                                     <div
                                         class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
