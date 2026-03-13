@@ -8,7 +8,9 @@ window.State = window.State || {
     route: '/',
     params: {},
     imageMap: {},
-    savedEvents: { free: [], paid: [], societies: [] }
+    savedEvents: { free: [], paid: [], societies: [] },
+    eventsPage: 1,
+    eventsLimit: 15
 };
 
 // --- GLOBAL SCROLL TRACKER FOR PERFORMANCE ---
@@ -53,6 +55,7 @@ window.updateNavbar = () => {
         console.log("♻️ Navbar Updated | User:", window.State.user ? window.State.user.email : 'None');
     }
 };
+
 let sessionLoading = false;
 
 // 🔐 Centralized User Context Loader (Single Source of Truth)
@@ -119,7 +122,7 @@ async function loadUserContextAndRender() {
 }
 
 // --- DATA ---
-window.ALL_EVENTS = null; // null = Loading, [] = Empty
+window.ALL_EVENTS = []; // Start as empty array instead of null to prevent race conditions during merge
 let MOCK_EVENTS = [];
 
 // --- APP STATE (Now handled globally by state.js) ---
@@ -276,14 +279,17 @@ async function fetchSocieties() {
 // Logic moved to loadUserContextAndRender at top of file
 // --- RENDER LOGIC ---
 window.forceRenderEvents = () => {
-    const containers = [
+    const rawContainers = [
         document.getElementById('events-grid'),
         document.getElementById('upcoming-events'),
         document.querySelector('.events-grid')
     ];
+    // Deduplicate and filter nulls
+    const containers = [...new Set(rawContainers.filter(c => c !== null))];
+
+    if (containers.length === 0) return;
 
     containers.forEach(container => {
-        if (!container) return;
 
         container.innerHTML = "";
 
@@ -299,9 +305,14 @@ window.forceRenderEvents = () => {
         }
 
         const now = new Date();
-        now.setHours(0, 0, 0, 0);
+        now.setHours(0, 0, 0, 0); // Start of today
+
         const eventsToShow = (window.ALL_EVENTS || []).filter(ev => {
-            const eventDate = new Date(ev.start_date);
+            const dateStr = ev.start_date || ev.date;
+            if (!dateStr) return true; // Show if no date (TBD)
+            const eventDate = new Date(dateStr);
+            // If the date is invalid, show it anyway (better to see it than hide it)
+            if (isNaN(eventDate.getTime())) return true;
             return eventDate >= now;
         });
 
@@ -343,6 +354,13 @@ window.forceRenderEvents = () => {
         if (window.State.filters?.society && window.State.filters.society !== 'All') {
             displayList = displayList.filter(ev => ev.organizer === window.State.filters.society);
         }
+
+        const totalBeforePagination = displayList.length;
+        const start = (window.State.eventsPage - 1) * window.State.eventsLimit;
+        const end = start + window.State.eventsLimit;
+        
+        const slicedList = displayList.slice(start, end);
+        displayList = slicedList;
 
         // NO RESULTS UI
         if (!displayList.length) {
@@ -393,6 +411,11 @@ window.forceRenderEvents = () => {
                });
             }, 50);
         }
+
+        // RENDER PAGINATION
+        if (container && (container.id === 'upcoming-events' || container.id === 'events-grid' || container.classList.contains('events-grid'))) {
+            renderPaginationControls(container, totalBeforePagination);
+        }
     });
 
     // PAST EVENTS LOGIC
@@ -403,9 +426,11 @@ window.forceRenderEvents = () => {
         currentDate.setHours(0, 0, 0, 0);
 
         const pastEventsToShow = (window.ALL_EVENTS || []).filter(ev => {
-            const dateStr = ev.end_date || ev.start_date || ev.date;
+            const dateStr = ev.start_date || ev.date || ev.end_date;
             if (!dateStr) return false;
-            return new Date(dateStr) < currentDate;
+            const eventDate = new Date(dateStr);
+            if (isNaN(eventDate.getTime())) return false;
+            return eventDate < currentDate;
         });
 
         if (pastEventsToShow.length === 0) {
@@ -476,6 +501,55 @@ window.forceRenderEvents = () => {
 
     // Re-initialize animations or listeners if needed
     if (window.initHeroAnimations) window.initHeroAnimations();
+
+};
+
+function renderPaginationControls(container, totalEvents) {
+    const totalPages = Math.ceil(totalEvents / window.State.eventsLimit);
+    if (totalPages <= 1) {
+        const existing = container.parentElement.querySelector('.nexus-pagination');
+        if (existing) existing.remove();
+        return;
+    }
+
+    let paginationEl = container.parentElement.querySelector('.nexus-pagination');
+    if (!paginationEl) {
+        paginationEl = document.createElement('div');
+        paginationEl.className = 'nexus-pagination';
+        container.after(paginationEl);
+    }
+
+    let html = `
+        <button class="pag-btn prev" ${window.State.eventsPage === 1 ? 'disabled' : ''} onclick="window.changeEventsPage(-1)">
+            <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        <div class="pag-numbers">
+    `;
+
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button class="pag-num ${window.State.eventsPage === i ? 'active' : ''}" onclick="window.goToEventsPage(${i})">${i}</button>`;
+    }
+
+    html += `
+        </div>
+        <button class="pag-btn next" ${window.State.eventsPage === totalPages ? 'disabled' : ''} onclick="window.changeEventsPage(1)">
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
+
+    paginationEl.innerHTML = html;
+}
+
+window.changeEventsPage = (delta) => {
+    window.State.eventsPage += delta;
+    window.forceRenderEvents();
+    document.getElementById('upcoming-events-section')?.scrollIntoView({ behavior: 'smooth' });
+};
+
+window.goToEventsPage = (page) => {
+    window.State.eventsPage = page;
+    window.forceRenderEvents();
+    document.getElementById('upcoming-events-section')?.scrollIntoView({ behavior: 'smooth' });
 };
 
 /* Fix: MOCK_EVENTS check */
@@ -726,22 +800,22 @@ const HARDCODED_SOCIETIES = [
         image: "assets/societies/konnexions.png"
     },
     {
-  id: "kas",
-  name: "KIIT Automobile Society",
-  category: "Technical",
-  description: "Team of automotive engineers building ATVs and F1 prototypes.",
-  overview: "KAS brings together petrolheads to design, fabricate, and race all-terrain and formula-style vehicles.",
-  howItWorks: "Divided into transmission, chassis, suspension, and engine departments.",
-  achievements: ["Podium finish at BAJA SAE India", "Best Design at SUPRA"],
-  stats: { vehicles: "12+", races: "20+", members: "60+" },
-  recruitment: "Mechanical aptitude test and interview.",
-  impact: "Practical core engineering skills and teamwork.",
-  website: "https://ksac.kiit.ac.in/kiit-automobile-society-2/",
-  linkedin: "https://www.linkedin.com/company/sae-india-kiit/",
-  instagram: "",
-  logo: "assets/societies/kas.png",
-  image: "assets/societies/kas.png"
-},
+        id: "kas",
+        name: "KIIT Automobile Society",
+        category: "Technical",
+        description: "Team of automotive engineers building ATVs and F1 prototypes.",
+        overview: "KAS brings together petrolheads to design, fabricate, and race all-terrain and formula-style vehicles.",
+        howItWorks: "Divided into transmission, chassis, suspension, and engine departments.",
+        achievements: ["Podium finish at BAJA SAE India", "Best Design at SUPRA"],
+        stats: { vehicles: "12+", races: "20+", members: "60+" },
+        recruitment: "Mechanical aptitude test and interview.",
+        impact: "Practical core engineering skills and teamwork.",
+        website: "",
+        linkedin: "",
+        instagram: "",
+        logo: "assets/societies/kas.png",
+        image: "assets/societies/kas.png"
+    },
     {
         id: "apogeio",
         name: "Apogeio",
@@ -1152,7 +1226,7 @@ const HARDCODED_SOCIETIES = [
         image: "assets/societies/enactus.png"
     },
     {
-  id: "usc",
+         id: "usc",
   name: "USC KIIT",
   category: "Technical",
   description: "UiPath Student Community at KIIT focused on automation, Robotic Process Automation (RPA), and intelligent workflow development.",
@@ -1176,8 +1250,9 @@ const HARDCODED_SOCIETIES = [
   instagram: "https://www.instagram.com/usc.kiit/",
   logo: "assets/societies/usc-CLDSSEC3.jpeg",
   image: "assets/societies/usc-CLDSSEC3.jpeg"
-},
-    {id: "ctsoc",
+    },
+    {
+       id: "ctsoc",
   name: "IEEE CTSOC KIIT",
   category: "Technical",
   description: "IEEE Consumer Technology Society chapter at KIIT focusing on emerging consumer electronics and smart technologies.",
@@ -1198,7 +1273,7 @@ const HARDCODED_SOCIETIES = [
   image: "assets/societies/ctsoc-BvwYoUD8.png"
     },
     {
-        id: "konnect",
+            id: "konnect",
   name: "KIIT Konnect",
   category: "Technical",
   description: "A technology and networking society at KIIT that connects students with innovation and industry.",
@@ -1217,9 +1292,9 @@ const HARDCODED_SOCIETIES = [
   instagram: "",
   logo: "assets/societies/konnect-CVve5Jq_.jpeg",
   image: "assets/societies/konnect-CVve5Jq_.jpeg"
+
     },
-    {
-        id: "ncc",
+    {  id: "ncc",
   name: "NCC KIIT",
   category: "Social / Welfare",
   description: "National Cadet Corps unit at KIIT developing discipline, leadership, and patriotism among students.",
@@ -1240,7 +1315,7 @@ const HARDCODED_SOCIETIES = [
   image: "assets/societies/ncc-BMy8nNTz.jpg"
     },
     {
-  id: "ncc",
+          id: "ncc",
   name: "NCC KIIT",
   category: "Social / Welfare",
   description: "National Cadet Corps unit at KIIT that develops discipline, leadership, and patriotism among students.",
@@ -1255,9 +1330,9 @@ const HARDCODED_SOCIETIES = [
   instagram: "https://www.instagram.com/ncc_kiit/",
   logo: "assets/societies/ncc-BMy8nNTz.jpg",
   image: "assets/societies/ncc-BMy8nNTz.jpg"
-},
+    },
     {
-  id: "yrc",
+       id: "yrc",
   name: "YRC KIIT",
   category: "Social / Welfare",
   description: "Youth Red Cross unit at KIIT promoting humanitarian service, health awareness, and community welfare.",
@@ -1276,9 +1351,9 @@ const HARDCODED_SOCIETIES = [
   instagram: "",
   logo: "assets/societies/yrc-DhLOEHmJ.jpeg",
   image: "assets/societies/yrc-DhLOEHmJ.jpeg"
-},
+    },
     {
-        id: "kitpd2s",
+         id: "kitpd2s",
   name: "KITPD2S",
   category: "Technical",
   description: "KIIT Technology Postgraduate & Doctoral Students’ Society representing M.Tech and PhD scholars.",
@@ -1368,7 +1443,7 @@ async function fetchKIITEvents() {
         if (events.length > 0) {
             console.log(`Fetched ${events.length} live events.`);
             // Merge with ALL_EVENTS and MOCK_EVENTS, avoiding duplicates
-            const staticEvents = window.ALL_EVENTS.filter(e => !e.isLive);
+            const staticEvents = (window.ALL_EVENTS || []).filter(e => !e.isLive);
             window.ALL_EVENTS = [...staticEvents, ...events];
 
             // Keep MOCK_EVENTS in sync for legacy code
