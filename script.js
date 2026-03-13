@@ -1167,8 +1167,8 @@ const HARDCODED_SOCIETIES = [
   website: "",
   linkedin: "https://www.linkedin.com/company/uipath-community-kiit/",
   instagram: "https://www.instagram.com/usc.kiit/",
-  logo: "assets/societies/usc.png",
-  image: "assets/societies/usc.png"
+  logo: "assets/societies/usc-CLDSSEC3.jpeg",
+  image: "assets/societies/usc-CLDSSEC3.jpeg"
 },
     {
         id: "ctsoc",
