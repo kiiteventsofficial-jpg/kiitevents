@@ -7,7 +7,7 @@ async function initUserDashboard() {
 
         if (error || !session) {
             console.log("No session found, redirecting to auth.html");
-            window.location.replace('auth.html');
+            window.goAuth();
             return;
         }
 
@@ -60,7 +60,7 @@ async function initUserDashboard() {
     } catch (err) {
         console.error("Dashboard Init Error:", err);
         finishAuth(); // Hide even on error so user can see what happened
-        window.location.replace('auth.html');
+        window.goAuth();
     }
 }
 
@@ -94,7 +94,7 @@ window.logout = async function () {
     await supabase.auth.signOut();
     localStorage.clear();
     sessionStorage.clear();
-    window.location.href = "index.html";
+    window.goHome();
 };
 
 // NAVIGATION
@@ -241,3 +241,4 @@ window.toggleSidebarDesktop = function () {
 };
 
 
+v
