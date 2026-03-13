@@ -62,16 +62,16 @@ async function loadUserContextAndRender() {
     } else {
         window.State.user = null;
         updateNavbar();
-        return;
+        // Continue to check if we need to call renderDashboard or other post-auth logic
     }
 
     try {
         // --- STEP 2: REFINED CONTEXT LOADING ---
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = (session && session.user) ? await supabase
             .from("profiles")
             .select("role")
             .eq("id", session.user.id)
-            .single();
+            .single() : { data: null, error: null };
 
         if (profileError) {
             console.warn("⚠️ Profile fetch error, keeping fallback state.", profileError);
@@ -93,7 +93,7 @@ async function loadUserContextAndRender() {
 }
 
 // --- DATA ---
-window.ALL_EVENTS = []; // Single Source of Truth
+window.ALL_EVENTS = null; // null = Loading, [] = Empty
 let MOCK_EVENTS = [];
 
 // --- APP STATE (Now handled globally by state.js) ---
@@ -104,6 +104,15 @@ let MOCK_EVENTS = [];
 
 // Load events from Supabase (Public View)
 async function fetchEvents() {
+    // Safety check to ensure we don't stay in loading state forever
+    const loadingTimeout = setTimeout(() => {
+        if (window.ALL_EVENTS === null) {
+            console.warn("⚠️ fetchEvents timed out. Falling back to empty state.");
+            window.ALL_EVENTS = [];
+            forceRenderEvents();
+        }
+    }, 10000);
+
     try {
         const { data, error } = await supabase
             .from('events')
@@ -128,11 +137,11 @@ async function fetchEvents() {
 
             return {
                 ...event,
-                id: event.id.toString(),
+                id: (event.id || '').toString(),
                 title: event.title || 'Untitled Event',
                 date: formattedDate,
                 start_date: event.start_date || startStr,
-                banner_url: event.banner_url,
+                banner_url: event.banner_url || event.image_url || event.image,
                 venue: event.location || '',   // alias for templates that use venue
                 status: 'Approved',
                 organizer: event.organizer_name || event.organizer || event.society || 'KIIT Society',
@@ -149,6 +158,10 @@ async function fetchEvents() {
 
     } catch (err) {
         console.error("Error fetching events:", err.message);
+        window.ALL_EVENTS = []; // Prevent infinite loading state
+        forceRenderEvents();
+    } finally {
+        clearTimeout(loadingTimeout);
     }
 }
 
@@ -248,13 +261,21 @@ window.forceRenderEvents = () => {
 
         container.innerHTML = "";
 
-        // Get events (window.State.user ? All : All) - for now just ALL_EVENTS
-        // FILTER: Only show future events for upcoming sections
+        if (window.ALL_EVENTS === null) {
+            container.innerHTML = `
+                <div class="col-span-full text-center py-20 bg-white/5 rounded-2xl border border-white/5 border-dashed">
+                    <div class="animate-spin text-4xl mb-4 opacity-50">⏳</div>
+                    <h3 class="text-xl font-bold text-white/50 mb-2">Syncing events...</h3>
+                    <p class="text-slate-500 text-sm">Connecting to the event registry.</p>
+                </div>
+            `;
+            return;
+        }
+
         const now = new Date();
-        now.setHours(0, 0, 0, 0); // Include today's events regardless of current time
+        now.setHours(0, 0, 0, 0);
         const eventsToShow = (window.ALL_EVENTS || []).filter(ev => {
             const eventDate = new Date(ev.start_date);
-            // Include if event is today or in the future
             return eventDate >= now;
         });
 
@@ -4090,6 +4111,7 @@ const initAppFunction = async () => {
         }
 
         // 3. Post-Init Background Tasks
+        fetchEvents();
         fetchKIITEvents();
         if (typeof window.initGlobal3D === 'function') {
             window.initGlobal3D();
@@ -4114,7 +4136,7 @@ window.App = App;
 
 // --- INITIALIZATION ---
 // Initial Fetch
-fetchEvents();
+// fetchEvents() call moved to initAppFunction for reliability
 fetchSocieties().then(() => {
     setupRealtime();
 });
