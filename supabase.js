@@ -12,8 +12,15 @@ window.supabase = supabase;
 // OPTIONAL: still allow module imports if needed later
 export { supabase };
 
-// Role-safe home redirect
+// Role-safe navigation redirects
 window.goHome = function () {
-  const target = window.location.pathname.includes('/super-admin/') ? '../index.html' : 'index.html';
+  const isSubDir = window.location.pathname.includes('/super-admin/');
+  const target = isSubDir ? '../index.html' : 'index.html';
+  window.location.replace(target);
+};
+
+window.goAuth = function () {
+  const isSubDir = window.location.pathname.includes('/super-admin/');
+  const target = isSubDir ? '../auth.html' : 'auth.html';
   window.location.replace(target);
 };
