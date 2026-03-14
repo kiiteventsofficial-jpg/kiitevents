@@ -140,6 +140,7 @@ body.light-mode .nexus-content-area {
 
 .nexus-chat-root {
     width: 100%;
+    height: 100vh; /* Fallback */
     height: 100dvh;
     display: flex;
     overflow: hidden;
@@ -441,6 +442,7 @@ body.light-mode .nexus-content-area {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0; /* Enable internal scrolling for children */
     background: var(--nexus-bg-main);
 }
 
@@ -621,6 +623,7 @@ body.light-mode .nexus-content-area {
     display: flex;
     flex-direction: row; /* Side-by-side for Desktop */
     min-height: 0;
+    height: 100%; /* Force height to stay within parent flex-1 */
     overflow: hidden;
     background: #0b0f1a; /* Hard fallback to dark to prevent "white screen" when pasting URL */
     background-size: cover;
@@ -825,6 +828,7 @@ body.light-mode .nexus-content-area {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0; /* Enable internal scrolling for children */
     position: relative;
 }
 
@@ -2131,7 +2135,7 @@ body.light-mode .nexus-content-area {
 
     .nexus-main.blur-bg {
         filter: blur(4px);
-        pointer-events: none;
+        /* pointer-events: none; REMOVED to prevent accidental scrolling blocks */
         user-select: none;
     }
 
