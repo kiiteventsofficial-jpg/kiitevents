@@ -27,6 +27,117 @@
     --nexus-cbar-width: 300px;
 }
 
+/* Response Utils */
+.mobile-only {
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    .mobile-only {
+        display: flex !important;
+    }
+    .desktop-only {
+        display: none !important;
+    }
+}
+
+.nexus-mobile-menu-wrapper {
+    display: none;
+    position: relative; /* CRITICAL: for absolute dropdown positioning */
+}
+
+@media (max-width: 900px) {
+    .nexus-mobile-menu-wrapper {
+        display: block;
+    }
+}
+
+.nexus-mobile-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%; /* Drop from the button */
+    margin-top: 10px;
+    background: #1e2433;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    min-width: 180px;
+    z-index: 10000;
+    overflow: visible; /* Ensure icons aren't clipped */
+    padding: 8px;
+}
+
+.nexus-mobile-menu-wrapper.open .nexus-mobile-dropdown {
+    display: flex !important;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nexus-mobile-dropdown button {
+    display: flex !important;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent !important;
+    border: none !important;
+    color: #ffffff !important; /* Force white text */
+    text-align: left;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+    gap: 12px;
+    white-space: nowrap;
+}
+
+.nexus-mobile-dropdown button:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nexus-mobile-dropdown button i {
+    width: 16px;
+    text-align: center;
+}
+
+/* Light Mode Overrides */
+body.light-mode {
+    --nexus-bg-sidebar: #f1f5f9;
+    --nexus-bg-main: #ffffff;
+    --nexus-bg-header: #ffffff;
+    --nexus-bg-active: rgba(0, 0, 0, 0.06);
+    --nexus-bg-hover: rgba(0, 0, 0, 0.03);
+
+    --nexus-border: rgba(0, 0, 0, 0.1);
+    --nexus-text-main: #1e293b;
+    --nexus-text-dim: #475569;
+    --nexus-text-muted: #64748b;
+    
+    background: #ffffff;
+    color: #1e293b;
+}
+
+body.light-mode .nexus-sidebar-search-wrapper {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .nexus-sidebar-search-wrapper input {
+    color: #1e293b;
+}
+
+body.light-mode .nexus-header {
+    background: rgba(255, 255, 255, 0.8) !important;
+}
+
+body.light-mode .nexus-chat-info-title,
+body.light-mode .nexus-msg-sender {
+    color: #0f172a !important;
+}
+
+body.light-mode .nexus-content-area {
+    background-color: #ffffff !important;
+}
+
 .nexus-chat-root {
     width: 100%;
     height: 100dvh;
@@ -299,18 +410,21 @@
     text-transform: uppercase;
 }
 
-.nexus-room-item.unread {
-    color: white;
+.nexus-room-item.unread .nexus-item-name span {
+    color: #fff;
     font-weight: 700;
 }
 
-.nexus-room-item.unread::after {
-    content: '';
-    width: 8px;
-    height: 8px;
-    background: var(--nexus-blue);
-    border-radius: 50%;
-    margin-left: auto;
+.nexus-unread-badge {
+    background: var(--nexus-primary);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 14px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(124, 77, 255, 0.4);
 }
 
 /* Sidebar Footer */
@@ -341,17 +455,26 @@
     flex-shrink: 0;
 }
 
-.nexus-header-left {
+.nexus-header-left, .nexus-header-right {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.nexus-header-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     min-width: 0;
 }
 
-.nexus-header-room-icon {
-    font-size: 20px;
-    color: var(--nexus-text-dim);
-    font-weight: 500;
+.nexus-header-title-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
 }
 
 .nexus-chat-info-title {
@@ -361,6 +484,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 260px;
 }
 
 .nexus-chat-info-meta {
@@ -385,18 +509,18 @@
 }
 
 .nexus-header-action-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 4px;
-    background: transparent;
-    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px; /* More premium rounded corners */
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--nexus-text-dim);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
-    font-size: 16px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 18px; /* Slightly larger icons */
 }
 
 .nexus-header-action-btn:hover {
@@ -495,9 +619,13 @@
 #nexusChatLayout {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* Side-by-side for Desktop */
     min-height: 0;
     overflow: hidden;
+    background: #0b0f1a; /* Hard fallback to dark to prevent "white screen" when pasting URL */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 /* The welcome screen */
@@ -518,9 +646,12 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
     display: flex;
     align-items: center;
+    overflow: visible !important; /* Allow absolute dropdowns to show */
     justify-content: space-between;
     flex-shrink: 0;
     gap: 12px;
+    position: relative;
+    z-index: 1000;
 }
 
 .nexus-header-left {
@@ -554,7 +685,7 @@
     display: none;
 }
 
-.nexus-chat-info-title {
+.nexus-header-center .nexus-chat-info-title {
     color: #fff;
     font-size: 1.1rem;
     font-weight: 700;
@@ -1753,11 +1884,10 @@
 }
 
 @media (max-width: 480px) {
-
-    /* Hide voice/video on very small screens to avoid header clutter */
+    /* Showing buttons as requested by user */
     #nexusVoiceCallBtn,
     #nexusVideoCallBtn {
-        display: none !important;
+        display: flex !important;
     }
 }
 
@@ -1775,7 +1905,7 @@
     cursor: pointer;
     border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    object-fit: cover;
+    object-fit: scale-down;
     transition: opacity 0.15s;
 }
 
@@ -1961,6 +2091,65 @@
 
 /* â”€â”€â”€ MOBILE SIDEBAR FIX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 900px) {
+    .nexus-layout {
+        position: relative;
+    }
+
+    /* Force mobile toggle to show on mobile even if sidebar is not collapsed,
+       since sidebar defaults to left:-280px */
+    .nexus-sidebar:not(.collapsed)~.nexus-main .nexus-mobile-toggle {
+        display: flex;
+    }
+
+    /* 3-dot menu mobile rules handled globally with specific classes */
+    
+    .nexus-sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px; /* Hidden by default */
+        bottom: 0;
+        width: 280px;
+        background: var(--nexus-sidebar-bg);
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .nexus-sidebar.collapsed {
+        left: 0; /* Show when collapsed class is applied */
+    }
+
+    .nexus-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        transition: filter 0.3s ease;
+    }
+
+    .nexus-main.blur-bg {
+        filter: blur(4px);
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .nexus-mobile-toggle {
+        display: flex;
+        background: var(--nexus-input-bg);
+        border: 1px solid var(--nexus-border);
+        border-radius: 12px;
+        width: 40px;
+        height: 40px;
+        align-items: center;
+        justify-content: center;
+        color: var(--nexus-text-color);
+        font-size: 1.2rem;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
     #nexusChatLayout {
         flex: 1;
         display: flex;
@@ -2101,14 +2290,14 @@
 }
 
 .nexus-inline-img {
-    max-width: min(300px, 100%);
-    max-height: 250px;
-    border-radius: 12px;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
     cursor: pointer;
     border: 1px solid rgba(255, 255, 255, 0.1);
     display: block;
-    object-fit: cover;
-    transition: opacity 0.2s;
+    transition: transform 0.2s ease;
 }
 
 .nexus-inline-img:hover {
@@ -2616,12 +2805,25 @@
 @media (max-width: 768px) {
     .settings-container-v3 {
         flex-direction: column;
-        height: 85vh;
+        height: 90vh;
+        max-height: 600px;
+        width: 95%;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .settings-modal-content {
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 95vw !important;
+        margin: auto !important;
     }
 
     .settings-sidebar-v3 {
         width: 100%;
         height: auto;
+        flex-shrink: 0;
         border-right: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
@@ -2659,32 +2861,36 @@
    ====================================================== */
 @media (max-width: 768px) {
     .nexus-chat-root {
-        flex-direction: column;
+        flex-direction: column !important;
         height: 100dvh !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow-x: hidden !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        overflow: hidden !important;
+        position: fixed !important; /* Lock root on mobile to prevent body scroll issues */
+        top: 0;
+        left: 0;
     }
 
-    /* Mobile Sidebar Drawer - using LEFT instead of TRANSFORMS for better overlay logic */
+    /* Mobile Sidebar Drawer */
     .nexus-sidebar.modern-sidebar {
         position: fixed !important;
         left: -100% !important;
         top: 0 !important;
         bottom: 0 !important;
-        width: 85vw !important;
-        max-width: 300px !important;
-        z-index: 2000 !important; /* Above chat input (100) */
+        width: 280px !important;
+        max-width: 85vw !important;
+        z-index: 99999 !important; /* Top level */
         transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         display: flex !important;
         flex-direction: column !important;
-        background: #0f172a !important;
-        box-shadow: 10px 0 50px rgba(0, 0, 0, 0.8) !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+        background: #11151b !important;
+        box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
     }
 
     .nexus-sidebar.modern-sidebar.open {
         left: 0 !important;
+        visibility: visible !important;
     }
 
     .nexus-sidebar-footer {
@@ -2704,25 +2910,19 @@
 
     /* Backdrop when sidebar is open */
     .nexus-sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
-        z-index: 1500;
-        width: 100vw;
-        height: 100dvh;
-        left: 0;
-        top: 0;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(0, 0, 0, 0.6) !important;
+        backdrop-filter: blur(4px) !important;
+        z-index: 99998 !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        transition: opacity 0.3s ease, visibility 0.3s ease !important;
     }
 
-
-    .nexus-sidebar.open + .nexus-sidebar-overlay,
-    .nexus-sidebar.open #nexusSidebarOverlay {
-        opacity: 1;
-        visibility: visible;
+    body.sidebar-open .nexus-sidebar-overlay {
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
 
@@ -2733,11 +2933,12 @@
         display: flex !important;
         flex-direction: column !important;
         height: 100% !important;
+        background: #15191e !important; /* Ensure solid background to block underlying stray content */
     }
 
     /* Header adjustments */
     .nexus-header {
-        padding: 10px 14px !important;
+        padding: 0 10px !important;
         height: 60px !important;
         flex-shrink: 0 !important;
         display: flex !important;
@@ -2746,49 +2947,82 @@
         background: rgba(15, 23, 42, 0.95) !important;
         backdrop-filter: blur(10px) !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        gap: 0 !important;
     }
 
     .nexus-header-left {
         display: flex !important;
         align-items: center !important;
-        gap: 12px !important;
+        gap: 4px !important; /* Reduced for mobile */
+        width: 80px !important; /* Fixed width to balance header */
     }
 
-    #nexusMobileToggle {
+    .nexus-header-center {
+        flex: 1 !important;
         display: flex !important;
+        flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
-        width: 38px !important;
-        height: 38px !important;
-        background: rgba(124, 77, 255, 0.1) !important;
-        border: 1px solid rgba(124, 77, 255, 0.2) !important;
-        border-radius: 10px !important;
-        color: #7c4dff !important;
-        cursor: pointer !important;
+        gap: 0 !important;
+        min-width: 0 !important;
+        padding: 0 5px !important;
     }
 
-
-    .nexus-header-actions button:not(#nexusInfoToggleBtn) {
-        display: none !important;
-        /* Hide call and search icons on small mobile to avoid layout breaking, info remains */
-    }
-
-    #nexusMobileToggle {
+    .nexus-header-title-block {
         display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+
+    .nexus-header-room-icon {
+        display: none !important; /* Hide to save space on narrow screens */
+    }
+
+    .nexus-chat-info-title {
+        font-size: 14px !important; /* Slightly smaller */
+        text-align: center !important;
+        width: 100% !important;
+        max-width: 150px !important; /* Prevent overlapping icons */
+    }
+
+    .nexus-chat-info-meta {
+        font-size: 10px !important;
+        justify-content: center !important;
+    }
+
+    .nexus-header-right {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        width: auto !important;
+        min-width: 100px !important; /* Space for icons */
+    }
+
+    .nexus-header-actions {
+        display: flex !important;
+        gap: 0 !important; /* Tight gaps for mobile */
+    }
+
+    .nexus-header-action-btn {
+        width: 32px !important; /* Smaller icons */
+        height: 32px !important;
+        font-size: 14px !important;
     }
 
     /* Messages area scroller */
     #nexusMessages {
         flex: 1 !important;
         overflow-y: auto !important;
-        padding: 12px 12px 24px 12px !important; /* Reduced padding since input is not fixed */
+        background: transparent !important; /* Allow layout wallpaper to show through */
+        padding: 12px 12px 24px 12px !important;
     }
 
     /* Input area - Refactored to relative to stay within chat container */
     .nexus-input-area {
         position: relative !important;
         z-index: 10 !important;
-        background: #15191e !important;
+        background: rgba(21, 25, 30, 0.9) !important; /* Slight opacity for readability */
         padding: 10px 10px calc(10px + env(safe-area-inset-bottom)) 10px !important;
         border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
         width: 100% !important;
@@ -2862,21 +3096,9 @@ body.sidebar-open {
 }
 
 /* Hide chat input entirely when side panels or settings are open on mobile */
-@media (max-width: 768px) {
-    body.settings-open .nexus-input-area,
-    body.sidebar-open .nexus-input-area {
-        display: none !important;
-    }
-}
-
-body.settings-open .nexus-chat-root,
-body.sidebar-open .nexus-chat-root {
-    pointer-events: none !important;
-}
-
 body.sidebar-open .nexus-sidebar {
+    left: 0 !important;
     pointer-events: auto !important;
-    z-index: 9000 !important;
 }
 
 body.settings-open .nexus-modal {
@@ -2887,4 +3109,58 @@ body.settings-open .nexus-modal {
 .settings-container-v3 {
     position: relative;
     z-index: 10001 !important;
+}
+
+/* --- REALTIME POLISH --- */
+#nexusTypingIndicator {
+    font-size: 12px;
+    color: var(--nexus-text-dim);
+    margin: 4px 0 0 60px;
+    font-style: italic;
+    height: 16px;
+    transition: all 0.3s ease;
+}
+
+@keyframes nexusFadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.nexus-connection-status {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+.nexus-connection-status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.nexus-conn-online { background: rgba(46, 204, 113, 0.15); color: #2ecc71; }
+.nexus-conn-online::before { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+
+.nexus-conn-offline { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+.nexus-conn-offline::before { background: #e74c3c; }
+
+.nexus-conn-reconnecting { background: rgba(241, 196, 15, 0.15); color: #f1c40f; }
+.nexus-conn-reconnecting::before { background: #f1c40f; animation: nexusPulse 1s infinite; }
+
+@keyframes nexusPulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+}
+
+/* Scroll Lock Fix */
+.nexus-content-area {
+    scroll-behavior: auto; /* Smoother programmatic scroll */
 }
