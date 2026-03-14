@@ -118,20 +118,6 @@
 </head>
 
 <body>
-    <div id="loadingOverlay"
-        style="position:fixed; inset:0; z-index:9999; background:#020617; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white;">
-        <div
-            style="width:40px; height:40px; border:3px solid rgba(124,77,255,0.1); border-top:3px solid #7c4dff; border-radius:50%; animation: spin 1s linear infinite;">
-        </div>
-        <p style="margin-top:15px; font-weight:500; color:#8f9bc0;">Connecting to NEXUS...</p>
-    </div>
-    <style>
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
 
     <div class="nexus-standalone-wrapper">
         <div class="blob blob-1"></div>
@@ -230,8 +216,11 @@
                             style="margin-right: 8px;"><i class="fas fa-arrow-left"></i></button>
                         <button class="nexus-back-btn" id="nexusBackBtn" style="display:none;"><i
                                 class="fas fa-arrow-left"></i></button>
+                    </div>
+
+                    <div class="nexus-header-center">
                         <div class="nexus-header-room-icon" id="nexusHeaderRoomIcon">#</div>
-                        <div>
+                        <div class="nexus-header-title-block">
                             <div class="nexus-chat-info-title" id="nexusChatTitle">Select a chat</div>
                             <div class="nexus-chat-info-meta" id="nexusChatMeta">
                                 <span class="status-dot"></span>
@@ -239,24 +228,39 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="nexus-header-right">
                         <div class="nexus-header-actions">
-                            <button class="nexus-header-action-btn" id="nexusVoiceCallBtn" title="Voice call">
+                            <button class="nexus-header-action-btn desktop-only" id="nexusVoiceCallBtn" title="Voice call">
                                 <i class="fas fa-phone-alt"></i>
                             </button>
-                            <button class="nexus-header-action-btn" id="nexusVideoCallBtn" title="Video call">
+                            <button class="nexus-header-action-btn desktop-only" id="nexusVideoCallBtn" title="Video call">
                                 <i class="fas fa-video"></i>
                             </button>
-                            <button class="nexus-header-action-btn" id="nexusSearchToggleBtn" title="Search messages">
+                            <button class="nexus-header-action-btn desktop-only" id="nexusSearchToggleBtn" title="Search messages">
                                 <i class="fas fa-search"></i>
                             </button>
-                            <button class="nexus-header-action-btn" id="nexusInfoToggleBtn" title="Room Information">
+                            <button class="nexus-header-action-btn desktop-only" id="nexusInfoToggleBtn" title="Room Information">
                                 <i class="fas fa-info-circle"></i>
                             </button>
-                            <button class="nexus-header-action-btn danger" id="nexusBlockBtn" title="Block User"
+                            <button class="nexus-header-action-btn danger desktop-only" id="nexusBlockBtn" title="Block User"
                                 style="display:none;">
                                 <i class="fas fa-ban"></i>
                             </button>
+
+                            <!-- Mobile 3-dot menu -->
+                            <div class="nexus-mobile-menu-wrapper mobile-only" id="nexusMobileMenuWrapper">
+                                <button class="nexus-header-action-btn" id="nexusMobileMenuBtn">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <div class="nexus-mobile-dropdown" id="nexusMobileDropdown">
+                                    <button id="nexusMobVoiceCallBtn"><i class="fas fa-phone-alt"></i> Voice Call</button>
+                                    <button id="nexusMobVideoCallBtn"><i class="fas fa-video"></i> Video Call</button>
+                                    <button id="nexusMobSearchBtn"><i class="fas fa-search"></i> Search Msg</button>
+                                    <button id="nexusMobInfoBtn"><i class="fas fa-info-circle"></i> Info</button>
+                                    <button id="nexusMobBlockBtn" class="danger" style="display:none;"><i class="fas fa-ban"></i> Block User</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -288,9 +292,10 @@
                 </div>
 
                 <!-- Chat Layout -->
-                <div id="nexusChatLayout" style="display:none;flex:1;display:flex;flex-direction:row;min-height:0;">
+                <div id="nexusChatLayout" style="display:none; flex:1; min-height:0;">
                     <div class="nexus-chat-main-column">
                         <div class="nexus-content-area" id="nexusMessages"></div>
+                        <div id="nexusTypingIndicator" style="display:none;"></div>
                         <div class="nexus-typing" id="nexusTyping" style="display:none;">
                             <div class="nexus-typing-dots"><span></span><span></span><span></span></div>
                             <span class="nexus-typing-name"></span>
@@ -779,8 +784,8 @@
                             </div>
                         </div>
                         <div class="storage-actions-v3">
-                            <button class="nexus-modal-btn outline" style="width:100%">Clear Chat Cache</button>
-                            <button class="nexus-modal-btn danger" style="width:100%">Delete All Media</button>
+                            <button class="nexus-modal-btn outline" id="btnClearCacheV3" style="width:100%">Clear Chat Cache</button>
+                            <button class="nexus-modal-btn danger" id="btnDeleteMediaV3" style="width:100%">Delete All Media</button>
                         </div>
                     </div>
 
@@ -798,6 +803,19 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+    <!-- Call Overlay -->
+    <div class="nexus-call-overlay" id="nexusCallOverlay">
+        <p id="nexusCallOverlayStatus" style="color:#9198b0;font-size:0.85rem;margin-bottom:16px;"></p>
+        <div class="nexus-call-videos">
+            <video id="nexusRemoteVideo" autoplay playsinline style="width:60vw;max-width:700px;background:#111;border-radius:16px;"></video>
+            <video id="nexusLocalVideo" autoplay playsinline muted style="width:30vw;max-width:320px;background:#111827;border-radius:12px;"></video>
+        </div>
+        <div class="nexus-call-ctrl">
+            <button class="nexus-call-ctrl-btn mute" id="nexusMuteBtn"><i class="fas fa-microphone"></i></button>
+            <button class="nexus-call-ctrl-btn vidoff" id="nexusVidOffBtn"><i class="fas fa-video"></i></button>
+            <button class="nexus-call-ctrl-btn hangup" id="nexusEndCallBtn"><i class="fas fa-phone-slash"></i></button>
         </div>
     </div>
 </body>
