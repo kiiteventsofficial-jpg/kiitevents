@@ -30,6 +30,50 @@ function nexusInitials(name) {
 function $id(id) { return document.getElementById(id); }
 const $ = $id;
 
+// ─── TOAST NOTIFICATIONS ─────────────────────────────────────────────────────
+function nexusShowToast(message, type = 'info') {
+    const container = $id('nexusToastContainer');
+    if (!container) {
+        const div = document.createElement('div');
+        div.id = 'nexusToastContainer';
+        div.style.cssText = 'position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:99999; display:flex; flex-direction:column; gap:10px; pointer-events:none;';
+        document.body.appendChild(div);
+    }
+    
+    const toast = document.createElement('div');
+    const colors = {
+        success: '#2ecc71',
+        error: '#ff5252',
+        info: '#7c4dff',
+        warning: '#f39c12'
+    };
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        info: 'fa-info-circle',
+        warning: 'fa-exclamation-triangle'
+    };
+    
+    toast.className = 'nexus-toast animate-slide-up';
+    toast.style.cssText = `background:rgba(22, 28, 45, 0.95); backdrop-filter:blur(10px); color:#fff; padding:12px 20px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); border-left:4px solid ${colors[type] || colors.info}; box-shadow:0 10px 30px rgba(0,0,0,0.5); display:flex; align-items:center; gap:12px; font-size:0.9rem; pointer-events:auto; min-width:200px; max-width:90vw;`;
+    
+    toast.innerHTML = `
+        <i class="fas ${icons[type] || icons.info}" style="color:${colors[type] || colors.info}"></i>
+        <div style="flex:1;">${message}</div>
+        <i class="fas fa-times" style="cursor:pointer; opacity:0.5; font-size:0.8rem;" onclick="this.parentElement.remove()"></i>
+    `;
+    
+    $id('nexusToastContainer').appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = '0.4s';
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+}
+
+
 /** Parse content for file attachments: [name](url) → render image, video, or file card
  * Also handles bare Supabase storage URLs that lack clear file extensions.
  */
@@ -47,8 +91,11 @@ function nexusRenderContent(text) {
     res = res.replace(mdLinkRegex, (_, name, url) => renderMediaFromUrl(url, name));
 
     // 3. Handle Bare URLs (Images/Videos/Docs)
-    const bareUrlRegex = /(?<!\()(?<!")(https?:\/\/[^\s<>)"']+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|pdf|doc|docx|zip|mp3|wav)(?:[?#][^\s]*)?)/gi;
-    res = res.replace(bareUrlRegex, (url) => renderMediaFromUrl(url, url.split('/').pop().split('?')[0]));
+    const bareUrlRegex = /(?<!\()(?<!")(https?:\/\/[^\s<>)"']+\.(jpg|jpeg|png|gif|webp|avif|heic|mp4|webm|mov|pdf|doc|docx|zip|mp3|wav)(?:\?[^\s<>)"']*)?)/gi;
+    res = res.replace(bareUrlRegex, (url) => {
+        const cleanName = url.split('/').pop().split('?')[0].split('#')[0];
+        return renderMediaFromUrl(url, cleanName);
+    });
 
     // 4. Handle Bold **text**
     res = res.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
@@ -67,15 +114,16 @@ function renderMediaFromUrl(url, name) {
     const ext = (basePath.split('.').pop() || '').toLowerCase().trim();
     const fileName = name || basePath.split('/').pop() || 'File';
 
-    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif|heic|tiff)$/i.test(basePath) || /content-type=image/i.test(url);
-    const isVideo = /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(basePath) || /content-type=video/i.test(url);
+    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif|heic|tiff)(?:\?|$)/i.test(decodedUrl) || /content-type=image/i.test(url) || /unsplash\.com/i.test(url);
+    const isVideo = /\.(mp4|webm|mov|avi|mkv|m4v)(?:\?|$)/i.test(decodedUrl) || /content-type=video/i.test(url);
     const isAudio = /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(basePath);
 
     if (isImage) {
         return `<div class="nexus-img-wrap">
             <img src="${url}" alt="${nexusEsc(fileName)}" class="nexus-inline-img"
+                loading="lazy"
                 onclick="window.open(this.src,'_blank')"
-                onerror="this.parentElement.innerHTML='<a class=nexus-file-card href=&quot;${url}&quot; target=_blank><i class=\'fas fa-image\'></i><span>${nexusEsc(fileName)}</span></a>'">
+                onerror="this.parentNode.innerHTML='<a class=nexus-file-card href=&quot;${url}&quot; target=_blank><i class=\'fas fa-image\'></i><span>${nexusEsc(fileName)}</span></a>'">
         </div>`;
     }
     if (isVideo) {
@@ -155,7 +203,7 @@ class NexusCallManager {
         try {
             this.localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
         } catch (e) {
-            alert('Cannot access camera/microphone: ' + e.message);
+            nexusShowToast('Cannot access camera/microphone: ' + e.message, 'error');
             if (overlay) overlay.style.display = 'none'; return;
         }
         const lv = $id('nexusLocalVideo'); if (lv) { lv.srcObject = this.localStream; lv.play().catch(() => { }); }
@@ -178,7 +226,7 @@ class NexusCallManager {
                 } else if (payload.type === 'candidate') {
                     await this.pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
                 } else if (payload.type === 'hangup') {
-                    this.endCall(false); alert('The other party ended the call.');
+                    this.endCall(false); nexusShowToast('The other party ended the call.', 'info');
                 }
             }).subscribe();
 
@@ -228,28 +276,25 @@ class NexusChatUI {
     constructor(sb, userId, userRole, userName) {
         this.sb = sb; this.userId = userId; this.userRole = userRole; this.userName = userName;
         this.rooms = []; this.currentRoomId = null; this.currentRoomIsAI = false;
-        this.blockedUsers = []; this.msgSub = null; this.presenceCh = null;
-        this.subs = []; this.typingTimeout = null;
-        this.isMobile = window.innerWidth <= 900;
+        this.blockedUsers = []; this.msgSub = null; this.roomSub = null; this.presenceCh = null;
+        this.renderedMessageIds = new Set();
+        this._autoScroll = true;
+        this._isTypingEnabled = true;
+        this._isApplyingWallpaper = false;
         this.callMgr = new NexusCallManager(sb, userId, userName);
-        this._selectedGroupMembers = [];
         window.addEventListener('resize', () => { this.isMobile = window.innerWidth <= 900; });
     }
+
 
     // ── INIT ─────────────────────────────────────────────────────────────────
     async init() {
         console.log('NexusChatUI: STEP 1 - Starting initialization');
         try {
-            // Populate Sidebar Profile
-            const initials = nexusInitials(this.userName);
-            if ($id('nexusSidebarUserName')) $id('nexusSidebarUserName').innerText = this.userName;
-            if ($id('nexusSidebarUserRole')) $id('nexusSidebarUserRole').innerText = this.userRole;
-            if ($id('nexusSidebarUserAvatar')) $id('nexusSidebarUserAvatar').innerText = initials;
+            // Load Full User Profile (including avatar)
+            await this._loadUserProfile();
 
-            // Mobile default view
-            if (this.isMobile && !this.currentRoomId) {
-                $id('nexusSidebar')?.classList.add('open');
-            }
+            // Populate Sidebar Profile
+            this._renderProfileUI();
 
             console.log('NexusChatUI: STEP 2 - Loading blocked users');
             await this._loadBlockedUsers();
@@ -260,14 +305,28 @@ class NexusChatUI {
             console.log('NexusChatUI: STEP 4 - Loading rooms');
             await this._loadRooms();
 
-            console.log('NexusChatUI: STEP 5 - Initializing presence & rooms subscription');
+            console.log('NexusChatUI: STEP 5 - Initializing presence & global subscriptions');
+            await this.initSettingsV3();
             this._initPresence();
             this._subscribeNewRooms();
+            this._subscribeToMessages();
             this.bindSearch();
 
             console.log('✅ NexusChatUI: Initialization complete');
         } catch (e) {
             console.error('❌ NexusChatUI: init error:', e);
+        }
+    }
+
+    async _loadUserProfile() {
+        try {
+            const { data, error } = await this.sb.from('profiles').select('*').eq('id', this.userId).single();
+            if (data) {
+                this.userProfile = data;
+                this.userName = data.full_name || this.userName;
+            }
+        } catch (e) {
+            console.error('Error loading user profile:', e);
         }
     }
 
@@ -289,39 +348,46 @@ class NexusChatUI {
             .maybeSingle();
 
         if (existing) {
-            if (!this.rooms.find(r => r.id === existing.id)) {
-                this.rooms.unshift({
-                    id: existing.id,
-                    name: 'NEXUS AI',
-                    type: 'assistant',
-                    partnerId: 'nexus-ai',
-                    lastMsg: 'AI ready',
-                    lastAt: new Date().toISOString()
-                });
-            }
+            // Ensure user is in members (important for _loadRooms consistency)
+            await this.sb.from('chat_room_members').upsert({
+                room_id: existing.id,
+                user_id: this.userId,
+                role: 'owner'
+            }, { onConflict: 'room_id,user_id', ignoreDuplicates: true });
             return;
         }
 
         // Create new scoped AI room
         const { data: newRoom, error } = await this.sb.from('chat_rooms')
-            .insert({ name: 'NEXUS_AI_' + this.userId, type: 'assistant', scope: 'private', created_by: this.userId })
+            .insert({ 
+                name: 'NEXUS AI Assistant', 
+                type: 'assistant', 
+                scope: 'private', 
+                created_by: this.userId 
+            })
             .select('id').single();
 
         if (error || !newRoom) return;
 
-        this.rooms.unshift({
-            id: newRoom.id,
-            name: 'NEXUS AI',
-            type: 'assistant',
-            partnerId: 'nexus-ai',
-            lastMsg: 'Hello! I am Nexus AI.',
-            lastAt: new Date().toISOString()
+        // Add user as admin of their own AI room
+        await this.sb.from('chat_room_members').insert({
+            room_id: newRoom.id,
+            user_id: this.userId,
+            role: 'owner'
         });
     }
 
     async _loadRooms() {
+        // Fetch rooms user is a member of, including the room details and member counts
         const { data: members, error: loadErr } = await this.sb.from('chat_room_members')
-            .select('room_id, role, chat_rooms(id, name, type, created_by)')
+            .select(`
+                room_id, 
+                role, 
+                chat_rooms(
+                    id, name, type, scope, created_by,
+                    chat_room_members(count)
+                )
+            `)
             .eq('user_id', this.userId);
 
         if (loadErr) {
@@ -336,22 +402,56 @@ class NexusChatUI {
             const r = m.chat_rooms;
             if (!r) return null;
 
-            const room = { id: r.id, name: r.name, type: r.type, created_by: r.created_by, memberRole: m.role };
+            const memberCount = r.chat_room_members?.[0]?.count || 0;
+            const room = { 
+                id: r.id, 
+                name: r.name, 
+                type: r.type, 
+                scope: r.scope,
+                created_by: r.created_by, 
+                memberRole: m.role, 
+                unreadCount: 0,
+                memberCount: memberCount
+            };
 
-            // Fetch partner info and last message in parallel
+            const isDM = r.type === 'direct' || (r.name && r.name.startsWith('dm_'));
+
+            // Fetch partner info for DMs and last message in parallel
             const [partnerRes, lastMsgRes] = await Promise.all([
-                r.type === 'direct' ? this.sb.from('chat_room_members')
-                    .select('user_id, profiles(id, full_name, email)')
+                isDM ? this.sb.from('chat_room_members')
+                    .select('user_id, profiles(id, full_name, email, avatar_url)')
                     .eq('room_id', r.id).neq('user_id', this.userId).maybeSingle() : Promise.resolve({ data: null }),
                 this.sb.from('chat_messages')
-                    .select('content, file_url, file_name, created_at').eq('room_id', r.id)
-                    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+                    .select('content, file_url, file_name, created_at')
+                    .eq('room_id', r.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1).maybeSingle()
             ]);
 
-            if (r.type === 'direct' && partnerRes.data?.profiles) {
+            if (isDM && partnerRes.data?.profiles) {
                 const partner = partnerRes.data;
-                room.name = partner.profiles.full_name || partner.profiles.email || 'Unknown';
+                room.name = partner.profiles.full_name || partner.profiles.email || 'Unknown User';
                 room.partnerId = partner.user_id;
+                room._partnerProfile = partner.profiles; // Store for contextual bar
+                room.type = 'direct'; // Normalize type
+            } else if (isDM) {
+                // FALLBACK: If partner not found in members table, try parsing room name dm_U1_U2
+                const parts = (r.name || '').split('_');
+                const otherId = parts.find(p => p !== 'dm' && p !== this.userId && p.length > 20);
+                if (otherId) {
+                    const { data: pProfile } = await this.sb.from('profiles')
+                        .select('id, full_name, email, avatar_url')
+                        .eq('id', otherId).maybeSingle();
+                    if (pProfile) {
+                        room.name = pProfile.full_name || pProfile.email || 'Unknown User';
+                        room.partnerId = otherId;
+                        room._partnerProfile = pProfile;
+                        room.type = 'direct';
+                    }
+                }
+            } else if (r.type === 'assistant') {
+                room.name = 'Nexus AI Assistant';
+                room.partnerId = 'nexus-ai';
             }
 
             if (lastMsgRes.data) {
@@ -370,6 +470,7 @@ class NexusChatUI {
             .filter(r => r !== null)
             .filter(r => !(r.type === 'direct' && this.blockedUsers.includes(r.partnerId)))
             .sort((a, b) => (b.lastAt || '') > (a.lastAt || '') ? 1 : -1);
+            
         this._renderSidebar();
     }
 
@@ -432,13 +533,14 @@ class NexusChatUI {
 
     _makeSidebarItem(room) {
         const div = document.createElement('div');
-        div.className = 'nexus-room-item';
+        div.className = 'nexus-room-item' + (room.unreadCount > 0 ? ' unread' : '');
         div.dataset.roomId = room.id;
         if (room.id === this.currentRoomId) div.classList.add('active');
 
         let iconHtml = '';
         let badgeHtml = '';
         let statusDotClass = 'nexus-status-dot';
+        let memberCountHtml = '';
 
         if (room.type === 'assistant') {
             iconHtml = `<div class="nexus-ai-avatar"><i class="fas fa-robot"></i></div>`;
@@ -448,6 +550,9 @@ class NexusChatUI {
             iconHtml = `<div class="nexus-dm-avatar">${nexusInitials(room.name)}</div>`;
         } else {
             iconHtml = `<i class="fas fa-hashtag nexus-ch-icon"></i>`;
+            if (room.memberCount) {
+                memberCountHtml = `<span style="font-size:0.7rem; color:#6b7390; margin-left:4px;">(${room.memberCount})</span>`;
+            }
         }
 
         const preview = this._getPreviewContent(room.lastMsg) || (room.type === 'assistant' ? 'always here to help' : 'no messages');
@@ -457,7 +562,12 @@ class NexusChatUI {
             ${iconHtml}
             <div class="nexus-item-body">
                 <div class="nexus-item-name" style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="display:flex; align-items:center; gap:6px;">${nexusEsc(room.name)} ${badgeHtml}</span>
+                    <span style="display:flex; align-items:center; gap:2px;">
+                        <span style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${nexusEsc(room.name)}</span>
+                        ${room.isMuted ? '<i class="fas fa-bell-slash" style="font-size:0.7rem; color:#6b7390; margin-left:4px;"></i>' : ''}
+                        ${memberCountHtml}
+                        ${badgeHtml}
+                    </span>
                     <div style="display:flex; align-items:center; gap:6px;">
                         ${timeHtml}
                         ${room.type === 'direct' ? `<div class="nexus-dm-opts-btn" title="Options" style="color:#6b7390; padding:2px 6px; cursor:pointer;" onclick="event.stopPropagation();"><i class="fas fa-ellipsis-v"></i></div>` : ''}
@@ -465,7 +575,7 @@ class NexusChatUI {
                 </div>
                 <div class="nexus-item-preview">${preview}</div>
             </div>
-            <div class="${statusDotClass}"></div>
+            ${room.unreadCount > 0 ? `<div class="nexus-unread-badge">${room.unreadCount}</div>` : `<div class="${statusDotClass}"></div>`}
 `;
 
         div.addEventListener('click', () => this.openRoom(room.id));
@@ -533,7 +643,12 @@ class NexusChatUI {
         document.body.appendChild(menu);
 
         menu.querySelector('#ctxOpenChat').onclick = () => { this.openRoom(room.id); menu.remove(); };
-        menu.querySelector('#ctxMute').onclick = () => { alert('Notifications muted for this user.'); menu.remove(); };
+        menu.querySelector('#ctxMute').onclick = () => { 
+            room.isMuted = !room.isMuted;
+            nexusShowToast(room.isMuted ? 'Notifications muted for this chat.' : 'Notifications unmuted.', 'info'); 
+            this._renderSidebar();
+            menu.remove(); 
+        };
         menu.querySelector('#ctxViewProfile').onclick = () => { this.openProfileModal(room.partnerId); menu.remove(); };
         menu.querySelector('#ctxBlock').onclick = async () => { 
             if(confirm('Block this user? You will no longer receive messages from them.')) {
@@ -602,7 +717,7 @@ class NexusChatUI {
             if (blockBtn) blockBtn.style.display = 'none';
         } else if (room.type === 'direct') {
             this.currentRoomIsAI = false;
-            const otherUser = room._otherUser || { full_name: 'Unknown User' };
+            const otherUser = room._partnerProfile || { full_name: room.name || 'Unknown User' };
             document.getElementById('nexusChatTitle').innerText = otherUser.full_name;
             document.getElementById('nexusChatMeta').innerHTML = '<span class="status-dot"></span><span class="meta-content">Direct Message</span>';
             document.getElementById('nexusHeaderRoomIcon').innerHTML = '<i class="fas fa-user"></i>';
@@ -616,8 +731,12 @@ class NexusChatUI {
             if (blockBtn) blockBtn.style.display = 'block';
         } else { // channel or group
             this.currentRoomIsAI = false;
-            document.getElementById('nexusChatTitle').innerText = room.name;
-            document.getElementById('nexusChatMeta').innerHTML = `<span class="status-dot" style="background:#ffd700;"></span><span class="meta-content">Channel • ${room.scope || 'all'}</span>`;
+            const mCount = room.memberCount || 1;
+            document.getElementById('nexusChatTitle').innerText = `${room.name} (${mCount} ${mCount === 1 ? 'member' : 'members'})`;
+            document.getElementById('nexusChatMeta').innerHTML = `
+                <span class="status-dot" style="background:#ffd700;"></span>
+                <span class="meta-content">Channel • ${room.scope || 'public'}</span>
+            `;
             document.getElementById('nexusHeaderRoomIcon').innerHTML = '#';
             document.getElementById('nexusHeaderRoomIcon').style.background = 'rgba(255, 255, 255, 0.1)';
             document.getElementById('nexusHeaderRoomIcon').style.color = '#fff';
@@ -639,10 +758,34 @@ class NexusChatUI {
             const root = $id('nexusChatRoot');
             if (root) root.classList.add('chat-active');
         }
+
+        // Reset unread count for the active room
+        if (room) {
+            room.unreadCount = 0;
+            const item = document.querySelector(`.nexus-room-item[data-room-id="${roomId}"]`);
+            if (item) item.classList.remove('unread');
+            this._renderSidebar();
+        }
+
+        // Reset rendering set for new room
+        this.renderedMessageIds.clear();
+
         // Load messages for all devices
         await this._loadMessages(roomId);
-        this._subscribeToMessages(roomId);
+
+        // Subscribe to real-time updates for THIS room specifically
+        this._subscribeToRoomMessages(roomId);
+
+        // Update Contextual Bar if open
+        const cbar = document.getElementById('nexusContextualBar');
+        if (cbar && cbar.style.display !== 'none') {
+            await this._populateRoomInfo();
+        }
+
+        // Display connection status
+        this._updateConnectionStatus('Connected');
     }
+
 
 
     // Modal Methods
@@ -675,9 +818,9 @@ class NexusChatUI {
         }, { onConflict: 'room_id,user_id', ignoreDuplicates: true });
 
         if (error) {
-            alert('Error adding member: ' + error.message);
+            nexusShowToast('Error adding member: ' + error.message, 'error');
         } else {
-            alert('Member added successfully!');
+            nexusShowToast('Member added successfully!', 'success');
             if (document.getElementById('nexusChannelSettingsModal')?.classList.contains('show')) {
                 await this.openChannelSettingsModal();
             }
@@ -764,8 +907,18 @@ class NexusChatUI {
         if (theme === 'light') {
             document.body.classList.add('light-mode');
         } else if (theme === 'system') {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (!prefersDark) document.body.classList.add('light-mode');
+            const mq = window.matchMedia('(prefers-color-scheme: dark)');
+            if (!mq.matches) document.body.classList.add('light-mode');
+            
+            // Optional: Listen for system changes while in 'system' mode
+            if (!this._themeListenerAttached) {
+                mq.addEventListener('change', (e) => {
+                    if ((this.userSettings?.theme || 'system') === 'system') {
+                        document.body.classList.toggle('light-mode', !e.matches);
+                    }
+                });
+                this._themeListenerAttached = true;
+            }
         }
 
         // Update Theme Buttons UI
@@ -776,15 +929,35 @@ class NexusChatUI {
         // 4. Chat Wallpaper
         const chatLayout = document.getElementById('nexusChatLayout');
         if (chatLayout) {
-            if (settings.chat_bg_url) {
-                chatLayout.style.backgroundImage = `url(${settings.chat_bg_url})`;
-                chatLayout.style.backgroundSize = 'cover';
-                chatLayout.style.backgroundPosition = 'center';
-                chatLayout.style.backgroundBlendMode = 'overlay';
+            const wallpaperUrl = (settings.chat_bg_url || '').trim();
+            if (wallpaperUrl && wallpaperUrl !== '') {
+                // Validate if it's an image before applying
+                const img = new Image();
+                img.onload = () => {
+                    chatLayout.style.backgroundImage = `url(${wallpaperUrl})`;
+                    chatLayout.style.backgroundSize = 'cover';
+                    chatLayout.style.backgroundPosition = 'center';
+                    chatLayout.style.backgroundRepeat = 'no-repeat';
+                    chatLayout.style.backgroundBlendMode = 'normal'; // Reset blend mode just in case
+                };
+                img.onerror = () => {
+                    console.warn('Failed to load wallpaper image:', wallpaperUrl);
+                    chatLayout.style.backgroundImage = 'none';
+                    chatLayout.style.backgroundColor = 'transparent'; // Shows var(--nexus-bg-main) from CSS
+                    if (this._isApplyingWallpaper) {
+                        nexusShowToast('Invalid image URL. Reverting to default.', 'error');
+                        this._isApplyingWallpaper = false;
+                    }
+                };
+                img.src = wallpaperUrl;
             } else {
+                // Empty wallapper - reset to default
                 chatLayout.style.backgroundImage = 'none';
+                chatLayout.style.backgroundColor = 'transparent';
+                chatLayout.style.backgroundBlendMode = 'normal';
             }
         }
+
 
         // 5. UI Toggles
         const msgArea = document.getElementById('nexusMessages');
@@ -860,38 +1033,102 @@ class NexusChatUI {
     async updateAvatarV3(file) {
         if (!file || !this.userId) return;
         
+        // Validation: Image only
+        if (!file.type.startsWith('image/')) {
+            nexusShowToast('Please upload an image file.', 'error');
+            return;
+        }
+        
+        // Validation: Max 5MB
+        if (file.size > 5 * 1024 * 1024) {
+            nexusShowToast('Image size should be less than 5MB.', 'error');
+            return;
+        }
+
+        const av = document.getElementById('settingsAvatarV3');
+        const sbAv = document.getElementById('nexusSidebarUserAvatar');
+        const oldAvatars = [av, sbAv];
+        
+        nexusShowToast('Uploading profile picture...', 'info');
+
         try {
-            const ext = file.name.split('.').pop();
-            const path = `avatars/${this.userId}_${Date.now()}.${ext}`;
+            // Show optimistic loading
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                oldAvatars.forEach(el => {
+                    if (el) {
+                        el.innerText = '';
+                        el.style.backgroundImage = `url(${e.target.result})`;
+                    }
+                });
+            };
+            reader.readAsDataURL(file);
+
+            const ext = file.name.split('.').pop() || 'png';
+            const path = `${this.userId}/avatar_${Date.now()}.${ext}`;
             
-            const { data, error } = await window.supabase.storage.from('avatars').upload(path, file);
+            // Upload to 'avatars' bucket
+            const { data, error } = await window.supabase.storage.from('avatars').upload(path, file, {
+                cacheControl: '3600',
+                upsert: true
+            });
             if (error) throw error;
             
             const { data: urlData } = window.supabase.storage.from('avatars').getPublicUrl(path);
             const avatarUrl = urlData.publicUrl;
             
-            // Update profile
-            await window.supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', this.userId);
+            // Update profile in DB
+            const { error: upErr } = await window.supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', this.userId);
+            if (upErr) throw upErr;
+
             this.userProfile.avatar_url = avatarUrl;
             
-            // Refresh UI
-            const av = document.getElementById('settingsAvatarV3');
-            if (av) {
-                av.innerText = '';
-                av.style.backgroundImage = `url(${avatarUrl})`;
-            }
+            // Ensure UI is fully in sync
+            this._renderProfileUI(avatarUrl);
             
-            const sbAv = document.getElementById('nexusSidebarUserAvatar');
-            if (sbAv) {
-                sbAv.innerText = '';
-                sbAv.style.backgroundImage = `url(${avatarUrl})`;
-            }
-            
-            alert('Avatar updated!');
+            nexusShowToast('Profile picture updated!', 'success');
         } catch (err) {
             console.error('updateAvatarV3 error:', err);
-            alert('Failed to upload avatar.');
+            nexusShowToast('Failed to upload avatar: ' + err.message, 'error');
+            // Revert UI by re-rendering from current profile
+            this._renderProfileUI();
         }
+    }
+
+
+    _renderProfileUI(url) {
+        const urlToUse = url || this.userProfile.avatar_url;
+        const initials = nexusInitials(this.userProfile.full_name || this.userName);
+
+        const mappings = [
+            { id: 'settingsAvatarV3', type: 'bg' },
+            { id: 'nexusSidebarUserAvatar', type: 'bg' },
+            { id: 'nexusProfileAvatar', type: 'bg' }
+        ];
+
+        mappings.forEach(m => {
+            const el = document.getElementById(m.id);
+            if (el) {
+                if (urlToUse) {
+                    el.innerText = '';
+                    el.style.backgroundImage = `url(${urlToUse})`;
+                    el.style.backgroundSize = 'cover';
+                    el.style.backgroundPosition = 'center';
+                } else {
+                    el.innerText = initials;
+                    el.style.backgroundImage = 'none';
+                }
+            }
+        });
+
+        // Update name displays too while we are at it
+        if ($id('nexusSidebarUserName')) $id('nexusSidebarUserName').innerText = this.userProfile.full_name || this.userName;
+        if ($id('nexusSidebarUserRole')) $id('nexusSidebarUserRole').innerText = this.userProfile.role || this.userRole;
+        if ($id('settingsNameInp')) $id('settingsNameInp').value = this.userProfile.full_name || this.userName;
+        if ($id('settingsStatusInp')) $id('settingsStatusInp').value = this.userProfile.status || '';
+        if ($id('settingsEmailView')) $id('settingsEmailView').innerText = this.userProfile.email || 'N/A';
+        if ($id('settingsRoleView')) $id('settingsRoleView').innerText = this.userProfile.role || 'user';
+        if ($id('settingsUidView')) $id('settingsUidView').innerText = this.userId;
     }
 
     async saveProfileV3() {
@@ -899,31 +1136,35 @@ class NexusChatUI {
         const nameInp = document.getElementById('settingsNameInp');
         const statusInp = document.getElementById('settingsStatusInp');
         
+        const newName = nameInp?.value.trim();
+        const newStatus = statusInp?.value.trim();
+
+        if (!newName) {
+            nexusShowToast('Name cannot be empty.', 'warning');
+            return;
+        }
+
+        // Sanitize update payload to avoid constraint errors
         const profileUpdates = {
-            full_name: nameInp?.value || this.userProfile.full_name,
-            status: statusInp?.value || this.userProfile.status,
-            updated_at: new Date()
+            full_name: newName,
+            status: newStatus || '',
+            updated_at: new Date().toISOString()
         };
 
         const { error } = await window.supabase.from('profiles').update(profileUpdates).eq('id', this.userId);
         if (error) {
             console.error('saveProfileV3 error:', error);
-            alert('Failed to update profile.');
+            nexusShowToast('Failed to update profile: ' + error.message, 'error');
             return;
         }
 
         this.userProfile = { ...this.userProfile, ...profileUpdates };
+        this.userName = newName; // Update local state name
         
-        // Sync Sidebar & Header
-        const sbName = document.getElementById('nexusSidebarUserName');
-        if (sbName) sbName.innerText = this.userProfile.full_name;
-        const sbAvatar = document.getElementById('nexusSidebarUserAvatar');
-        if (sbAvatar) {
-            sbAvatar.innerText = this.userProfile.avatar_url ? '' : nexusInitials(this.userProfile.full_name);
-            sbAvatar.style.backgroundImage = this.userProfile.avatar_url ? `url(${this.userProfile.avatar_url})` : 'none';
-        }
+        // Refresh all name displays
+        this._renderProfileUI(this.userProfile.avatar_url);
         
-        alert('Profile saved successfully!');
+        nexusShowToast('Profile saved successfully!', 'success');
     }
 
     async saveSettingsV3(newPartial) {
@@ -983,13 +1224,13 @@ class NexusChatUI {
             .eq('blocked_id', blockedId);
 
         if (error) {
-            alert('Failed to unblock user.');
+            nexusShowToast('Failed to unblock user.', 'error');
             return;
         }
 
         this.blockedUsers = this.blockedUsers.filter(id => id !== blockedId);
         this.updateBlockedListV3();
-        alert('User unblocked.');
+        nexusShowToast('User unblocked.', 'success');
     }
 
     async leaveChannel() {
@@ -1024,7 +1265,7 @@ class NexusChatUI {
             await this._loadRooms();
         } catch (err) {
             console.error('Error leaving channel:', err);
-            alert('Failed to leave channel.');
+            nexusShowToast('Failed to leave channel.', 'error');
         }
     }
 
@@ -1032,6 +1273,9 @@ class NexusChatUI {
     async _loadMessages(roomId) {
         const msgArea = $id('nexusMessages'); if (!msgArea) return;
         msgArea.innerHTML = '<div style="text-align:center;color:#6b7390;padding:20px;font-size:0.85rem;">Loading…</div>';
+
+        // Clear rendered tracking for new room
+        this.renderedMessageIds.clear();
 
         const { data, error } = await this.sb.from('chat_messages')
             .select('id, room_id, sender_id, content, file_url, file_name, message_type, created_at, profiles:sender_id(full_name), chat_message_reactions(emoji, user_id)')
@@ -1056,6 +1300,10 @@ class NexusChatUI {
                 lastDate = msgDate;
                 prevMsg = null; // Don't group across dates
             }
+            
+            // Track rendered ID
+            this.renderedMessageIds.add(msg.id);
+            
             const el = this._buildMsgEl(msg, prevMsg);
             msgArea.appendChild(el);
             prevMsg = msg;
@@ -1070,7 +1318,7 @@ class NexusChatUI {
 
         if (isSystem) {
             const div = document.createElement('div');
-            div.className = 'nexus-date-sep';
+            div.className = 'nexus-system-msg';
             div.innerHTML = `<span> ${nexusEsc(msg.content)}</span> `;
             return div;
         }
@@ -1121,7 +1369,7 @@ class NexusChatUI {
                         ${isAI ? '<span class="nexus-msg-ai-badge">AI</span>' : ''}
                     </div>
                 ` : ''}
-                <div class="nexus-msg-text">${nexusRenderContent(fullContent)}</div>
+                <div class="nexus-msg-text">${msg.file_url ? fullContent : nexusRenderContent(msg.content)}</div>
                 <div class="nexus-msg-reactions-area"></div>
             </div>
             <div class="nexus-msg-actions" style="display:flex; gap:4px; opacity:0; transition:0.2s; position:absolute; right:20px; top:-10px; background:rgba(22,28,45,0.9); padding:4px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); z-index:10; box-shadow:0 4px 10px rgba(0,0,0,0.5);">
@@ -1142,7 +1390,7 @@ class NexusChatUI {
             const { error } = await this.sb.from('chat_messages').delete().eq('id', msg.id).eq('sender_id', this.userId);
             if (error) {
                 console.error('Delete error:', error);
-                alert('Could not delete: ' + error.message);
+                nexusShowToast('Could not delete: ' + error.message, 'error');
             } else {
                 div.remove();
             }
@@ -1301,18 +1549,31 @@ class NexusChatUI {
         }
     }
 
-
-    _subscribeToMessages(roomId) {
-        if (this.msgSub) {
-            try { this.sb.removeChannel(this.msgSub); } catch (_) { }
+    _subscribeToRoomMessages(roomId) {
+        // Remove previous room subscription if any
+        if (this.roomSub) {
+            try { this.sb.removeChannel(this.roomSub); } catch (_) { }
         }
 
-        const channelName = `nexus-room-${roomId}`;
-        this.msgSub = this.sb.channel(channelName);
+        console.log(`Subscribing to realtime messages for room: ${roomId}`);
 
-        this.msgSub
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `room_id = eq.${roomId}` }, async (payload) => {
+        this.roomSub = this.sb.channel(`room-${roomId}`)
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'chat_messages',
+                filter: `room_id=eq.${roomId}`
+            }, async (payload) => {
                 const msg = payload.new;
+                
+                // 1. Prevent Duplicates
+                if (this.renderedMessageIds.has(msg.id)) return;
+                this.renderedMessageIds.add(msg.id);
+
+                // Double check if we are still in this room (race condition safety)
+                if (this.currentRoomId !== roomId) return;
+
+                // Fetch full details (profile/reactions)
                 const { data: full } = await this.sb.from('chat_messages')
                     .select('*, profiles(full_name, avatar_url), chat_message_reactions(emoji, user_id)')
                     .eq('id', msg.id).single();
@@ -1334,50 +1595,181 @@ class NexusChatUI {
 
                         prevMsgLocal = {
                             sender_id: sameSender ? full.sender_id : null,
-                            created_at: lastRow.dataset.time ? new Date() : new Date(0),
+                            created_at: new Date(lastRow.dataset.timestamp || 0),
                             message_type: 'text'
                         };
                     }
 
-                    msgArea.appendChild(this._buildMsgEl(full, prevMsgLocal));
-                    msgArea.scrollTop = msgArea.scrollHeight;
-                }
+                    // Remove optimistic indicator if it matches (by content/sender)
+                    const optimistic = msgArea.querySelector(`[data-temp-msg="true"]`);
+                    if (optimistic && msg.sender_id === this.userId) {
+                        optimistic.remove();
+                    }
 
-                // Update sidebar preview
-                const room = this.rooms.find(r => r.id === roomId);
-                if (room) {
-                    room.lastMsg = msg.content;
-                    room.lastAt = msg.created_at;
-                    this._renderSidebar();
+                    const el = this._buildMsgEl(full, prevMsgLocal);
+                    el.classList.add('nexus-animate-fade-in');
+                    msgArea.appendChild(el);
+                    
+                    if (this._autoScroll) {
+                        this._scrollToBottom(true);
+                    }
                 }
             })
-            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages', filter: `room_id = eq.${roomId}` }, (payload) => {
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${roomId}` }, (payload) => {
                 const el = document.querySelector(`[data-msg-id="${payload.old.id}"]`);
                 if (el) el.remove();
+                this.renderedMessageIds.delete(payload.old.id);
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_message_reactions' }, async () => {
-                // Refresh reactions for current messages
-                const { data } = await this.sb.from('chat_messages')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_message_reactions' }, async (payload) => {
+                const reaction = payload.new || payload.old;
+                if (!reaction) return;
+                
+                const { data: msg } = await this.sb.from('chat_messages')
                     .select('id, chat_message_reactions(emoji, user_id)')
-                    .eq('room_id', roomId);
+                    .eq('id', reaction.message_id)
+                    .single();
 
-                if (!data) return;
-
-                for (const msg of data) {
+                if (msg) {
                     const rxContainer = document.querySelector(`[data-msg-id="${msg.id}"] .nexus-reactions`);
                     if (rxContainer) {
                         rxContainer.outerHTML = this._buildReactions(msg.chat_message_reactions, msg.id);
                     } else {
-                        const msgEl = document.querySelector(`[data-msg-id="${msg.id}"] .nexus-msg-body`);
-                        if (msgEl && msg.chat_message_reactions?.length) {
-                            const temp = document.createElement('div');
-                            temp.innerHTML = this._buildReactions(msg.chat_message_reactions, msg.id);
-                            msgEl.appendChild(temp.firstChild);
+                        const msgRow = document.querySelector(`[data-msg-id="${msg.id}"]`);
+                        const rxArea = msgRow?.querySelector('.nexus-msg-reactions-area');
+                        if (rxArea) {
+                             rxArea.innerHTML = this._buildReactions(msg.chat_message_reactions, msg.id);
                         }
                     }
                 }
             })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('Successfully subscribed to room realtime channel');
+                    this._updateConnectionStatus('Connected');
+                } else if (status === 'CLOSED') {
+                    this._updateConnectionStatus('Offline');
+                } else if (status === 'CHANNEL_ERROR') {
+                    this._updateConnectionStatus('Reconnecting');
+                }
+            });
+    }
+
+    _updateConnectionStatus(status) {
+        const meta = document.getElementById('nexusChatMeta');
+        if (!meta) return;
+        
+        const dot = meta.querySelector('.status-dot');
+        const content = meta.querySelector('.meta-content');
+        
+        if (dot && content) {
+            if (status === 'Connected') {
+                dot.style.background = '#2ecc71';
+                // Only update text if it's generic, don't overwrite "Channel • public..."
+                if (content.textContent.includes('Offline') || content.textContent.includes('Reconnecting')) {
+                    content.textContent = content.textContent.replace('Offline', 'Online').replace('Reconnecting', 'Online');
+                }
+            } else if (status === 'Offline') {
+                dot.style.background = '#e74c3c';
+                content.textContent = 'Offline';
+            } else if (status === 'Reconnecting') {
+                dot.style.background = '#f1c40f';
+                content.textContent = 'Reconnecting...';
+            }
+        }
+    }
+
+    _scrollToBottom(smooth = true) {
+        const msgArea = $id('nexusMessages');
+        if (!msgArea) return;
+
+        // Smart scroll: Only scroll if user is already near bottom (within 200px)
+        const threshold = 200;
+        const isNearBottom = msgArea.scrollHeight - msgArea.scrollTop - msgArea.clientHeight < threshold;
+
+        if (isNearBottom || !smooth) {
+            msgArea.scrollTo({
+                top: msgArea.scrollHeight,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        }
+    }
+
+
+    /**
+     * Set up a global subscription for all messages to handle real-time previews and unread counts.
+     */
+    _subscribeToMessages() {
+        if (this.msgSub) {
+            try { this.sb.removeChannel(this.msgSub); } catch (_) { }
+        }
+
+        // Global listener for all messages across all rooms the user is in
+        this.msgSub = this.sb.channel('nexus-global-messages');
+
+        this.msgSub
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async (payload) => {
+                const msg = payload.new;
+                
+                // 1. Update Room Metadata in memory
+                const room = this.rooms.find(r => r.id === msg.room_id);
+                if (room) {
+                    room.lastMsg = msg.content;
+                    room.lastAt = msg.created_at;
+                    
+                    // Increment unread if message is not from us and not in the current room
+                    if (msg.sender_id !== this.userId && msg.room_id !== this.currentRoomId) {
+                        room.unreadCount = (room.unreadCount || 0) + 1;
+                    }
+                    
+                    this._renderSidebar();
+                } else if (msg.sender_id !== this.userId) {
+                    // If room doesn't exist locally (new DM), reload rooms list
+                    this._loadRooms();
+                }
+
+                // NOTE: Real-time rendering for the current room is now handled 
+                // in _subscribeToRoomMessages(roomId) setup by openRoom().
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages' }, (payload) => {
+                // Handled in room-specific sub for current UI, but we can keep it here for data sync if needed.
+            })
             .subscribe();
+    }
+
+    /* ======================================================
+       STORAGE & MEDIA
+       ====================================================== */
+
+    async clearChatCache() {
+        if (!confirm('This will clear the local message history cache for this session. Continue?')) return;
+        const msgArea = document.getElementById('nexusMessages');
+        if (msgArea) msgArea.innerHTML = '<div class="nexus-empty-msgs">Cache cleared. Select a room to reload messages.</div>';
+        // Reset state so it reloads on next room pick
+        this.currentRoomId = null; 
+        document.querySelectorAll('.nexus-room-item').forEach(el => el.classList.remove('active'));
+        nexusShowToast('Cache cleared. Select a room to reload messages.', 'info');
+    }
+
+    async deleteAllMedia() {
+        if (!confirm('PERMANENTLY DELETE ALL YOUR MEDIA UPLOADS? This cannot be undone and will break messages containing these files.')) return;
+        
+        try {
+            // 1. List files in user's avatar folder
+            const { data: avatars } = await this.sb.storage.from('avatars').list(this.userId);
+            if (avatars?.length) {
+                await this.sb.storage.from('avatars').remove(avatars.map(f => `${this.userId}/${f.name}`));
+            }
+
+            // 2. Clear profile avatar
+            await this.sb.from('profiles').update({ avatar_url: null }).eq('id', this.userId);
+            this.userProfile.avatar_url = null;
+            this._renderProfileUI(null);
+
+            nexusShowToast('Media deletion completed. Profile avatar cleared.', 'success');
+        } catch (err) {
+            console.error('deleteAllMedia error:', err);
+            nexusShowToast('Failed to delete media: ' + err.message, 'error');
+        }
     }
 
     _subscribeNewRooms() {
@@ -1393,7 +1785,8 @@ class NexusChatUI {
         this.presenceCh = this.sb.channel('nexus-presence')
             .on('presence', { event: 'sync' }, () => {
                 const state = this.presenceCh.presenceState();
-                // Update online indicators
+                
+                // 1. Update online indicators in sidebar
                 document.querySelectorAll('.nexus-room-item .nexus-dm-avatar').forEach(av => {
                     const roomId = av.closest('.nexus-room-item')?.dataset.roomId;
                     const room = this.rooms.find(r => r.id === roomId);
@@ -1405,11 +1798,36 @@ class NexusChatUI {
                         }
                     }
                 });
+
+                // 2. Typing Indicator Logic
+                this._updateTypingIndicators(state);
             }).subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
-                    await this.presenceCh.track({ userId: this.userId, online: true });
+                    await this.presenceCh.track({ userId: this.userId, online: true, userName: this.userName });
                 }
             });
+    }
+
+    _updateTypingIndicators(state) {
+        if (!this.currentRoomId) return;
+        
+        const typingUsers = Object.values(state)
+            .flat()
+            .filter(u => u.typing === this.currentRoomId && u.userId !== this.userId)
+            .map(u => u.userName || 'Someone');
+
+        const indicator = document.getElementById('nexusTypingIndicator');
+        if (indicator) {
+            if (typingUsers.length > 0) {
+                const text = typingUsers.length === 1 ? 
+                    `${typingUsers[0]} is typing...` : 
+                    `${typingUsers.length} people are typing...`;
+                indicator.textContent = text;
+                indicator.style.display = 'block';
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
     }
 
     // ── DM ───────────────────────────────────────────────────────────────────
@@ -1427,7 +1845,7 @@ class NexusChatUI {
         // Check if DM room already exists locally or in DB
         const existing = this.rooms.find(r => r.type === 'direct' && r.partnerId === partnerId);
         if (existing) { 
-            alert('This person already exists in your Direct Messages.');
+            nexusShowToast('This person already exists in your Direct Messages.', 'info');
             this.openRoom(existing.id); 
             const sbElem = document.getElementById('nexusSidebar');
             if (sbElem) sbElem.classList.remove('open');
@@ -1437,7 +1855,7 @@ class NexusChatUI {
         const roomQuery = await this.sb.rpc('get_dm_room', { user1: this.userId, user2: partnerId });
         
         if (roomQuery.data) {
-             alert('This person already exists in your Direct Messages.');
+             nexusShowToast('This person already exists in your Direct Messages.', 'info');
              if (!this.rooms.find(r => r.id === roomQuery.data)) {
                  await this._loadRooms(); // Guarantee room exists in local mapping before opening
              }
@@ -1472,7 +1890,7 @@ class NexusChatUI {
         // Check block restriction defensively
         const activeRoom = this.rooms.find(r => r.id === this.currentRoomId);
         if (activeRoom && activeRoom.type === 'direct' && this.blockedUsers.includes(activeRoom.partnerId)) {
-            alert('You have blocked this user. Unblock them to send a message.');
+            nexusShowToast('You have blocked this user. Unblock them to send a message.', 'warning');
             return;
         }
 
@@ -1527,11 +1945,17 @@ class NexusChatUI {
             `<blockquote data-reply="${window.nexusReplyMsgId}"><strong>${window.nexusReplyAuthor}:</strong> ${window.nexusReplyText}</blockquote>` + content : 
             content;
 
+        // Detect image persistence - extract first URL if it's an image
+        let attachmentUrl = null;
+        const imgMatch = content.match(/https?:\/\/[^\s<>)"']+\.(jpg|jpeg|png|gif|webp|avif|heic)(?:\?[^\s]*)?/i);
+        if (imgMatch) attachmentUrl = imgMatch[0];
+
         const { data: insertedMsg, error } = await this.sb.from('chat_messages').insert({
             room_id: this.currentRoomId,
             sender_id: this.userId,
             content: finalContent,
-            message_type: 'text'
+            message_type: attachmentUrl ? 'image' : 'text',
+            attachment_url: attachmentUrl
         }).select().single();
 
         if (error) {
@@ -1586,10 +2010,12 @@ class NexusChatUI {
 
     // ── TYPING ───────────────────────────────────────────────────────────────
     _sendTyping() {
-        if (!this.presenceCh || !this.currentRoomId) return;
-        this.presenceCh.track({ userId: this.userId, typing: this.currentRoomId });
+        if (!this.presenceCh || !this.currentRoomId || !this._isTypingEnabled) return;
+        this.presenceCh.track({ userId: this.userId, typing: this.currentRoomId, userName: this.userName, online: true });
         clearTimeout(this.typingTimeout);
-        this.typingTimeout = setTimeout(() => { this.presenceCh.track({ userId: this.userId, typing: null }); }, 2000);
+        this.typingTimeout = setTimeout(() => { 
+            this.presenceCh.track({ userId: this.userId, typing: null, userName: this.userName, online: true }); 
+        }, 3000);
     }
 
     // ── MENTIONS ─────────────────────────────────────────────────────────────
@@ -1677,17 +2103,27 @@ class NexusChatUI {
 
     async addMemberToRoom(uid) {
         if (!this.currentRoomId || !uid) return;
+
+        // Fetch name for system message
+        const { data: profile } = await this.sb.from('profiles').select('full_name, email').eq('id', uid).single();
+        const userNameToAdd = profile ? (profile.full_name || profile.email) : 'A user';
+
         const { error } = await this.sb.from('chat_room_members').insert({
             room_id: this.currentRoomId,
             user_id: uid,
             role: 'member'
         });
+
         if (error && error.code !== '23505') {
-            alert('Error adding member: ' + error.message);
+            nexusShowToast('Error adding member: ' + error.message, 'error');
         } else {
-            alert('Member added successfully.');
+            // Post system message
+            await this.postSystemMessage(`${this.userName} added ${userNameToAdd} to the channel`, this.currentRoomId);
+            
             // Refetch or update UI
             this._refreshSettingsMemberList(this.currentRoomId);
+            this._populateRoomInfo(); // Update room info tab and header counter
+            
             const modal = document.getElementById('nexusAddMemberModal');
             if (modal) modal.classList.remove('show');
         }
@@ -1715,7 +2151,7 @@ class NexusChatUI {
             .eq('user_id', this.userId);
 
         if (error) {
-            alert('Error leaving channel: ' + error.message);
+            nexusShowToast('Error leaving channel: ' + error.message, 'error');
             return;
         }
 
@@ -1778,7 +2214,7 @@ class NexusChatUI {
         // upsert to avoid duplicate key errors
         await this.sb.from('chat_room_members').upsert(inserts, { onConflict: 'room_id,user_id', ignoreDuplicates: true });
         await this._refreshSettingsMemberList(roomId);
-        alert(`Added ${users.length} user(s) to channel.`);
+        nexusShowToast(`Added ${users.length} user(s) to channel.`, 'success');
     }
 
     async deleteChannel(roomId = this.currentRoomId) {
@@ -1799,11 +2235,11 @@ class NexusChatUI {
         if (this.blockedUsers.includes(partnerId)) {
             await this.sb.from('blocked_users').delete().eq('blocker_id', this.userId).eq('blocked_id', partnerId);
             this.blockedUsers = this.blockedUsers.filter(id => id !== partnerId);
-            alert('User unblocked.');
+            nexusShowToast('User unblocked.', 'success');
         } else {
             await this.sb.from('blocked_users').insert({ blocker_id: this.userId, blocked_id: partnerId });
             this.blockedUsers.push(partnerId);
-            alert('User blocked.');
+            nexusShowToast('User blocked.', 'warning');
         }
     }
 
@@ -1851,6 +2287,17 @@ class NexusChatUI {
         const room = this.rooms.find(r => r.id === this.currentRoomId);
         if (!room) return;
 
+        // Update Title
+        const titleEl = document.getElementById('nexusCBarTitle');
+        if (titleEl) titleEl.innerText = room.type === 'direct' ? 'User Info' : 'Room Info';
+
+        // Update Header Counter if applicable
+        const metaCount = document.querySelector('#nexusChatMeta .meta-content');
+        if (metaCount && room.type === 'channel') {
+            const { count } = await this.sb.from('chat_room_members').select('*', { count: 'exact', head: true }).eq('room_id', this.currentRoomId);
+            metaCount.textContent = `${count} Members`;
+        }
+
         // Get members
         const { data: members } = await this.sb.from('chat_room_members').select('created_at, role, user_id, profiles(full_name, avatar_url, email)').eq('room_id', this.currentRoomId);
 
@@ -1880,29 +2327,70 @@ class NexusChatUI {
         // Populate Members Tab
         const membersContainer = $id('nexusMemberListContainer');
         if (membersContainer) {
-            // Note: In a real app we'd use Supabase Realtime presence. Here we simulate online randomly or use a flat green dot for demonstration if last_seen isn't tracked.
-            // For now, assume current user is online, others random or green.
+            const isAdmin = room.memberRole === 'admin' || room.created_by === this.userId;
+            
             membersContainer.innerHTML = (members || []).map(m => {
                 const isOnline = m.user_id === this.userId || Math.random() > 0.5; // Simulate presence
                 const color = isOnline ? '#2ecc71' : '#ff5252';
                 const date = new Date(m.created_at).toLocaleDateString();
+                const profile = m.profiles || {};
+                
                 return `
-            <div style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(255,255,255,0.02); border-radius:12px;">
+                <div style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(255,255,255,0.02); border-radius:12px; margin-bottom:8px;">
                     <div style="position:relative;">
-                        <div class="nexus-dm-avatar" style="width:36px; height:36px; font-size:12px;">${nexusEsc(nexusInitials(m.profiles?.full_name || m.profiles?.email || '?'))}</div>
+                        <div class="nexus-dm-avatar" style="width:36px; height:36px; font-size:12px;">${nexusEsc(nexusInitials(profile.full_name || profile.email || '?'))}</div>
                         <div style="position:absolute; bottom:-2px; right:-2px; width:12px; height:12px; border-radius:50%; background:${color}; border:2px solid #161c2d;" title="${isOnline ? 'Online' : 'Offline'}"></div>
                     </div>
                     <div style="flex:1; overflow:hidden;">
-                        <div style="font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nexusEsc(m.profiles?.full_name || m.profiles?.email || 'Unknown')}</div>
+                        <div style="font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nexusEsc(profile.full_name || profile.email || 'Unknown')}</div>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
                             <span style="font-size:11px; color:#7c4dff; font-weight:600;">${nexusEsc(m.role || 'Member')}</span>
                             <span style="font-size:10px; color:#6b7390;">Joined ${date}</span>
                         </div>
                     </div>
+                    ${isAdmin && m.user_id !== this.userId ? `
+                        <button class="nexus-member-remove-btn" data-uid="${m.user_id}" style="background:none; border:none; color:#ff5252; cursor:pointer; padding:5px; font-size:12px;" title="Remove Member">
+                            <i class="fas fa-user-minus"></i>
+                        </button>
+                    ` : ''}
                 </div>
-            `;
+                `;
             }).join('');
+
+            // Attach Removal Events
+            membersContainer.querySelectorAll('.nexus-member-remove-btn').forEach(btn => {
+                btn.onclick = async () => {
+                    const uid = btn.dataset.uid;
+                    const name = btn.parentElement.querySelector('div > div').textContent;
+                    if (confirm(`Remove ${name} from this channel?`)) {
+                        await this.removeMember(uid, this.currentRoomId, name);
+                    }
+                };
+            });
         }
+    }
+
+    async removeMember(uid, roomId, name) {
+        const { error } = await this.sb.from('chat_room_members').delete().eq('room_id', roomId).eq('user_id', uid);
+        if (error) {
+            nexusShowToast('Error removing member: ' + error.message, 'error');
+            return;
+        }
+
+        // Post system message
+        await this.postSystemMessage(`${this.userName} removed ${name} from the channel`, roomId);
+        
+        // Refresh
+        await this._populateRoomInfo();
+    }
+
+    async postSystemMessage(content, roomId) {
+        await this.sb.from('chat_messages').insert({
+            room_id: roomId,
+            sender_id: this.userId,
+            content: content,
+            message_type: 'system'
+        });
     }
 }
 
@@ -1950,6 +2438,54 @@ function _nexusAttachEvents(ctrl) {
     $('nexusSidebarClose')?.addEventListener('click', (e) => {
         e.stopPropagation();
         closeSidebar();
+    });
+
+    // Mobile 3-dot Menu Toggle
+    const mobileMenuBtn = $('nexusMobileMenuBtn');
+    const mobileMenuWrap = $('nexusMobileMenuWrapper');
+    if (mobileMenuBtn && mobileMenuWrap) {
+        mobileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            mobileMenuWrap.classList.toggle('open');
+        });
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#nexusMobileMenuWrapper')) {
+                mobileMenuWrap.classList.remove('open');
+            }
+        });
+    }
+
+    // Mirror mobile menu actions to desktop buttons
+    const bindMobileBtn = (mobId, deskId) => {
+        const mBtn = $(mobId);
+        const dBtn = $(deskId);
+        if (mBtn && dBtn) {
+            mBtn.addEventListener('click', () => {
+                if (mobileMenuWrap) mobileMenuWrap.classList.remove('open');
+                dBtn.click();
+            });
+        }
+    };
+    bindMobileBtn('nexusMobVoiceCallBtn', 'nexusVoiceCallBtn');
+    bindMobileBtn('nexusMobVideoCallBtn', 'nexusVideoCallBtn');
+    bindMobileBtn('nexusMobSearchBtn', 'nexusSearchToggleBtn');
+    bindMobileBtn('nexusMobInfoBtn', 'nexusInfoToggleBtn');
+    bindMobileBtn('nexusMobBlockBtn', 'nexusBlockBtn');
+
+    // Scroll Management
+    const msgArea = $('nexusMessages');
+    if (msgArea) {
+        msgArea.addEventListener('scroll', () => {
+            const threshold = 100; // px from bottom
+            const isAtBottom = msgArea.scrollHeight - msgArea.scrollTop - msgArea.clientHeight < threshold;
+            ctrl._autoScroll = isAtBottom;
+        });
+    }
+
+    // Typing debouncer
+    $('nexusMsgInput')?.addEventListener('input', (e) => {
+        ctrl._sendTyping();
+        ctrl._handleMentionInput(e.target.value, e.target);
     });
 
     // OPEN SETTINGS V3
@@ -2013,8 +2549,10 @@ function _nexusAttachEvents(ctrl) {
 
     $('btnPreviewBg')?.addEventListener('click', () => {
         const url = $('settingsChatBgInp')?.value;
+        ctrl._isApplyingWallpaper = true;
         ctrl.saveSettingsV3({ chat_bg_url: url });
     });
+
 
     $('settingsBubbleInColor')?.addEventListener('change', (e) => {
         ctrl.saveSettingsV3({ incoming_bubble_color: e.target.value });
@@ -2317,21 +2855,26 @@ function _nexusAttachEvents(ctrl) {
     $('nexusFileInput')?.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (!ctrl.currentRoomId) { alert('Please select a chat first.'); return; }
+        if (!ctrl.currentRoomId) { nexusShowToast('Please select a chat first.', 'warning'); return; }
 
         // Show a loading indicator in the message area
         const msgArea = $('nexusMessages');
+        if (!msgArea) return;
+
+        const loadingId = 'upload_' + Date.now();
         const loadingEl = document.createElement('div');
         loadingEl.className = 'nexus-msg-row';
+        loadingEl.id = loadingId;
         loadingEl.innerHTML = `
-            <div class="nexus-msg-avatar-col"><div class="nexus-msg-avatar">${nexusEsc(nexusInitials(ctrl.userName))}</div></div>
+            <div class="nexus-msg-avatar-col"><div class="nexus-msg-avatar" title="${nexusEsc(ctrl.userName)}">${nexusEsc(nexusInitials(ctrl.userName))}</div></div>
             <div class="nexus-msg-content-col">
-                <div class="nexus-msg-text" style="color:#9198b0;font-style:italic;">
-                    <i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>
+                <div class="nexus-msg-text" style="color:#9198b0;font-style:italic;opacity:0.7;">
+                    <i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>
                     Uploading ${nexusEsc(file.name)}...
                 </div>
             </div>`;
-        if (msgArea) { msgArea.appendChild(loadingEl); msgArea.scrollTop = msgArea.scrollHeight; }
+        msgArea.appendChild(loadingEl);
+        msgArea.scrollTop = msgArea.scrollHeight;
 
         try {
             const ext = file.name.split('.').pop();
@@ -2343,20 +2886,23 @@ function _nexusAttachEvents(ctrl) {
                 upsert: false,
                 contentType: file.type
             });
-            loadingEl.remove();
 
             if (error) {
+                loadingEl.remove();
                 console.error('Upload error:', error);
-                alert(`Upload failed: ${error.message}\n\nMake sure the 'chat_attachments' bucket exists in Supabase Storage.`);
+                nexusShowToast(`Upload failed: ${error.message}`, 'error');
                 return;
             }
 
             const { data: urlData } = ctrl.sb.storage.from('chat_attachments').getPublicUrl(path);
             const publicUrl = urlData?.publicUrl;
 
-            if (!publicUrl) { alert('Could not get public URL.'); return; }
+            if (!publicUrl) { 
+                loadingEl.remove();
+                nexusShowToast('Could not get public URL for attachment.', 'error');                 return; 
+            }
 
-            // Insert message with file_url field for proper rendering
+            // Insert message with file_url field
             const { error: msgErr } = await ctrl.sb.from('chat_messages').insert({
                 room_id: ctrl.currentRoomId,
                 sender_id: ctrl.userId,
@@ -2365,13 +2911,17 @@ function _nexusAttachEvents(ctrl) {
                 file_name: file.name,
                 message_type: 'file'
             });
-            if (msgErr) console.error('File message insert error:', msgErr.message);
-
-
+            
+            loadingEl.remove();
+            
+            if (msgErr) {
+                console.error('File message insert error:', msgErr.message);
+                nexusShowToast('File uploaded but record failed: ' + msgErr.message, 'warning');
+            }
         } catch (err) {
             loadingEl.remove();
-            console.error('File upload failed:', err);
-            alert('Upload failed: ' + err.message);
+            console.error('File upload catch error:', err);
+            nexusShowToast('Upload failed: ' + err.message, 'error');
         }
         e.target.value = '';
     });
@@ -2495,7 +3045,7 @@ function _nexusAttachEvents(ctrl) {
 
     $('nexusSaveGroup')?.addEventListener('click', async () => {
         const name = $('nexusGroupNameInput')?.value.trim();
-        if (!name) return alert('Please enter a channel name.');
+        if (!name) return nexusShowToast('Please enter a channel name.', 'warning');
 
         try {
             // Create Room
@@ -2519,7 +3069,7 @@ function _nexusAttachEvents(ctrl) {
             const { error: memErr } = await ctrl.sb.from('chat_room_members').insert(membersToInsert);
             if (memErr) throw memErr;
 
-            alert('Channel created successfully!');
+            nexusShowToast('Channel created successfully!', 'success');
             $('nexusCreateGroupModal')?.classList.remove('show');
             await ctrl._loadRooms();
             ctrl.openRoom(room.id);
@@ -2527,7 +3077,7 @@ function _nexusAttachEvents(ctrl) {
             if (sbElem) sbElem.classList.remove('open');
         } catch (err) {
             console.error('Error creating channel:', err);
-            alert('Failed to create channel.');
+            nexusShowToast('Failed to create channel.', 'error');
         }
     });
 
@@ -2569,6 +3119,9 @@ function _nexusAttachEvents(ctrl) {
                     <i class="fas fa-plus" style="color:#2ecc71;"></i>
                 </div>
             `).join('');
+            
+            // Expose bridge for the onclick handler
+            window._execAddMember = (uid) => ctrl.addMemberToRoom(uid);
         } catch (err) {
             console.error('Search error:', err);
         }
@@ -2665,7 +3218,7 @@ function _nexusAttachEvents(ctrl) {
             if (sbElem) sbElem.classList.remove('open');
         } catch (err) {
             console.error('Join channel error:', err);
-            alert('Failed to join channel.');
+            nexusShowToast('Failed to join channel.', 'error');
         }
     };
 
@@ -2760,7 +3313,7 @@ function _nexusAttachEvents(ctrl) {
 
         } catch (err) {
             console.error('Error starting DM:', err);
-            alert('Failed to start direct message.');
+            nexusShowToast('Failed to start direct message.', 'error');
         }
     };
 
@@ -2776,7 +3329,7 @@ function _nexusAttachEvents(ctrl) {
     $('nexusSendBroadcast')?.addEventListener('click', async () => {
         const target = $('nexusBroadcastTarget').value;
         const msg = $('nexusBroadcastMsg').value.trim();
-        if (!msg) return alert('Message cannot be empty');
+        if (!msg) return nexusShowToast('Message cannot be empty', 'warning');
 
         try {
             let query = ctrl.sb.from('chat_rooms').select('id').eq('type', 'channel');
@@ -2786,7 +3339,7 @@ function _nexusAttachEvents(ctrl) {
             const { data: channels, error } = await query;
             if (error) throw error;
             if (!channels || channels.length === 0) {
-                alert('No matching channels found to broadcast.');
+                nexusShowToast('No matching channels found to broadcast.', 'info');
                 return;
             }
 
@@ -2800,12 +3353,12 @@ function _nexusAttachEvents(ctrl) {
             const { error: insertErr } = await ctrl.sb.from('chat_messages').insert(inserts);
             if (insertErr) throw insertErr;
 
-            alert('Broadcast sent to ' + channels.length + ' channel(s).');
+            nexusShowToast('Broadcast sent to ' + channels.length + ' channel(s).', 'success');
             $('nexusBroadcastModal').classList.remove('show');
             $('nexusBroadcastMsg').value = '';
         } catch (e) {
             console.error('Broadcast error:', e);
-            alert('Failed to send broadcast.');
+            nexusShowToast('Failed to send broadcast.', 'error');
         }
     });
 
@@ -2834,10 +3387,121 @@ function _nexusAttachEvents(ctrl) {
         }
     });
 
-    // Other Existing Actions
-    $('nexusVoiceCallBtn')?.addEventListener('click', () => ctrl.startVoiceCall());
-    $('nexusVideoCallBtn')?.addEventListener('click', () => ctrl.startVideoCall());
-    $('nexusBtnAddPeople')?.addEventListener('click', () => ctrl.openAddMemberModal());
+    // --- Profile Settings ---
+    $('btnSaveProfileV3')?.addEventListener('click', () => {
+        ctrl.saveProfileV3();
+    });
+
+    $('btnEditAvatarV3')?.addEventListener('click', () => {
+        $('settingsAvatarInputV3')?.click();
+    });
+
+    $('settingsAvatarInputV3')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) ctrl.updateAvatarV3(file);
+    });
+
+    // --- Navigation ---
+    document.querySelectorAll('.settings-nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const section = item.dataset.section;
+            document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('show'));
+            document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
+            
+            $id(`settings-${section}`)?.classList.add('show');
+            item.classList.add('active');
+        });
+    });
+
+    $('nexusCloseSettingsV3')?.addEventListener('click', () => {
+        $('nexusSettingsModalV3')?.classList.remove('show');
+    });
+
+    $('nexusOpenSettingsBtn')?.addEventListener('click', () => {
+        $('nexusProfileModal')?.classList.remove('show');
+        $('nexusSettingsModalV3')?.classList.add('show');
+    });
+
+    // --- Appearance Toggles ---
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const theme = btn.dataset.theme;
+            ctrl.saveSettingsV3({ theme });
+        });
+    });
+
+    document.querySelectorAll('#accentPresets .color-swatch-v3').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            const accent_color = swatch.dataset.color;
+            ctrl.saveSettingsV3({ accent_color });
+            
+            // UI feedback
+            document.querySelectorAll('#accentPresets .color-swatch-v3').forEach(s => s.classList.remove('active'));
+            swatch.classList.add('active');
+        });
+    });
+
+    $('settingsFontSize')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ font_size: e.target.value });
+    });
+
+    // --- Chat Settings ---
+    $('settingsShowTime')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ show_timestamps: e.target.checked });
+    });
+
+    $('settingsCompactMode')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ compact_mode: e.target.checked });
+    });
+
+    $('settingsChatBgInp')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ chat_bg_url: e.target.value.trim() });
+    });
+
+    $('settingsBubbleInColor')?.addEventListener('input', (e) => {
+        ctrl.saveSettingsV3({ incoming_bubble_color: e.target.value });
+    });
+
+    $('settingsBubbleOutColor')?.addEventListener('input', (e) => {
+        ctrl.saveSettingsV3({ outgoing_bubble_color: e.target.value });
+    });
+
+    $('btnPreviewBg')?.addEventListener('click', () => {
+        const url = $('settingsChatBgInp').value.trim();
+        if (url) {
+            ctrl._isApplyingWallpaper = true;
+            ctrl.saveSettingsV3({ chat_bg_url: url });
+        } else {
+            ctrl.saveSettingsV3({ chat_bg_url: null });
+        }
+    });
+
+    // --- Notification Toggles ---
+    $('settingsNotifEnable')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ push_enabled: e.target.checked });
+    });
+
+    $('settingsSoundEnable')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ sounds_enabled: e.target.checked });
+    });
+
+    $('settingsDesktopNotif')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ desktop_notifs: e.target.checked });
+    });
+
+    // --- Privacy Settings ---
+    $('settingsLastSeen')?.addEventListener('change', (e) => {
+        ctrl.saveSettingsV3({ privacy_last_seen: e.target.value });
+    });
+
+    // --- Storage Actions ---
+    $('btnClearCacheV3')?.addEventListener('click', () => {
+        ctrl.clearChatCache();
+    });
+
+    $('btnDeleteMediaV3')?.addEventListener('click', () => {
+        ctrl.deleteAllMedia();
+    });
 
     console.log('✅ Nexus interactive events attached');
 }
@@ -2868,7 +3532,7 @@ window.initNexusChat = async function (role) {
         }
 
         console.log('initNexusChat: Synchronizing profile for user:', user.id);
-        const { data: profile } = await sb.from('profiles').select('full_name, email, role').eq('id', user.id).single();
+        const { data: profile } = await sb.from('profiles').select('full_name, email, role, avatar_url').eq('id', user.id).single();
         const userName = profile?.full_name || profile?.email || user.email || 'User';
         const userRole = role || profile?.role || 'user';
 
