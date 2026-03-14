@@ -122,7 +122,8 @@ async function loadUserContextAndRender() {
 }
 
 // --- DATA ---
-window.ALL_EVENTS = []; // Start as empty array instead of null to prevent race conditions during merge
+window.ALL_EVENTS = null; // Changed from [] to null to trigger "Syncing" UI correctly
+window.INITIAL_FETCH_DONE = false; 
 let MOCK_EVENTS = [];
 
 // --- APP STATE (Now handled globally by state.js) ---
@@ -135,34 +136,43 @@ let MOCK_EVENTS = [];
 async function fetchEvents() {
     // Safety check to ensure we don't stay in loading state forever
     const loadingTimeout = setTimeout(() => {
-        if (window.ALL_EVENTS === null) {
-            console.warn("⚠️ fetchEvents timed out. Falling back to empty state.");
-            window.ALL_EVENTS = [];
+        if (window.ALL_EVENTS === null || window.ALL_EVENTS.length === 0) {
+            console.warn("⚠️ fetchEvents timed out or returned empty. Falling back to empty array.");
+            window.ALL_EVENTS = window.ALL_EVENTS || [];
             forceRenderEvents();
         }
-    }, 10000);
+    }, 5000);
 
     try {
         const { data, error } = await supabase
             .from('events')
             .select('*')
-            .order('start_date', { ascending: true }); // Standardizing on start_date
+            .order('start_date', { ascending: true });
 
         if (error) throw error;
 
-        const now = new Date();
-
-        // Map data to window.ALL_EVENTS
-        window.ALL_EVENTS = (data || []).map(event => {
+        // --- ROBUST DATE NORMALIZATION ---
+        const normalizedData = (data || []).map(event => {
             // Support both ISO and YYYY-MM-DD. Handle timestamptz correctly.
-            const startStr = event.start_date || event.date;
+            let startStr = event.start_date || event.date;
+            
+            // Normalize: Replace spaces with 'T' for ISO compatibility across browsers
+            if (startStr && typeof startStr === 'string' && startStr.includes(' ')) {
+                startStr = startStr.replace(' ', 'T');
+            }
+
             const dateObj = new Date(startStr);
+            
+            // Fallback for invalid dates
+            if (isNaN(dateObj.getTime())) {
+                console.warn("⚠️ Invalid date for event:", event.title, startStr);
+            }
 
             // Normalize to YYYY-MM-DD for Calendar, ensuring local date is used to avoid UTC day-shift issues
             const year = dateObj.getFullYear();
             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
             const day = String(dateObj.getDate()).padStart(2, '0');
-            const formattedDate = `${year}-${month}-${day}`;
+            const formattedDate = isNaN(day) ? "2026-03-01" : `${year}-${month}-${day}`;
 
             return {
                 ...event,
@@ -178,6 +188,9 @@ async function fetchEvents() {
             };
         });
 
+        window.ALL_EVENTS = normalizedData;
+        window.INITIAL_FETCH_DONE = true;
+        
         // Keep MOCK_EVENTS in sync for legacy code
         MOCK_EVENTS.length = 0;
         MOCK_EVENTS.push(...window.ALL_EVENTS);
@@ -188,6 +201,7 @@ async function fetchEvents() {
     } catch (err) {
         console.error("Error fetching events:", err.message);
         window.ALL_EVENTS = []; // Prevent infinite loading state
+        window.INITIAL_FETCH_DONE = true;
         forceRenderEvents();
     } finally {
         clearTimeout(loadingTimeout);
@@ -293,7 +307,7 @@ window.forceRenderEvents = () => {
 
         container.innerHTML = "";
 
-        if (window.ALL_EVENTS === null) {
+        if (window.ALL_EVENTS === null || (window.ALL_EVENTS.length === 0 && !window.INITIAL_FETCH_DONE)) {
             container.innerHTML = `
                 <div class="col-span-full text-center py-20 bg-white/5 rounded-2xl border border-white/5 border-dashed">
                     <div class="animate-spin text-4xl mb-4 opacity-50">⏳</div>
@@ -1876,7 +1890,7 @@ const Components = {
         const activeLink = isSPA ? window.State.route : (path === '/index.html' ? '/' : path);
 
         return `
-    <nav class="fixed top-0 left-0 right-0 z-[1000] border-b border-white/5 bg-[#020617]/70 backdrop-blur-3xl transition-all duration-300">
+    <nav class="relative z-[1000] border-b border-white/5 bg-[#020617]/70 backdrop-blur-3xl transition-all duration-300">
       <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div class="flex items-center gap-12">
               <a onclick="Router.push('/')" class="flex items-center gap-3 cursor-pointer group">
@@ -1988,19 +2002,27 @@ const Components = {
     },
 
     EventCard: (event) => {
-        const dateObj = new Date(event.date);
+        // --- DEFENSIVE DATE PARSING ---
+        let dateObj = new Date(event.date);
+        
+        // Fallback for invalid dates
+        if (isNaN(dateObj.getTime())) {
+            dateObj = new Date(); // Fallback to current date
+        }
+
         const day = dateObj.getDate();
-        const month = MONTH_NAMES[dateObj.getMonth()].substring(0, 3);
-        const isFree = event.price === "Free";
+        const monthIndex = dateObj.getMonth();
+        const month = (MONTH_NAMES && MONTH_NAMES[monthIndex]) ? MONTH_NAMES[monthIndex].substring(0, 3) : '---';
+        
+        const isFree = event.price === "Free" || event.price === 0 || !event.price;
         const isSaved = (window.State.savedEvents.free && window.State.savedEvents.free.some(e => e.id === event.id)) ||
             (window.State.savedEvents.paid && window.State.savedEvents.paid.some(e => e.id === event.id));
 
-
-
         // Resolve Image Source: Use banner_url directly, fallback to logo
-        let displayImage = event.banner_url || 'assets/logo_final.png';
-        // Skip relative paths (legacy default) — use fallback instead
-        if (displayImage === 'assets/logo_final.png' && (event.banner_url && event.banner_url.startsWith('http'))) {
+        let displayImage = event.banner_url || event.image_url || 'assets/logo_final.png';
+        
+        // Skip default assets – search for http link
+        if (displayImage === 'assets/logo_final.png' && event.banner_url?.startsWith('http')) {
             displayImage = event.banner_url;
         }
 
