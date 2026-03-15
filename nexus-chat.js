@@ -186,87 +186,384 @@ async function nexusAskAI(messages) {
 }
 
 
-// ─── WEBRTC CALL MANAGER ──────────────────────────────────────────────────────
+// ─── WEBRTC CALL MANAGER (FIXED) ──────────────────────────────────────────────
 class NexusCallManager {
     constructor(sb, userId, userName) {
-        this.sb = sb; this.userId = userId; this.userName = userName;
-        this.pc = null; this.localStream = null; this.sigCh = null;
+        this.sb = sb;
+        this.userId = userId;
+        this.userName = userName;
+        this.pc = null;
+        this.localStream = null;
+        this.sigCh = null;
         this.currentCallRoomId = null;
+        this._screenStream = null;
+        this._pendingOffer = null;
+        this._pendingCallerName = null;
+        this._pendingIsVideo = false;
+        this._incomingRoomId = null;
+        this._listeningRoomIds = new Set();
     }
 
+    // ── OUTGOING CALL (Caller A) ──────────────────────────────────────────
     async startCall(roomId, isVideo) {
         this.currentCallRoomId = roomId;
         const overlay = $id('nexusCallOverlay');
         const status = $id('nexusCallOverlayStatus');
-        if (overlay) overlay.style.display = 'flex';
+
+        // Show overlay using CSS class (so MutationObserver timer works)
+        if (overlay) overlay.classList.add('show');
         if (status) status.textContent = isVideo ? '📹 Starting video call…' : '📞 Starting voice call…';
+
+        // 1. Get camera/mic
         try {
-            this.localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+            this.localStream = await navigator.mediaDevices.getUserMedia({
+                video: isVideo,
+                audio: true
+            });
         } catch (e) {
             nexusShowToast('Cannot access camera/microphone: ' + e.message, 'error');
-            if (overlay) overlay.style.display = 'none'; return;
+            if (overlay) overlay.classList.remove('show');
+            return;
         }
-        const lv = $id('nexusLocalVideo'); if (lv) { lv.srcObject = this.localStream; lv.play().catch(() => { }); }
 
-        this.pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
-        this.localStream.getTracks().forEach(t => this.pc.addTrack(t, this.localStream));
-        this.pc.ontrack = e => { const rv = $id('nexusRemoteVideo'); if (rv) { rv.srcObject = e.streams[0]; rv.play().catch(() => { }); } };
+        // 2. Bind local video
+        const lv = $id('nexusLocalVideo');
+        if (lv) {
+            lv.srcObject = this.localStream;
+            lv.muted = true;
+            lv.setAttribute('autoplay', '');
+            lv.setAttribute('playsinline', '');
+            lv.play().catch(() => {});
+        }
 
-        const sigId = `nexus - sig - ${roomId} `;
-        this.sigCh = this.sb.channel(sigId)
-            .on('broadcast', { event: 'signal' }, async ({ payload }) => {
-                if (payload.from === this.userId) return;
-                if (payload.type === 'offer') {
-                    await this.pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-                    const answer = await this.pc.createAnswer();
-                    await this.pc.setLocalDescription(answer);
-                    this.sigCh.send({ type: 'broadcast', event: 'signal', payload: { type: 'answer', from: this.userId, sdp: answer } });
-                } else if (payload.type === 'answer') {
-                    await this.pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-                } else if (payload.type === 'candidate') {
-                    await this.pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
-                } else if (payload.type === 'hangup') {
-                    this.endCall(false); nexusShowToast('The other party ended the call.', 'info');
-                }
-            }).subscribe();
+        // 3. Create RTCPeerConnection
+        this._createPeerConnection();
 
-        this.pc.onicecandidate = e => {
-            if (e.candidate) this.sigCh.send({ type: 'broadcast', event: 'signal', payload: { type: 'candidate', from: this.userId, candidate: e.candidate } });
-        };
+        // 4. Join signaling channel (NO SPACES in name!)
+        const sigId = `nexus-sig-${roomId}`;
+        this.sigCh = this.sb.channel(sigId);
+        this.sigCh.on('broadcast', { event: 'signal' }, async ({ payload }) => {
+            if (!payload || payload.from === this.userId) return;
+            await this._handleSignal(payload);
+        });
+        await this.sigCh.subscribe();
+
+        // 5. Create and send offer
         const offer = await this.pc.createOffer();
         await this.pc.setLocalDescription(offer);
-        this.sigCh.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', from: this.userId, name: this.userName, sdp: offer, isVideo } });
-        if (status) status.textContent = isVideo ? '📹 Video call in progress…' : '📞 Voice call in progress…';
 
+        this.sigCh.send({
+            type: 'broadcast',
+            event: 'signal',
+            payload: {
+                type: 'offer',
+                from: this.userId,
+                name: this.userName,
+                sdp: offer,
+                isVideo: isVideo,
+                roomId: roomId
+            }
+        });
+
+        if (status) status.textContent = isVideo ? '📹 Video call in progress… waiting for answer' : '📞 Voice call in progress… waiting for answer';
+
+        // 6. Insert system message
         await this.sb.from('chat_messages').insert({
-            room_id: roomId, sender_id: this.userId,
+            room_id: roomId,
+            sender_id: this.userId,
             content: `📞 ${this.userName} started a ${isVideo ? 'video' : 'voice'} call`,
             message_type: 'system'
         });
     }
 
+    // ── ACCEPT INCOMING CALL (Receiver B) ─────────────────────────────────
+    async acceptCall() {
+        if (!this._pendingOffer || !this._incomingRoomId) return;
+
+        const roomId = this._incomingRoomId;
+        const isVideo = this._pendingIsVideo;
+        this.currentCallRoomId = roomId;
+
+        // Hide incoming call modal
+        const modal = $id('nexusIncomingCallModal');
+        if (modal) modal.classList.remove('show');
+
+        // Show call overlay
+        const overlay = $id('nexusCallOverlay');
+        const status = $id('nexusCallOverlayStatus');
+        if (overlay) overlay.classList.add('show');
+        if (status) status.textContent = isVideo ? '📹 Connecting video…' : '📞 Connecting audio…';
+
+        // 1. Get camera/mic
+        try {
+            this.localStream = await navigator.mediaDevices.getUserMedia({
+                video: isVideo,
+                audio: true
+            });
+        } catch (e) {
+            nexusShowToast('Cannot access camera/microphone: ' + e.message, 'error');
+            if (overlay) overlay.classList.remove('show');
+            return;
+        }
+
+        // 2. Bind local video
+        const lv = $id('nexusLocalVideo');
+        if (lv) {
+            lv.srcObject = this.localStream;
+            lv.muted = true;
+            lv.setAttribute('autoplay', '');
+            lv.setAttribute('playsinline', '');
+            lv.play().catch(() => {});
+        }
+
+        // 3. Create peer connection
+        this._createPeerConnection();
+
+        // 4. Join signaling channel
+        const sigId = `nexus-sig-${roomId}`;
+        this.sigCh = this.sb.channel(sigId);
+        this.sigCh.on('broadcast', { event: 'signal' }, async ({ payload }) => {
+            if (!payload || payload.from === this.userId) return;
+            await this._handleSignal(payload);
+        });
+        await this.sigCh.subscribe();
+
+        // 5. Set remote description from saved offer, create answer
+        await this.pc.setRemoteDescription(new RTCSessionDescription(this._pendingOffer));
+        const answer = await this.pc.createAnswer();
+        await this.pc.setLocalDescription(answer);
+
+        // 6. Send answer back
+        this.sigCh.send({
+            type: 'broadcast',
+            event: 'signal',
+            payload: {
+                type: 'answer',
+                from: this.userId,
+                sdp: answer
+            }
+        });
+
+        if (status) status.textContent = isVideo ? '📹 Video call connected!' : '📞 Voice call connected!';
+
+        // Clear pending
+        this._pendingOffer = null;
+        this._pendingCallerName = null;
+        this._incomingRoomId = null;
+    }
+
+    // ── DECLINE INCOMING CALL ─────────────────────────────────────────────
+    declineCall() {
+        const modal = $id('nexusIncomingCallModal');
+        if (modal) modal.classList.remove('show');
+
+        // Send decline signal if we have a channel
+        if (this._incomingRoomId) {
+            const sigId = `nexus-sig-${this._incomingRoomId}`;
+            const ch = this.sb.channel(sigId);
+            ch.subscribe().then(() => {
+                ch.send({
+                    type: 'broadcast',
+                    event: 'signal',
+                    payload: { type: 'declined', from: this.userId, name: this.userName }
+                });
+                setTimeout(() => { try { this.sb.removeChannel(ch); } catch(_) {} }, 1000);
+            });
+        }
+
+        this._pendingOffer = null;
+        this._pendingCallerName = null;
+        this._incomingRoomId = null;
+    }
+
+    // ── LISTEN FOR INCOMING CALLS (Global) ────────────────────────────────
+    listenForIncomingCalls(roomIds) {
+        for (const roomId of roomIds) {
+            if (this._listeningRoomIds.has(roomId)) continue;
+            this._listeningRoomIds.add(roomId);
+
+            const sigId = `nexus-sig-${roomId}`;
+            const ch = this.sb.channel(`listen-${sigId}`);
+            ch.on('broadcast', { event: 'signal' }, ({ payload }) => {
+                if (!payload || payload.from === this.userId) return;
+
+                // Only handle offers when we're NOT already in a call
+                if (payload.type === 'offer' && !this.currentCallRoomId) {
+                    this._pendingOffer = payload.sdp;
+                    this._pendingCallerName = payload.name || 'Unknown';
+                    this._pendingIsVideo = !!payload.isVideo;
+                    this._incomingRoomId = roomId;
+
+                    // Show incoming call modal
+                    const modal = $id('nexusIncomingCallModal');
+                    const callerName = $id('nexusIncomingCallerName');
+                    const callType = $id('nexusIncomingCallType');
+                    if (callerName) callerName.textContent = this._pendingCallerName;
+                    if (callType) callType.textContent = `is ${payload.isVideo ? 'video' : 'voice'} calling you...`;
+                    if (modal) modal.classList.add('show');
+
+                    // Play ringtone sound (optional, uses Web Audio API)
+                    try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.frequency.value = 440;
+                        gain.gain.value = 0.1;
+                        osc.start();
+                        setTimeout(() => { osc.stop(); ctx.close(); }, 1500);
+                    } catch(_) {}
+                }
+            });
+            ch.subscribe();
+        }
+    }
+
+    // ── CREATE PEER CONNECTION ─────────────────────────────────────────────
+    _createPeerConnection() {
+        this.pc = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ]
+        });
+
+        // Add local tracks
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(t => this.pc.addTrack(t, this.localStream));
+        }
+
+        // Handle remote track
+        this.pc.ontrack = (e) => {
+            console.log('WebRTC: Remote track received', e.track.kind);
+            const rv = $id('nexusRemoteVideo');
+            if (rv && e.streams[0]) {
+                rv.srcObject = e.streams[0];
+                rv.setAttribute('autoplay', '');
+                rv.setAttribute('playsinline', '');
+                rv.play().catch(() => {});
+            }
+        };
+
+        // Handle ICE candidates
+        this.pc.onicecandidate = (e) => {
+            if (e.candidate && this.sigCh) {
+                this.sigCh.send({
+                    type: 'broadcast',
+                    event: 'signal',
+                    payload: {
+                        type: 'candidate',
+                        from: this.userId,
+                        candidate: e.candidate
+                    }
+                });
+            }
+        };
+
+        // Connection state monitoring
+        this.pc.onconnectionstatechange = () => {
+            const status = $id('nexusCallOverlayStatus');
+            switch (this.pc.connectionState) {
+                case 'connected':
+                    if (status) status.textContent = '🟢 Connected';
+                    break;
+                case 'disconnected':
+                case 'failed':
+                    if (status) status.textContent = '🔴 Connection lost';
+                    nexusShowToast('Call connection lost.', 'error');
+                    break;
+            }
+        };
+
+        this.pc.oniceconnectionstatechange = () => {
+            console.log('ICE state:', this.pc.iceConnectionState);
+        };
+    }
+
+    // ── HANDLE INCOMING SIGNAL ────────────────────────────────────────────
+    async _handleSignal(payload) {
+        if (!this.pc) return;
+
+        try {
+            if (payload.type === 'answer') {
+                await this.pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+                const status = $id('nexusCallOverlayStatus');
+                if (status) status.textContent = '🟢 Call connected!';
+            } else if (payload.type === 'candidate' && payload.candidate) {
+                await this.pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+            } else if (payload.type === 'hangup') {
+                this.endCall(false);
+                nexusShowToast('The other party ended the call.', 'info');
+            } else if (payload.type === 'declined') {
+                nexusShowToast(`${payload.name || 'User'} declined the call.`, 'info');
+                this.endCall(false);
+            }
+        } catch (err) {
+            console.error('Signal handling error:', err);
+        }
+    }
+
+    // ── END CALL ──────────────────────────────────────────────────────────
     endCall(logMessage = true) {
         const roomId = this.currentCallRoomId;
-        if (this.pc) { this.pc.close(); this.pc = null; }
-        if (this.localStream) { this.localStream.getTracks().forEach(t => t.stop()); this.localStream = null; }
+
+        // Close peer connection
+        if (this.pc) { try { this.pc.close(); } catch(_) {} this.pc = null; }
+
+        // Stop local stream
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(t => t.stop());
+            this.localStream = null;
+        }
+
+        // Stop screen share
+        if (this._screenStream) {
+            this._screenStream.getTracks().forEach(t => t.stop());
+            this._screenStream = null;
+        }
+
+        // Send hangup signal and cleanup channel
         if (this.sigCh) {
-            try { this.sigCh.send({ type: 'broadcast', event: 'signal', payload: { type: 'hangup', from: this.userId } }); } catch (_) { }
-            try { this.sb.removeChannel(this.sigCh); } catch (_) { }
+            try {
+                this.sigCh.send({
+                    type: 'broadcast',
+                    event: 'signal',
+                    payload: { type: 'hangup', from: this.userId }
+                });
+            } catch (_) {}
+            try { this.sb.removeChannel(this.sigCh); } catch (_) {}
             this.sigCh = null;
         }
-        const overlay = $id('nexusCallOverlay'); if (overlay) overlay.style.display = 'none';
-        const lv = $id('nexusLocalVideo'); if (lv) lv.srcObject = null;
-        const rv = $id('nexusRemoteVideo'); if (rv) rv.srcObject = null;
-        const muteBtn = $id('nexusMuteBtn'); if (muteBtn) muteBtn.style.opacity = '1';
-        const vidBtn = $id('nexusVidOffBtn'); if (vidBtn) vidBtn.style.opacity = '1';
+
+        // Hide overlay using CSS class
+        const overlay = $id('nexusCallOverlay');
+        if (overlay) overlay.classList.remove('show');
+
+        // Clear video elements
+        const lv = $id('nexusLocalVideo');
+        if (lv) lv.srcObject = null;
+        const rv = $id('nexusRemoteVideo');
+        if (rv) rv.srcObject = null;
+
+        // Reset button states
+        const muteBtn = $id('nexusMuteBtn');
+        if (muteBtn) { muteBtn.style.opacity = '1'; muteBtn.innerHTML = '<i class="fas fa-microphone"></i>'; }
+        const vidBtn = $id('nexusVidOffBtn');
+        if (vidBtn) { vidBtn.style.opacity = '1'; vidBtn.innerHTML = '<i class="fas fa-video"></i>'; }
+
+        // Log end-call message
         if (logMessage && roomId) {
             const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
             this.sb.from('chat_messages').insert({
-                room_id: roomId, sender_id: this.userId,
-                content: `📵 ${this.userName} ended the call at ${now} `,
+                room_id: roomId,
+                sender_id: this.userId,
+                content: `📵 ${this.userName} ended the call at ${now}`,
                 message_type: 'system'
-            }).catch(() => { });
+            }).catch(() => {});
         }
+
         this.currentCallRoomId = null;
     }
 }
@@ -312,6 +609,10 @@ class NexusChatUI {
             this._subscribeNewRooms();
             this._subscribeToMessages();
             this.bindSearch();
+
+            // Start listening for incoming calls on all rooms
+            console.log('NexusChatUI: STEP 6 - Setting up incoming call listeners');
+            this.callMgr.listenForIncomingCalls(this.rooms.map(r => r.id));
 
             console.log('✅ NexusChatUI: Initialization complete');
         } catch (e) {
@@ -3148,13 +3449,25 @@ function _nexusAttachEvents(ctrl) {
         ctrl.callMgr.endCall(true);
     });
 
+    // Incoming Call Accept/Decline
+    $('nexusAcceptCallBtn')?.addEventListener('click', () => {
+        ctrl.callMgr.acceptCall();
+    });
+
+    $('nexusDeclineCallBtn')?.addEventListener('click', () => {
+        ctrl.callMgr.declineCall();
+    });
+
     $('nexusMuteBtn')?.addEventListener('click', () => {
         if (ctrl.callMgr && ctrl.callMgr.localStream) {
             const audioTrack = ctrl.callMgr.localStream.getAudioTracks()[0];
             if (audioTrack) {
                 audioTrack.enabled = !audioTrack.enabled;
                 const btn = $('nexusMuteBtn');
-                if (btn) btn.style.opacity = audioTrack.enabled ? '1' : '0.5';
+                if (btn) {
+                    btn.style.opacity = audioTrack.enabled ? '1' : '0.5';
+                    btn.innerHTML = audioTrack.enabled ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
+                }
             }
         }
     });
