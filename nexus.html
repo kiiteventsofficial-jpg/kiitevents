@@ -1,367 +1,840 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
+<html lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>College Events Hub | Home</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS | Advanced Chat System</title>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet" />
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        primary: "#3b82f6",
-                        "primary-hover": "#2563eb",
-                        "background-light": "#f3f4f6",
-                        "background-dark": "#0f172a",
-                        "surface-light": "#ffffff",
-                        "surface-dark": "#1e293b",
-                        "input-bg-dark": "#131c2e",
-                        "border-dark": "#334155",
-                    },
-                    fontFamily: {
-                        display: ["Inter", "sans-serif"],
-                        body: ["Inter", "sans-serif"],
-                    },
-                    borderRadius: {
-                        DEFAULT: "0.5rem",
-                        'xl': '1rem',
-                        '2xl': '1.5rem',
-                    },
-                },
-            },
-        }
-    </script>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="nexus-chat.css">
     <style>
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 10px;
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #020617;
+            overflow: hidden;
+            overflow-x: hidden;
+            width: 100%;
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
         }
 
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #0f172a;
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 20px;
-            border: 3px solid #0f172a;
+        .nexus-standalone-wrapper {
+            width: 100%;
+            height: 100dvh;
+            display: flex;
+            position: relative;
+            background: radial-gradient(circle at 10% 20%, rgba(124, 77, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
         }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #475569;
+        /* Glassmorphism background blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.3;
         }
 
-        #addSocietyModal .custom-scrollbar::-webkit-scrollbar-track {
-            background: #111827;
+        .blob-1 {
+            width: 500px;
+            height: 500px;
+            background: rgba(124, 77, 255, 0.2);
+            top: -250px;
+            left: -100px;
         }
 
-        #addSocietyModal .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border: 3px solid #111827;
+        .blob-2 {
+            width: 400px;
+            height: 400px;
+            background: rgba(59, 130, 246, 0.2);
+            bottom: -200px;
+            right: -100px;
+        }
+
+        .nexus-chat-root {
+            position: relative;
+            z-index: 10;
+            background: transparent !important;
+            height: 100dvh;
+            width: 100%;
+            display: flex;
+        }
+
+        /* Standalone header/nav if needed */
+        .nexus-standalone-nav {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: #cbd5e1;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: rgba(124, 77, 255, 0.3);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        #loadingOverlay {
+            transition: opacity 0.5s ease;
         }
     </style>
 </head>
 
-<body class="bg-background-dark font-display text-slate-200 antialiased min-h-screen flex flex-col relative">
-    <div id="debug-error-log"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); color:red; z-index:9999; padding:20px; overflow:auto; font-family:monospace;">
-        <h2>JavaScript Errors Detected:</h2>
-        <pre id="error-content"></pre>
-        <button onclick="document.getElementById('debug-error-log').style.display='none'"
-            style="background:white; color:black; padding:5px;">Close</button>
-    </div>
-    <script>
-        window.onerror = function (message, source, lineno, colno, error) {
-            document.getElementById('debug-error-log').style.display = 'block';
-            document.getElementById('error-content').innerText += `Error: ${message}\nSource: ${source}:${lineno}:${colno}\n\n`;
-        };
-        window.addEventListener('unhandledrejection', function (event) {
-            document.getElementById('debug-error-log').style.display = 'block';
-            document.getElementById('error-content').innerText += `Promise Rejection: ${event.reason}\n\n`;
-        });
+<body>
 
-    </script>
-    <!-- Global 3D Background Canvas -->
-    <canvas id="global-3d-canvas" class="fixed inset-0 w-full h-full pointer-events-none z-10 opacity-60"></canvas>
+    <div class="nexus-standalone-wrapper">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
 
+        <div class="nexus-standalone-nav" style="display:none;">
+            <!-- Hidden original standalone nav to avoid breaking any scripts looking for it, but removing its visual presence -->
+        </div>
 
-
-    <!-- Navigation Bar Container -->
-    <nav id="navbar-container"
-        class="sticky top-0 z-50 bg-background-dark/80 backdrop-blur-md border-b border-white/10 transition-all duration-300 min-h-[64px]">
-        <!-- Content injected by script.js -->
-    </nav>
-
-    <!-- --- SOCIETY SUBMISSION MODAL (ELITE REDESIGN) --- -->
-    <div id="addSocietyModal" class="modal fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/80"
-        style="display: none;">
-        <div
-            class="w-full max-w-2xl bg-[#111827] rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col h-[90vh] relative">
-
-            <!-- Header -->
-            <div class="px-8 py-6 border-b border-white/5 flex items-center gap-4 shrink-0 bg-[#111827]">
-                <div class="w-12 h-12 bg-[#1e293b] rounded-2xl flex items-center justify-center shadow-inner">
-                    <span class="material-icons-round text-blue-500 text-2xl">groups</span>
+        <div class="nexus-chat-root" id="nexusChatRoot">
+            <!-- SIDEBAR -->
+            <div class="nexus-sidebar modern-sidebar" id="nexusSidebar">
+                <div class="nexus-sidebar-header">
+                    <div class="nexus-user-profile-summary">
+                        <div class="nexus-user-avatar-wrapper">
+                            <div class="nexus-sidebar-user-avatar" id="nexusSidebarUserAvatar">?</div>
+                            <div class="nexus-user-status-indicator online" id="nexusSidebarUserStatus"></div>
+                        </div>
+                        <div class="nexus-user-profile-info">
+                            <span class="nexus-user-profile-name" id="nexusSidebarUserName">Loading...</span>
+                            <span class="nexus-user-profile-role" id="nexusSidebarUserRole">...</span>
+                        </div>
+                    </div>
+                    <button class="nexus-sidebar-toggle" id="nexusSidebarToggle" title="Collapse Sidebar">
+                        <i class="fas fa-indent"></i>
+                    </button>
+                    <button class="nexus-sidebar-mobile-close" id="nexusSidebarClose" style="display:none;">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <div class="flex-1">
-                    <h2 class="text-2xl font-bold text-white tracking-tight">Add New Society</h2>
-                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-0.5">SOCIETY
-                        REGISTRATION PORTAL</p>
+
+                <div class="nexus-sidebar-search-container">
+                    <div class="nexus-sidebar-search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="nexusSidebarSearch" placeholder="Search or Jump to...">
+                        <kbd>⌘ K</kbd>
+                    </div>
                 </div>
-                <button onclick="window.closeAddSocietyModal()"
-                    class="w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-full flex items-center justify-center transition-all">
-                    <span class="material-icons-round">close</span>
-                </button>
-            </div>
 
-            <!-- Scrollable Form -->
-            <form id="publicSocietyForm" class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-[#111827]"
-                onsubmit="window.handleSocietySubmit(event)">
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400" for="society-name">
-                            Society Name <span class="text-red-500">*</span>
-                        </label>
-                        <input
-                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                            id="society-name" placeholder="e.g. KIIT Robotics Society" type="text" required />
+                <div class="nexus-sidebar-scroller">
+                    <div class="nexus-section">
+                        <div class="nexus-section-title">
+                            CHANNELS <span class="badge" id="nexusChannelCount">0</span>
+                            <div style="margin-left:auto; display:flex; gap:8px;">
+                                <i class="fas fa-search nexus-group-menu-btn" id="nexusBtnJoinChannel"
+                                    title="Browse Channels"></i>
+                                <i class="fas fa-plus nexus-group-menu-btn" id="nexusBtnAddGroup"
+                                    title="Create Channel"></i>
+                            </div>
+                        </div>
+                        <div id="nexusChannelsList"></div>
                     </div>
 
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400" for="category">
-                            Category <span class="text-red-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <select
-                                class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all font-medium"
-                                id="category">
-                                <option>Technical</option>
-                                <option>Cultural</option>
-                                <option>Sports</option>
-                                <option>Literary</option>
-                            </select>
-                            <div
-                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-gray-500">
-                                <span class="material-icons-round text-xl">expand_more</span>
+                    <div class="nexus-section-separator"></div>
+
+                    <div class="nexus-section">
+                        <div class="nexus-section-title">
+                            DIRECT MESSAGES <span class="badge" id="nexusDMCount">0</span>
+                            <i class="fas fa-plus nexus-group-menu-btn" id="nexusBtnAddDM" title="New DM"></i>
+                        </div>
+                        <div id="nexusDMsList"></div>
+                    </div>
+
+                    <div class="nexus-section-separator"></div>
+
+                    <div class="nexus-section">
+                        <div class="nexus-section-title">
+                            AI ASSISTANT <span class="badge" id="nexusAICount">0</span>
+                        </div>
+                        <div id="nexusAIList"></div>
+                    </div>
+                </div>
+
+                <div class="nexus-sidebar-footer" style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                    <button class="nexus-add-people-btn" id="nexusBtnBroadcast"
+                        style="width: 100%; justify-content: center; background: rgba(124, 77, 255, 0.1); border: 1px solid rgba(124, 77, 255, 0.2);">
+                        <i class="fas fa-bullhorn" style="margin-right: 8px;"></i>
+                        <span>Broadcast</span>
+                    </button>
+                    <button class="nexus-add-people-btn" id="nexusOpenSettingsV3"
+                        style="width: 100%; justify-content: center; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <i class="fas fa-cog" style="margin-right: 8px;"></i>
+                        <span>Settings</span>
+                    </button>
+                </div>
+            </div>
+            <div class="nexus-sidebar-overlay" id="nexusSidebarOverlay"></div>
+
+
+            <!-- MAIN -->
+            <div class="nexus-main">
+                <div class="nexus-header">
+                    <div class="nexus-header-left">
+                        <button class="nexus-mobile-toggle" id="nexusMobileToggle"><i class="fas fa-bars"></i></button>
+                        <button class="nexus-header-action-btn" onclick="window.close()" title="Back to Dashboard"
+                            style="margin-right: 8px;"><i class="fas fa-arrow-left"></i></button>
+                        <button class="nexus-back-btn" id="nexusBackBtn" style="display:none;"><i
+                                class="fas fa-arrow-left"></i></button>
+                    </div>
+
+                    <div class="nexus-header-center">
+                        <div class="nexus-header-room-icon" id="nexusHeaderRoomIcon">#</div>
+                        <div class="nexus-header-title-block">
+                            <div class="nexus-chat-info-title" id="nexusChatTitle">Select a chat</div>
+                            <div class="nexus-chat-info-meta" id="nexusChatMeta">
+                                <span class="status-dot"></span>
+                                <span class="meta-content">Direct & Group Messaging</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="nexus-header-right">
+                        <div class="nexus-header-actions">
+                            <button class="nexus-header-action-btn desktop-only" id="nexusVoiceCallBtn" title="Voice call">
+                                <i class="fas fa-phone-alt"></i>
+                            </button>
+                            <button class="nexus-header-action-btn desktop-only" id="nexusVideoCallBtn" title="Video call">
+                                <i class="fas fa-video"></i>
+                            </button>
+                            <button class="nexus-header-action-btn desktop-only" id="nexusSearchToggleBtn" title="Search messages">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button class="nexus-header-action-btn desktop-only" id="nexusInfoToggleBtn" title="Room Information">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            <button class="nexus-header-action-btn danger desktop-only" id="nexusBlockBtn" title="Block User"
+                                style="display:none;">
+                                <i class="fas fa-ban"></i>
+                            </button>
+
+                            <!-- Mobile 3-dot menu -->
+                            <div class="nexus-mobile-menu-wrapper mobile-only" id="nexusMobileMenuWrapper">
+                                <button class="nexus-header-action-btn" id="nexusMobileMenuBtn">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <div class="nexus-mobile-dropdown" id="nexusMobileDropdown">
+                                    <button id="nexusMobVoiceCallBtn"><i class="fas fa-phone-alt"></i> Voice Call</button>
+                                    <button id="nexusMobVideoCallBtn"><i class="fas fa-video"></i> Video Call</button>
+                                    <button id="nexusMobSearchBtn"><i class="fas fa-search"></i> Search Msg</button>
+                                    <button id="nexusMobInfoBtn"><i class="fas fa-info-circle"></i> Info</button>
+                                    <button id="nexusMobBlockBtn" class="danger" style="display:none;"><i class="fas fa-ban"></i> Block User</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-2">
-                    <label class="block text-sm font-semibold text-gray-400">
-                        Society Logo
-                    </label>
-                    <div class="relative group cursor-pointer">
-                        <input class="hidden" id="logo-upload" type="file" accept="image/*"
-                            onchange="window.previewSocietyLogo(this)" />
-                        <label
-                            class="flex flex-col items-center justify-center w-full min-h-[220px] border-2 border-dashed border-[#1e293b] rounded-[2rem] bg-[#0f172a]/50 hover:bg-[#0f172a] transition-all cursor-pointer group-hover:border-blue-500/50"
-                            for="logo-upload">
-                            <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center"
-                                id="logo-upload-prompt">
-                                <div
-                                    class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                                    <span class="material-icons-round text-blue-500 text-4xl">add_photo_alternate</span>
-                                </div>
-                                <p class="text-white font-bold text-lg">Click to upload logo</p>
-                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-2">SQUARE
-                                    FORMAT RECOMMENDED</p>
+                <!-- Inline Search (Hidden by default) -->
+                <div class="nexus-inline-search-bar" id="nexusInlineSearchBar" style="display:none;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="nexusMsgSearch" placeholder="Search messages in this conversation...">
+                    <button id="nexusCloseSearchBtn"><i class="fas fa-times"></i></button>
+                </div>
+
+                <!-- Pinned panel -->
+                <div class="nexus-pinned-panel" id="nexusPinnedPanel" style="display:none;">
+                    <i class="fas fa-thumbtack"></i><span class="label">Pinned:</span>
+                    <div id="nexusPinnedList"></div>
+                </div>
+
+                <!-- Welcome -->
+                <div class="nexus-welcome" id="nexusWelcome">
+                    <div
+                        style="width: 100px; height: 100px; background: rgba(124, 77, 255, 0.1); border-radius: 30px; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; border: 1px solid rgba(124, 77, 255, 0.2);">
+                        <i class="fas fa-comments" style="font-size: 3rem; color: #7c4dff;"></i>
+                    </div>
+                    <h3
+                        style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.8rem; margin-bottom: 0.5rem; color: #fff;">
+                        Welcome to NEXUS</h3>
+                    <p style="color: #8f9bc0; max-width: 400px; line-height: 1.6;">Your workspace for collaboration.
+                        Select any channel or start a new conversation to get started.</p>
+                </div>
+
+                <!-- Chat Layout -->
+                <div id="nexusChatLayout" style="display:none; flex:1; min-height:0;">
+                    <div class="nexus-chat-main-column">
+                        <div class="nexus-content-area" id="nexusMessages"></div>
+                        <div id="nexusTypingIndicator" style="display:none;"></div>
+                        <div class="nexus-typing" id="nexusTyping" style="display:none;">
+                            <div class="nexus-typing-dots"><span></span><span></span><span></span></div>
+                            <span class="nexus-typing-name"></span>
+                        </div>
+                        <div id="nexusReplyPreview" style="display:none; background:rgba(15,23,42,0.9); border-top:1px solid rgba(255,255,255,0.08); padding:10px 15px; flex-direction:row; align-items:center; z-index:5;">
+                            <!-- Content injected via JS -->
+                        </div>
+                        <div class="nexus-input-area">
+                            <div id="nexusAttachMenu" class="nexus-attach-menu">
+                                <div class="nexus-attach-item" data-type="image"><i class="fas fa-image"
+                                        style="color:#7b9eff;"></i>Image</div>
+                                <div class="nexus-attach-item" data-type="file"><i class="fas fa-file-alt"
+                                        style="color:#ffb37b;"></i>Document</div>
+                                <div class="nexus-attach-item" data-type="video"><i class="fas fa-video"
+                                        style="color:#ff8a8a;"></i>Video</div>
                             </div>
-                            <!-- Pill-shaped Paste Button inside Box -->
-                            <div
-                                class="mt-6 px-6 py-2.5 bg-[#0f172a] rounded-full border border-[#1e293b] text-gray-400 text-sm flex items-center gap-2 hover:border-white/20 transition-all">
-                                <span>Paste Logo URL here...</span>
+                            <input type="file" id="nexusFileInput" style="display:none;"
+                                accept="image/*,.pdf,.doc,.docx,.zip,.txt,.mp4,.mp3">
+                            <!-- Mention Dropdown -->
+                            <div id="nexusMentionDropdown" class="nexus-mention-dropdown" style="display:none;"></div>
+                            <div class="nexus-input-wrapper horizontal-layout">
+                                <button class="nexus-input-tool" id="nexusAttachBtn" title="Attach file"><i
+                                        class="fas fa-paperclip"></i></button>
+                                <textarea id="nexusMsgInput" placeholder="Type a message..." rows="1"></textarea>
+                                <button class="nexus-input-tool nexus-send-btn" id="nexusSendBtn" title="Send"><i
+                                        class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contextual Right Sidebar (Contextual Bar) -->
+                    <div class="nexus-contextual-bar" id="nexusContextualBar" style="display:none;">
+                        <div class="nexus-cbar-header">
+                            <span id="nexusCBarTitle">Room Info</span>
+                            <button id="nexusCloseCBar"><i class="fas fa-times"></i></button>
+                        </div>
+
+                        <div class="nexus-cbar-tabs"
+                            style="display:flex; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:10px;">
+                            <button id="nexusTabInfo" class="nexus-cbar-tab active"
+                                style="flex:1; padding:10px; background:none; border:none; color:#fff; border-bottom:2px solid #7c4dff; cursor:pointer;">Info</button>
+                            <button id="nexusTabMembers" class="nexus-cbar-tab"
+                                style="flex:1; padding:10px; background:none; border:none; color:#8f9bc0; cursor:pointer;">Members</button>
+                        </div>
+
+                        <div class="nexus-cbar-content" id="nexusCBarContent">
+                            <!-- Info Details -->
+                            <div id="nexusViewInfo" style="display:block;">
+                                <!-- Info populated by JS -->
                             </div>
 
-                            <div id="socImagePreview"
-                                class="hidden absolute inset-0 bg-[#0f172a] rounded-[2rem] flex items-center justify-center p-4">
-                                <img src="" class="h-full w-auto object-contain rounded-xl shadow-2xl">
-                                <button type="button"
-                                    class="absolute top-4 right-4 w-10 h-10 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl flex items-center justify-center transition-all"
-                                    onclick="event.stopPropagation(); event.preventDefault(); window.clearSocietyLogo();">
-                                    <span class="material-icons-round">close</span>
+                            <!-- Members List -->
+                            <div id="nexusViewMembers" style="display:none; flex-direction:column; gap:10px;">
+                                <button class="nexus-modal-btn primary" id="nexusContextAddMemberBtn"
+                                    style="width:100%; margin-bottom:10px;">
+                                    <i class="fas fa-user-plus" style="margin-right:6px;"></i>Add Member
                                 </button>
+                                <div id="nexusMemberListContainer"
+                                    style="display:flex; flex-direction:column; gap:8px;">
+                                    <!-- Members populated by JS -->
+                                </div>
                             </div>
-                        </label>
-                    </div>
-                    <!-- Actual URL input (hidden but accessible or used for pasting) -->
-                    <input id="pubSocImageUrl" class="hidden" type="url" />
-                </div>
+                        </div>
 
-                <div class="space-y-2">
-                    <label class="block text-sm font-semibold text-gray-400" for="short-desc">
-                        Short Description <span class="text-red-500">*</span> <span
-                            class="text-[10px] text-gray-600 ml-1 uppercase">(Used for cards)</span>
-                    </label>
-                    <textarea
-                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[120px] resize-none transition-all font-medium"
-                        id="short-desc" placeholder="Brief summary for the society card..." required></textarea>
+                        <div style="margin-top:auto; padding-top:20px; border-top:1px solid rgba(255,255,255,0.08);">
+                            <button id="nexusLeaveChannelBtn" class="nexus-modal-btn cancel"
+                                style="width:100%; color:#ff5252; border:1px solid rgba(255,82,82,0.3);">
+                                <i class="fas fa-door-open" style="margin-right:6px;"></i>Leave Channel
+                            </button>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="space-y-2">
-                    <label class="block text-sm font-semibold text-gray-400" for="overview">
-                        Overview (Full Page)
-                    </label>
-                    <textarea
-                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[150px] resize-none transition-all font-medium"
-                        id="overview" placeholder="Detailed introduction..."></textarea>
-                </div>
-
-                <div class="space-y-2">
-                    <label class="block text-sm font-semibold text-gray-400" for="activities">
-                        Activities & How It Works
-                    </label>
-                    <textarea
-                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[120px] resize-none transition-all font-medium"
-                        id="activities" placeholder="What does the society actually do?"></textarea>
-                </div>
-
-                <div class="space-y-2">
-                    <label class="block text-sm font-semibold text-gray-400" for="recruitment">
-                        Recruitment Process
-                    </label>
-                    <textarea
-                        class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[120px] resize-none transition-all font-medium"
-                        id="recruitment" placeholder="How can students join?"></textarea>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400" for="members">
-                            Members
-                        </label>
-                        <input
-                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                            id="members" placeholder="e.g. 50+" type="text" />
-                    </div>
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400" for="events">
-                            Events/Projects
-                        </label>
-                        <input
-                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                            id="events" placeholder="e.g. 20+" type="text" />
-                    </div>
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400" for="est-year">
-                            Est. Year
-                        </label>
-                        <input
-                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                            id="est-year" placeholder="e.g. 2015" type="text" />
-                    </div>
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400" for="website">
-                            Website
-                        </label>
-                        <input
-                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                            id="website" placeholder="https://..." type="url" />
-                    </div>
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400" for="linkedin">
-                            LinkedIn
-                        </label>
-                        <input
-                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                            id="linkedin" placeholder="LinkedIn URL" type="url" />
-                    </div>
-                    <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-gray-400" for="instagram">
-                            Instagram
-                        </label>
-                        <input
-                            class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                            id="instagram" placeholder="Instagram URL" type="url" />
-                    </div>
-                </div>
-
-                <div class="pt-6 pb-12">
-                    <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-6 rounded-2xl shadow-xl shadow-blue-500/20 transform active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3">
-                        <span class="material-icons-round">check_circle</span>
-                        <span id="pubSocSubmitBtnText">SUBMIT SOCIETY REQUEST</span>
-                    </button>
-                </div>
-            </form>
+    <!-- MODALS -->
+    <div class="nexus-modal" id="nexusAddMemberModal">
+        <div class="nexus-modal-content">
+            <h3><i class="fas fa-user-plus" style="color:#7c4dff;margin-right:8px;"></i>Add Member to Channel</h3>
+            <input class="nexus-modal-input" type="text" id="nexusAddPeopleSearch"
+                placeholder="Search by name or email...">
+            <div class="nexus-member-list" id="nexusAddPeopleResults"
+                style="max-height:200px;overflow-y:auto;border:1px solid rgba(143,155,192,0.1);border-radius:8px;margin-bottom:15px;">
+            </div>
+            <div class="nexus-modal-footer">
+                <button class="nexus-modal-btn cancel" id="nexusCloseAddPeople">Cancel</button>
+            </div>
         </div>
     </div>
 
-    <!-- Main Content -->
-
-    <div id="app-root" class="flex-1">
-        <!-- Views will be rendered here -->
+    <div class="nexus-modal" id="nexusCreateGroupModal">
+        <div class="nexus-modal-content">
+            <h3><i class="fas fa-users" style="color:#7c4dff;margin-right:8px;"></i>Create Group / Channel</h3>
+            <input class="nexus-modal-input" type="text" id="nexusGroupNameInput"
+                placeholder="Group Name (e.g. CORE TEAM)">
+            <div style="margin: 15px 0 10px;">
+                <label style="display:block;font-size:0.75rem;color:#8f9bc0;margin-bottom:5px;font-weight:600;">ADD
+                    MEMBERS</label>
+                <input class="nexus-modal-input" type="text" id="nexusGroupSearchInput"
+                    placeholder="Search by name or email...">
+            </div>
+            <div class="nexus-member-list" id="nexusGroupSearchResults"
+                style="max-height:150px;overflow-y:auto;border:1px solid rgba(143,155,192,0.1);border-radius:8px;">
+            </div>
+            <div id="nexusSelectedMembers" class="nexus-tag-container"
+                style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;min-height:30px;">
+                <span style="font-size:0.75rem;color:#6b7390;font-style:italic;">No members selected...</span>
+            </div>
+            <div class="nexus-modal-footer">
+                <button class="nexus-modal-btn cancel" id="nexusCancelGroup">Cancel</button>
+                <button class="nexus-modal-btn primary" id="nexusSaveGroup">Create Group</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-[#050505] border-t border-white/5 py-8 relative z-20">
-        <div
-            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p class="text-slate-500 text-sm">&copy; 2026 KIIT Events. All rights reserved.</p>
-            <p class="text-slate-500 text-sm flex items-center gap-1">
-                Made with <span class="text-red-500">❤️</span> for KiiTians, by KiiTians
-            </p>
+    <div class="nexus-modal" id="nexusBrowseChannelsModal">
+        <div class="nexus-modal-content">
+            <h3><i class="fas fa-search" style="color:#7c4dff;margin-right:8px;"></i>Browse Channels</h3>
+            <input class="nexus-modal-input" type="text" id="nexusBrowseChannelsSearch"
+                placeholder="Search available channels...">
+            <div class="nexus-member-list" id="nexusBrowseChannelsResults"
+                style="max-height:250px;overflow-y:auto;border:1px solid rgba(143,155,192,0.1);border-radius:8px;margin-bottom:15px;display:flex;flex-direction:column;gap:5px;">
+                <div style="padding:15px; text-align:center; color:#8f9bc0; font-style:italic;">Loading channels...
+                </div>
+            </div>
+            <div class="nexus-modal-footer">
+                <button class="nexus-modal-btn cancel" id="nexusCloseBrowseChannels">Close</button>
+            </div>
         </div>
-    </footer>
+    </div>
 
+    <div class="nexus-modal" id="nexusDMModal">
+        <div class="nexus-modal-content">
+            <h3><i class="fas fa-user-plus" style="color:#7c4dff;margin-right:8px;"></i>Start Direct Message</h3>
+            <input class="nexus-modal-input" type="text" id="nexusDMSearchInput"
+                placeholder="Search by name or email...">
+            <div class="nexus-member-list" id="nexusDMResults"></div>
+            <div class="nexus-modal-footer">
+                <button class="nexus-modal-btn cancel" id="nexusCancelDM">Close</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- Supabase Client (Module) -->
+    <div class="nexus-modal" id="nexusBroadcastModal">
+        <div class="nexus-modal-content">
+            <h3><i class="fas fa-bullhorn" style="color:#7c4dff;margin-right:8px;"></i>Broadcast Message</h3>
+            <select class="nexus-modal-select" id="nexusBroadcastTarget">
+                <option value="all">Everyone</option>
+                <option value="students">Students Only</option>
+                <option value="admins">Admins Only</option>
+            </select>
+            <textarea class="nexus-modal-input" id="nexusBroadcastMsg" placeholder="Your broadcast content..." rows="4"
+                style="border-radius:14px;resize:none;"></textarea>
+            <div class="nexus-modal-footer">
+                <button class="nexus-modal-btn cancel" id="nexusCancelBroadcast">Cancel</button>
+                <button class="nexus-modal-btn primary" id="nexusSendBroadcast">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="nexus-modal" id="nexusProfileModal">
+        <div class="nexus-modal-content" style="max-width: 360px;">
+            <div id="nexusProfileContent" style="text-align: center; padding: 10px;">
+                <div class="nexus-dm-avatar" id="nexusProfileAvatar"
+                    style="width: 80px; height: 80px; font-size: 2rem; margin: 0 auto 15px; border-radius: 24px;">?
+                </div>
+                <h3 id="nexusProfileName" style="margin-bottom: 5px; color: #fff;">User Name</h3>
+                <p id="nexusProfileEmail" style="color: #8f9bc0; font-size: 0.9rem; margin-bottom: 20px;">
+                    email@example.com</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="nexus-modal-btn primary" id="nexusProfileChatBtn" style="flex: 1;">Message</button>
+                    <button class="nexus-modal-btn cancel" id="nexusCloseProfile" style="flex: 1;">Close</button>
+                    <button class="nexus-modal-btn" id="nexusOpenSettingsBtn" style="flex: 1; background:rgba(255,255,255,0.1); color:#fff;"><i class="fas fa-cog"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="nexus-modal" id="nexusSettingsModal">
+        <div class="nexus-modal-content" style="max-width: 400px;">
+            <h3><i class="fas fa-sliders-h" style="color:#7c4dff;margin-right:8px;"></i>Chat Settings</h3>
+            <div style="margin: 15px 0 10px;">
+                <label style="display:block;font-size:0.75rem;color:#8f9bc0;margin-bottom:5px;font-weight:600;">CHAT BACKGROUND URL</label>
+                <input class="nexus-modal-input" type="text" id="nexusBgImageInput" placeholder="https://example.com/image.jpg">
+            </div>
+            <div style="margin: 15px 0 10px; display:flex; justify-content:space-between; align-items:center;">
+                <label style="font-size:0.85rem;color:#e2e8f0;font-weight:500;">Message Sounds</label>
+                <input type="checkbox" id="nexusToggleSounds" checked style="accent-color:#7c4dff; transform:scale(1.2);">
+            </div>
+            <div class="nexus-modal-footer" style="margin-top:20px;">
+                <button class="nexus-modal-btn cancel" onclick="document.getElementById('nexusSettingsModal').classList.remove('show')">Close</button>
+                <button class="nexus-modal-btn primary" id="nexusSaveSettingsBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CALL MODAL -->
+    <div class="nexus-modal" id="nexusCallModal" style="background: rgba(10,13,22,0.95); backdrop-filter: blur(10px);">
+        <div class="nexus-modal-content"
+            style="max-width: 800px; width:90%; height:75vh; display:flex; flex-direction:column; background: #161c2d; padding: 0; overflow:hidden;">
+            <div
+                style="padding: 15px 20px; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;"><i class="fas fa-video" style="color:#7c4dff; margin-right:10px;"></i>Nexus Secure
+                    Call</h3>
+                <span id="nexusCallStatus"
+                    style="color:#2ecc71; font-size:0.85rem; padding: 4px 10px; background:rgba(46,204,113,0.1); border-radius:20px;">Connected</span>
+            </div>
+
+            <div
+                style="flex:1; position:relative; display:flex; justify-content:center; align-items:center; background:#000;">
+                <!-- Remote Video (Main) -->
+                <video id="nexusRemoteVideo" autoplay playsinline
+                    style="width:100%; height:100%; object-fit:cover;"></video>
+                <!-- Local Video (PIP) -->
+                <video id="nexusLocalVideo" autoplay playsinline muted
+                    style="position:absolute; bottom:20px; right:20px; width:150px; height:200px; object-fit:cover; border-radius:12px; border:2px solid rgba(255,255,255,0.2); box-shadow: 0 10px 20px rgba(0,0,0,0.5);"></video>
+            </div>
+
+            <div
+                style="padding: 20px; display:flex; justify-content:center; gap:20px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05);">
+                <button id="nexusCallMuteBtn" class="nexus-action-btn"
+                    style="background:rgba(255,255,255,0.1); width:50px; height:50px;"><i
+                        class="fas fa-microphone"></i></button>
+                <button id="nexusCallVideoBtn" class="nexus-action-btn"
+                    style="background:rgba(255,255,255,0.1); width:50px; height:50px;"><i
+                        class="fas fa-video"></i></button>
+                <button id="nexusCallEndBtn" class="nexus-action-btn"
+                    style="background:#ff5252; color:#fff; width:50px; height:50px; transform:scale(1.1);"><i
+                        class="fas fa-phone-slash"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="state.js"></script>
     <script type="module" src="supabase.js"></script>
+    <script src="nexus-chat.js"></script>
 
     <script>
-        // 🚨 Prevent app scripts from running during OAuth redirect
-        const isOAuthFlow =
-            window.location.pathname.includes("auth-callback") ||
-            window.location.hash.includes("access_token") ||
-            window.location.search.includes("code=");
+        // Standalone Initialization Logic v2 (Robust Recovery)
+        (async () => {
+            const overlay = document.getElementById('loadingOverlay');
+            const statusText = overlay ? overlay.querySelector('p') : null;
 
-        if (isOAuthFlow) {
-            console.log("🛑 OAuth flow detected. App scripts paused.");
-            window.__PAUSE_APP__ = true;
-        }
-    </script>
-    <script>
-        if (!window.__PAUSE_APP__) {
-            const scripts = [
-                { src: "state.js?v=14", type: "text/javascript" },
-                { src: "storage.js?v=14", type: "module" },
-                { src: "script.js?v=14", type: "module" }
-            ];
+            async function bootstrap(attempt = 1) {
+                try {
+                    console.log(`[NexusLoader] Initialization attempt ${attempt}...`);
+                    if (statusText) statusText.textContent = `Connecting to NEXUS (Attempt ${attempt}/3)...`;
 
-            scripts.forEach(s => {
-                const el = document.createElement("script");
-                el.src = s.src;
-                if (s.type === "module") el.type = "module";
-                el.async = false; // 🚨 FORCE SYNCHRONOUS ORDER
-                document.body.appendChild(el);
-            });
-        } else {
-            const callbackScript = document.createElement("script");
-            callbackScript.type = "module";
-            callbackScript.src = "auth-callback.js?v=13";
-            callbackScript.async = false;
-            document.body.appendChild(callbackScript);
-        }
-    </script>
-    <script>
-        window.addEventListener("pageshow", function (event) {
-            if (event.persisted) {
-                window.location.reload();
+                    // 1. Wait for Supabase Script to load
+                    let retries = 0;
+                    while (!window.supabase && retries < 50) { // 5s timeout
+                        await new Promise(r => setTimeout(r, 100));
+                        retries++;
+                    }
+
+                    if (!window.supabase) {
+                        throw new Error('Supabase script failed to load.');
+                    }
+
+                    // 2. Initialize/Verify Client
+                    const sb = window.supabase;
+                    console.log('[NexusLoader] Supabase client found.');
+
+                    // 3. Verify Session
+                    const { data: { session }, error: sessionErr } = await sb.auth.getSession();
+                    if (sessionErr) throw sessionErr;
+                    if (!session) {
+                        console.warn('[NexusLoader] No session found, redirecting...');
+                        window.location.replace('index.html');
+                        return;
+                    }
+
+                    // 4. Initialize Chat Controller
+                    if (typeof window.initNexusChat !== 'function') {
+                        throw new Error('initNexusChat is not defined. Script parse error?');
+                    }
+
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const forcedRole = urlParams.get('role');
+
+                    console.log('[NexusLoader] Triggering Chat Controller...');
+                    await window.initNexusChat(forcedRole);
+
+                    // 5. Success - Clear Overlay
+                    console.log('[NexusLoader] Initialization successful.');
+                    if (overlay) {
+                        overlay.style.opacity = '0';
+                        setTimeout(() => overlay.style.display = 'none', 500);
+                    }
+
+                } catch (err) {
+                    console.error(`[NexusLoader] Attempt ${attempt} failed:`, err);
+
+                    if (attempt < 3) {
+                        if (statusText) statusText.textContent = `Retrying connection...`;
+                        setTimeout(() => bootstrap(attempt + 1), 1500); // Retry with delay
+                    } else {
+                        // Permanent Failure
+                        if (overlay) {
+                            overlay.innerHTML = `
+                                <div style="text-align:center; padding:20px;">
+                                    <i class="fas fa-exclamation-triangle" style="font-size:30px; color:#ff5252; margin-bottom:15px;"></i>
+                                    <p style="color:#ff5252; font-weight:600; margin-bottom:10px;">Nexus Connection Failed</p>
+                                    <p style="font-size:13px; color:#8f9bc0; margin-bottom:20px;">${err.message || 'Unknown error'}</p>
+                                    <button onclick="window.location.reload()" style="background:#7c4dff; color:white; border:none; padding:8px 20px; border-radius:8px; cursor:pointer; font-weight:500;">Retry Now</button>
+                                </div>
+                            `;
+                        }
+                    }
+                }
             }
-        });
+
+            // Start bootstrap
+            bootstrap();
+        })();
     </script>
+
+    <!-- FULL SETTINGS MODAL V3 -->
+    <div class="nexus-modal" id="nexusSettingsModalV3">
+        <div class="nexus-modal-content settings-modal-content">
+            <div class="settings-container-v3">
+                <div class="settings-sidebar-v3">
+                    <div class="settings-sidebar-header-v3">
+                        <h3>Settings</h3>
+                        <button class="settings-close-top-v3" id="nexusCloseSettingsV3"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="settings-nav-v3">
+                        <button class="settings-nav-item active" data-section="profile"><i class="fas fa-user-circle"></i> Profile</button>
+                        <button class="settings-nav-item" data-section="appearance"><i class="fas fa-palette"></i> Appearance</button>
+                        <button class="settings-nav-item" data-section="chat"><i class="fas fa-comment-dots"></i> Chat Settings</button>
+                        <button class="settings-nav-item" data-section="privacy"><i class="fas fa-lock"></i> Privacy</button>
+                        <button class="settings-nav-item" data-section="notifications"><i class="fas fa-bell"></i> Notifications</button>
+                        <button class="settings-nav-item" data-section="storage"><i class="fas fa-hdd"></i> Storage</button>
+                        <button class="settings-nav-item" data-section="about"><i class="fas fa-info-circle"></i> About</button>
+                    </div>
+                </div>
+                <div class="settings-main-v3">
+                    <!-- Profile Section -->
+                    <div class="settings-section show" id="settings-profile">
+                        <div class="settings-section-header">
+                            <h2>Profile</h2>
+                            <button class="nexus-modal-btn primary" id="btnSaveProfileV3">Save Changes</button>
+                        </div>
+                        <div class="settings-profile-card">
+                            <div class="settings-avatar-edit-v3">
+                                <div class="nexus-sidebar-user-avatar" id="settingsAvatarV3">?</div>
+                                <button class="avatar-edit-badge" id="btnEditAvatarV3"><i class="fas fa-camera"></i></button>
+                                <input type="file" id="settingsAvatarInputV3" style="display:none" accept="image/*">
+                            </div>
+                            <div class="settings-form-v3">
+                                <div class="settings-group-v3">
+                                    <label>Display Name</label>
+                                    <input type="text" id="settingsNameInp" placeholder="Your name">
+                                </div>
+                                <div class="settings-group-v3">
+                                    <label>Status / Bio</label>
+                                    <input type="text" id="settingsStatusInp" placeholder="What's on your mind?">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="settings-readonly-list">
+                            <div class="readonly-item"><span>Email</span> <strong id="settingsEmailView">...</strong></div>
+                            <div class="readonly-item"><span>Role</span> <strong id="settingsRoleView">...</strong></div>
+                            <div class="readonly-item"><span>User ID</span> <code id="settingsUidView">...</code></div>
+                        </div>
+                    </div>
+
+                    <!-- Appearance Section -->
+                    <div class="settings-section" id="settings-appearance">
+                        <h2>Appearance</h2>
+                        <div class="settings-group-v3">
+                            <label>Theme Mode</label>
+                            <div class="theme-toggle-v3">
+                                <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i> Dark</button>
+                                <button class="theme-btn" data-theme="light"><i class="fas fa-sun"></i> Light</button>
+                                <button class="theme-btn" data-theme="system"><i class="fas fa-desktop"></i> System</button>
+                            </div>
+                        </div>
+                        <div class="settings-group-v3">
+                            <label>Accent Color</label>
+                            <div class="color-presets-v3" id="accentPresets">
+                                <div class="color-swatch-v3 active" style="background:#7c4dff" data-color="#7c4dff"></div>
+                                <div class="color-swatch-v3" style="background:#2ecc71" data-color="#2ecc71"></div>
+                                <div class="color-swatch-v3" style="background:#3498db" data-color="#3498db"></div>
+                                <div class="color-swatch-v3" style="background:#e74c3c" data-color="#e74c3c"></div>
+                                <div class="color-swatch-v3" style="background:#f1c40f" data-color="#f1c40f"></div>
+                                <input type="color" id="accentCustomColor" style="display:none">
+                                <div class="color-swatch-v3 custom" title="Custom"><i class="fas fa-plus"></i></div>
+                            </div>
+                        </div>
+                        <div class="settings-group-v3">
+                            <label>Font Size</label>
+                            <select id="settingsFontSize" class="nexus-select-v3">
+                                <option value="small">Small</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="large">Large</option>
+                                <option value="xlarge">Extra Large</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Chat Settings Section -->
+                    <div class="settings-section" id="settings-chat">
+                        <h2>Chat Settings</h2>
+                        <div class="settings-group-v3">
+                            <label>Chat Wallpaper URL</label>
+                            <div class="input-with-action-v3">
+                                <input type="text" id="settingsChatBgInp" placeholder="Image URL...">
+                                <button class="nexus-modal-btn" id="btnPreviewBg">Apply</button>
+                            </div>
+                        </div>
+                        <div class="settings-toggles-v3">
+                            <div class="toggle-row-v3">
+                                <span>Show Timestamps</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsShowTime" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-row-v3">
+                                <span>Compact Mode</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsCompactMode"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="bubble-customizer-v3">
+                            <div class="settings-group-v3">
+                                <label>Incoming Bubble</label>
+                                <input type="color" id="settingsBubbleInColor" value="#1e293b">
+                            </div>
+                            <div class="settings-group-v3">
+                                <label>Outgoing Bubble</label>
+                                <input type="color" id="settingsBubbleOutColor" value="#7c4dff">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Privacy Section -->
+                    <div class="settings-section" id="settings-privacy">
+                        <h2>Privacy</h2>
+                        <div class="settings-group-v3">
+                            <label>Last Seen Visibility</label>
+                            <select id="settingsLastSeen" class="nexus-select-v3">
+                                <option value="everyone">Everyone</option>
+                                <option value="contacts">Contacts Only</option>
+                                <option value="nobody">Nobody</option>
+                            </select>
+                        </div>
+                        <div class="settings-group-v3">
+                            <label>Blocked Users</label>
+                            <div id="settingsBlockedList" class="blocked-list-v3">
+                                <div class="blocked-empty">No blocked users</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications Section -->
+                    <div class="settings-section" id="settings-notifications">
+                        <h2>Notifications</h2>
+                        <div class="settings-toggles-v3">
+                            <div class="toggle-row-v3">
+                                <span>Enable Notifications</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsNotifEnable" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-row-v3">
+                                <span>Message Sounds</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsSoundEnable" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-row-v3">
+                                <span>Desktop Alerts</span>
+                                <label class="nexus-switch"><input type="checkbox" id="settingsDesktopNotif"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Storage Section -->
+                    <div class="settings-section" id="settings-storage">
+                        <h2>Storage</h2>
+                        <div class="storage-card-v3">
+                            <div class="storage-info-v3">
+                                <span>Used Storage</span>
+                                <strong>15.2 MB / 100 MB</strong>
+                            </div>
+                            <div class="storage-bar-v3">
+                                <div class="storage-used" style="width: 15%;"></div>
+                            </div>
+                        </div>
+                        <div class="storage-actions-v3">
+                            <button class="nexus-modal-btn outline" id="btnClearCacheV3" style="width:100%">Clear Chat Cache</button>
+                            <button class="nexus-modal-btn danger" id="btnDeleteMediaV3" style="width:100%">Delete All Media</button>
+                        </div>
+                    </div>
+
+                    <!-- About Section -->
+                    <div class="settings-section" id="settings-about">
+                        <div class="about-hero-v3">
+                            <div class="about-logo-v3">N</div>
+                            <h3>NEXUS Chat</h3>
+                            <p>Version 1.1.0 Premium</p>
+                            <div class="about-connection-v3">
+                                CONNECTED: OLLAMA + SUPABASE
+                            </div>
+                            <p class="about-copyright-v3">© 2026 NEXUS Labs. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Forward Message Modal -->
+    <div class="nexus-modal" id="nexusForwardModal">
+        <div class="nexus-modal-content">
+            <h3><i class="fas fa-share" style="color:#7c4dff;margin-right:8px;"></i>Forward Message</h3>
+            <input class="nexus-modal-input" id="nexusForwardSearch" placeholder="Search conversations..." autocomplete="off">
+            <div id="nexusForwardResults" class="nexus-member-list" style="max-height:250px;overflow-y:auto;"></div>
+            <div class="nexus-modal-footer">
+                <button class="nexus-modal-btn cancel" id="nexusCancelForward">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call Overlay -->
+    <div class="nexus-call-overlay" id="nexusCallOverlay">
+        <div class="nexus-call-top-bar" style="position:absolute;top:20px;right:20px;left:20px;display:flex;justify-content:space-between;align-items:center;z-index:10;">
+            <span id="nexusCallTimer" style="color:#fff;font-size:1rem;font-weight:600;background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#ff4444;animation:nexusPulse 1.5s infinite;"></span>
+                <span id="nexusCallTimerText">00:00</span>
+            </span>
+            <button id="nexusFullscreenBtn" style="background:rgba(255,255,255,0.12);border:none;color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1rem;" title="Fullscreen"><i class="fas fa-expand"></i></button>
+        </div>
+        <p id="nexusCallOverlayStatus" style="color:#9198b0;font-size:0.85rem;margin-bottom:16px;"></p>
+        <div class="nexus-call-videos">
+            <video id="nexusRemoteVideo" autoplay playsinline style="width:60vw;max-width:700px;background:#111;border-radius:16px;"></video>
+            <video id="nexusLocalVideo" autoplay playsinline muted style="width:30vw;max-width:320px;background:#111827;border-radius:12px;"></video>
+        </div>
+        <div class="nexus-call-ctrl">
+            <button class="nexus-call-ctrl-btn mute" id="nexusMuteBtn" title="Mute"><i class="fas fa-microphone"></i></button>
+            <button class="nexus-call-ctrl-btn vidoff" id="nexusVidOffBtn" title="Camera"><i class="fas fa-video"></i></button>
+            <button class="nexus-call-ctrl-btn" id="nexusScreenShareBtn" style="background:rgba(255,255,255,0.12);" title="Share Screen"><i class="fas fa-desktop"></i></button>
+            <button class="nexus-call-ctrl-btn hangup" id="nexusEndCallBtn" title="End Call"><i class="fas fa-phone-slash"></i></button>
+        </div>
+    </div>
 </body>
 
 </html>
