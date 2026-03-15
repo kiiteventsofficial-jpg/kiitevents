@@ -3197,6 +3197,81 @@ body.settings-open .nexus-modal {
     100% { opacity: 0.4; }
 }
 
+/* ── INCOMING CALL MODAL ──────────────────────────────── */
+.nexus-call-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c4dff, #6a3fe0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #fff;
+}
+
+.nexus-call-pulse {
+    animation: nexusCallPulse 2s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(124, 77, 255, 0.5);
+}
+
+@keyframes nexusCallPulse {
+    0% { box-shadow: 0 0 0 0 rgba(124, 77, 255, 0.5); }
+    50% { box-shadow: 0 0 0 20px rgba(124, 77, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(124, 77, 255, 0); }
+}
+
+.nexus-call-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.nexus-call-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+}
+
+.nexus-call-btn.accept {
+    background: linear-gradient(145deg, #2ecc71, #27ae60);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+}
+
+.nexus-call-btn.accept:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.5);
+}
+
+.nexus-call-btn.decline {
+    background: linear-gradient(145deg, #ff5252, #e04040);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(255, 82, 82, 0.4);
+}
+
+.nexus-call-btn.decline:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(255, 82, 82, 0.5);
+}
+
+/* ── CALL OVERLAY .show FIX ───────────────────────────── */
+#nexusCallOverlay {
+    display: none !important;
+}
+
+#nexusCallOverlay.show {
+    display: flex !important;
+}
+
 /* ======================================================
    NEXUS CHAT — PHASE 2 UPGRADE PATCH
    New features: edit, forward, delete menu, search HL,
