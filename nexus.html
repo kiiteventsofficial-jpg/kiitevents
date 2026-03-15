@@ -492,39 +492,68 @@
         </div>
     </div>
 
-    <!-- CALL MODAL -->
-    <div class="nexus-modal" id="nexusCallModal" style="background: rgba(10,13,22,0.95); backdrop-filter: blur(10px);">
-        <div class="nexus-modal-content"
-            style="max-width: 800px; width:90%; height:75vh; display:flex; flex-direction:column; background: #161c2d; padding: 0; overflow:hidden;">
-            <div
-                style="padding: 15px 20px; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0;"><i class="fas fa-video" style="color:#7c4dff; margin-right:10px;"></i>Nexus Secure
-                    Call</h3>
-                <span id="nexusCallStatus"
-                    style="color:#2ecc71; font-size:0.85rem; padding: 4px 10px; background:rgba(46,204,113,0.1); border-radius:20px;">Connected</span>
+    <!-- CALL OVERLAY (Fullscreen) -->
+    <div id="nexusCallOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background:#0a0d16; flex-direction:column;">
+        <!-- Call Header -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:rgba(0,0,0,0.4); z-index:2;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div id="nexusCallTimer" style="display:flex; align-items:center; gap:6px; background:rgba(255,60,60,0.15); padding:6px 14px; border-radius:20px;">
+                    <span style="width:8px; height:8px; background:#ff3c3c; border-radius:50; animation:nexusPulse 1.5s infinite;"></span>
+                    <span id="nexusCallTimerText" style="color:#ff6b6b; font-size:0.85rem; font-weight:600; font-family:monospace;">00:00</span>
+                </div>
+                <span id="nexusCallOverlayStatus" style="color:#a3b1cc; font-size:0.85rem;">Connecting...</span>
             </div>
+            <button id="nexusFullscreenBtn" title="Toggle Fullscreen" style="background:rgba(255,255,255,0.08); border:none; color:#fff; width:40px; height:40px; border-radius:10px; cursor:pointer; font-size:1rem; transition:all 0.2s;">
+                <i class="fas fa-expand"></i>
+            </button>
+        </div>
 
-            <div
-                style="flex:1; position:relative; display:flex; justify-content:center; align-items:center; background:#000;">
-                <!-- Remote Video (Main) -->
-                <video id="nexusRemoteVideo" autoplay playsinline
-                    style="width:100%; height:100%; object-fit:cover;"></video>
-                <!-- Local Video (PIP) -->
-                <video id="nexusLocalVideo" autoplay playsinline muted
-                    style="position:absolute; bottom:20px; right:20px; width:150px; height:200px; object-fit:cover; border-radius:12px; border:2px solid rgba(255,255,255,0.2); box-shadow: 0 10px 20px rgba(0,0,0,0.5);"></video>
+        <!-- Video Area -->
+        <div style="flex:1; position:relative; display:flex; justify-content:center; align-items:center; overflow:hidden;">
+            <!-- Remote Video (Main) -->
+            <video id="nexusRemoteVideo" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+            <!-- Local Video (Picture-in-Picture) -->
+            <video id="nexusLocalVideo" autoplay playsinline muted style="position:absolute; bottom:24px; right:24px; width:180px; height:240px; object-fit:cover; border-radius:16px; border:2px solid rgba(255,255,255,0.15); box-shadow:0 10px 30px rgba(0,0,0,0.6); z-index:3;"></video>
+            <!-- No Camera / Connecting State -->
+            <div id="nexusCallPlaceholder" style="position:absolute; display:flex; flex-direction:column; align-items:center; gap:12px; color:#6b7390;">
+                <i class="fas fa-video" style="font-size:3rem; opacity:0.3;"></i>
+                <span>Video call in progress...</span>
             </div>
+        </div>
 
-            <div
-                style="padding: 20px; display:flex; justify-content:center; gap:20px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05);">
-                <button id="nexusCallMuteBtn" class="nexus-action-btn"
-                    style="background:rgba(255,255,255,0.1); width:50px; height:50px;"><i
-                        class="fas fa-microphone"></i></button>
-                <button id="nexusCallVideoBtn" class="nexus-action-btn"
-                    style="background:rgba(255,255,255,0.1); width:50px; height:50px;"><i
-                        class="fas fa-video"></i></button>
-                <button id="nexusCallEndBtn" class="nexus-action-btn"
-                    style="background:#ff5252; color:#fff; width:50px; height:50px; transform:scale(1.1);"><i
-                        class="fas fa-phone-slash"></i></button>
+        <!-- Controls Bar -->
+        <div class="nexus-call-ctrl" style="display:flex; justify-content:center; align-items:center; gap:20px; padding:20px; background:rgba(0,0,0,0.5); z-index:2;">
+            <button id="nexusMuteBtn" class="nexus-call-ctrl-btn" title="Toggle Mic" style="width:54px; height:54px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:1.1rem; cursor:pointer; transition:all 0.2s;">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <button id="nexusVidOffBtn" class="nexus-call-ctrl-btn" title="Toggle Camera" style="width:54px; height:54px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:1.1rem; cursor:pointer; transition:all 0.2s;">
+                <i class="fas fa-video"></i>
+            </button>
+            <button id="nexusScreenShareBtn" class="nexus-call-ctrl-btn" title="Screen Share" style="width:54px; height:54px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:1.1rem; cursor:pointer; transition:all 0.2s;">
+                <i class="fas fa-desktop"></i>
+            </button>
+            <button id="nexusEndCallBtn" class="nexus-call-ctrl-btn" title="End Call" style="width:62px; height:62px; border-radius:50%; border:none; background:linear-gradient(145deg, #ff5252, #e04040); color:#fff; font-size:1.3rem; cursor:pointer; box-shadow:0 4px 20px rgba(255,82,82,0.4); transition:all 0.2s;">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- INCOMING CALL MODAL -->
+    <div class="nexus-modal" id="nexusIncomingCallModal" style="background: rgba(10,13,22,0.95); backdrop-filter: blur(12px);">
+        <div class="nexus-modal-content" style="max-width: 380px; text-align:center; padding:40px 30px; background:#161c2d;">
+            <div id="nexusIncomingCallAvatar" class="nexus-call-avatar nexus-call-pulse" style="margin:0 auto 20px;">
+                <i class="fas fa-phone-alt"></i>
+            </div>
+            <h3 style="margin:0 0 6px; font-size:1.2rem;">Incoming Call</h3>
+            <p id="nexusIncomingCallerName" style="color:#a78bfa; font-size:1rem; margin:0 0 6px;">Someone</p>
+            <p id="nexusIncomingCallType" style="color:#8f9bc0; font-size:0.85rem; margin:0 0 30px;">is calling you...</p>
+            <div class="nexus-call-actions">
+                <button class="nexus-call-btn accept" id="nexusAcceptCallBtn">
+                    <i class="fas fa-phone-alt"></i> Accept
+                </button>
+                <button class="nexus-call-btn decline" id="nexusDeclineCallBtn">
+                    <i class="fas fa-phone-slash"></i> Decline
+                </button>
             </div>
         </div>
     </div>
