@@ -3048,6 +3048,39 @@ body.light-mode .nexus-content-area {
         padding: 0 !important;
         margin: 0 !important;
         overflow-y: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .settings-container-v3 {
+        flex-direction: column !important;
+        height: 100% !important;
+    }
+
+    .settings-sidebar-v3 {
+        width: 100% !important;
+        height: auto !important;
+        border-right: none !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        padding-bottom: 10px !important;
+    }
+
+    .settings-nav-v3 {
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        padding: 10px !important;
+        gap: 8px !important;
+    }
+
+    .settings-nav-item {
+        white-space: nowrap !important;
+        padding: 8px 12px !important;
+    }
+
+    .settings-content-v3 {
+        flex: 1 !important;
+        padding: 20px !important;
+        overflow-y: auto !important;
     }
 
     .nexus-modal {
@@ -3164,6 +3197,308 @@ body.settings-open .nexus-modal {
     100% { opacity: 0.4; }
 }
 
+/* ======================================================
+   NEXUS CHAT — PHASE 2 UPGRADE PATCH
+   New features: edit, forward, delete menu, search HL,
+   input bar redesign, call overlay enhancements
+   ====================================================== */
+
+/* ── REDESIGNED INPUT BAR ─────────────────────────────── */
+.nexus-input-area {
+    position: relative;
+}
+
+.nexus-input-wrapper.horizontal-layout {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 16px !important;
+    padding: 4px 4px 4px 12px !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    gap: 4px !important;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease !important;
+    backdrop-filter: blur(10px);
+}
+
+.nexus-input-wrapper.horizontal-layout:focus-within {
+    border-color: rgba(124, 77, 255, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.08), 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.nexus-input-wrapper.horizontal-layout textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #f8fafc;
+    padding: 10px 8px;
+    font-size: 0.95rem;
+    resize: none;
+    min-height: 22px;
+    max-height: 150px;
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.5;
+}
+
+.nexus-input-wrapper.horizontal-layout textarea:focus {
+    outline: none;
+}
+
+.nexus-input-wrapper.horizontal-layout textarea::placeholder {
+    color: #4b5563;
+}
+
+.nexus-input-wrapper.horizontal-layout .nexus-input-tool {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.nexus-input-wrapper.horizontal-layout .nexus-input-tool:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+}
+
+.nexus-input-wrapper.horizontal-layout .nexus-send-btn {
+    background: linear-gradient(145deg, #7c4dff, #6a3fe0) !important;
+    color: #fff !important;
+    border-radius: 12px !important;
+    width: 38px !important;
+    height: 38px !important;
+    box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
+    transition: all 0.2s ease !important;
+}
+
+.nexus-input-wrapper.horizontal-layout .nexus-send-btn:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 6px 16px rgba(124, 77, 255, 0.45) !important;
+}
+
+/* ── MENTION DROPDOWN ─────────────────────────────────── */
+.nexus-mention-dropdown {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 24px;
+    right: 24px;
+    background: rgba(26, 32, 53, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 50;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
+    flex-direction: column;
+    padding: 6px;
+}
+
+/* ── SEARCH HIGHLIGHT ─────────────────────────────────── */
+mark.nexus-search-hl {
+    background: rgba(124, 77, 255, 0.45) !important;
+    color: #fff !important;
+    padding: 1px 3px !important;
+    border-radius: 3px !important;
+    box-shadow: 0 0 0 1px rgba(124, 77, 255, 0.3);
+}
+
+/* ── MESSAGE ACTIONS POLISH ───────────────────────────── */
+.nexus-msg-actions {
+    backdrop-filter: blur(12px);
+}
+
+.nexus-msg-action-btn {
+    width: 30px !important;
+    height: 30px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 6px !important;
+    transition: all 0.15s !important;
+    font-size: 13px;
+}
+
+.nexus-msg-action-btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    transform: scale(1.1);
+}
+
+/* ── DELETE CONTEXT MENU ──────────────────────────────── */
+.nexus-delete-ctx {
+    animation: nexusFadeIn 0.15s ease;
+}
+
+/* ── SETTINGS CLOSE BUTTON FIX ────────────────────────── */
+.settings-close-top-v3 {
+    display: flex !important;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 50% !important;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    z-index: 10;
+    font-size: 1rem;
+}
+
+.settings-close-top-v3:hover {
+    background: rgba(255, 82, 82, 0.15) !important;
+    color: #ff5252 !important;
+    border-color: rgba(255, 82, 82, 0.3) !important;
+}
+
+/* ── CALL OVERLAY POLISH ──────────────────────────────── */
+.nexus-call-overlay {
+    position: relative;
+}
+
+.nexus-call-videos {
+    align-items: center;
+}
+
+.nexus-call-ctrl {
+    padding: 16px;
+    gap: 16px !important;
+}
+
+.nexus-call-ctrl-btn {
+    transition: all 0.2s ease !important;
+}
+
+.nexus-call-ctrl-btn:hover {
+    transform: scale(1.1) !important;
+}
+
+/* ── REPLY PREVIEW POLISH ─────────────────────────────── */
+#nexusReplyPreview {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-top: 1px solid rgba(124, 77, 255, 0.2) !important;
+    padding: 10px 20px !important;
+    animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* ── MESSAGE EDIT AREA ────────────────────────────────── */
+.nexus-msg-content-col textarea {
+    font-family: 'Inter', -apple-system, sans-serif !important;
+}
+
+/* ── SMOOTH ANIMATIONS ────────────────────────────────── */
+.nexus-animate-fade-in {
+    animation: nexusFadeIn 0.25s ease;
+}
+
+.nexus-msg-row {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* ── MOBILE INPUT FIXES ───────────────────────────────── */
+@media (max-width: 768px) {
+    .nexus-input-wrapper.horizontal-layout {
+        border-radius: 14px !important;
+        padding: 3px 3px 3px 10px !important;
+    }
+
+    .nexus-input-wrapper.horizontal-layout textarea {
+        font-size: 0.9rem;
+        padding: 8px 6px;
+    }
+
+    .nexus-input-wrapper.horizontal-layout .nexus-send-btn {
+        width: 34px !important;
+        height: 34px !important;
+    }
+
+    .nexus-mention-dropdown {
+        left: 10px;
+        right: 10px;
+    }
+
+    /* Call overlay mobile fixes */
+    .nexus-call-videos {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .nexus-call-overlay video {
+        max-width: 90vw !important;
+        max-height: 35vh !important;
+    }
+
+    .nexus-call-ctrl {
+        gap: 12px !important;
+    }
+
+    .nexus-call-ctrl-btn {
+        width: 46px !important;
+        height: 46px !important;
+    }
+}
+
+/* ── MISC POLISH ──────────────────────────────────────── */
+.nexus-msg-text a {
+    color: #818cf8;
+    text-decoration: underline;
+    text-decoration-color: rgba(129, 140, 248, 0.3);
+    text-underline-offset: 2px;
+    transition: color 0.15s;
+}
+
+.nexus-msg-text a:hover {
+    color: #a78bfa;
+}
+
+/* Forwarded message styling */
+.nexus-msg-text:has(> :first-child:is([data-forwarded])) {
+    border-left: 3px solid rgba(124, 77, 255, 0.4);
+    padding-left: 12px;
+}
+
+/* Reaction pills */
+.nexus-reaction-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #e2e8f0;
+}
+
+.nexus-reaction-pill:hover {
+    background: rgba(124, 77, 255, 0.15);
+    border-color: rgba(124, 77, 255, 0.3);
+}
+
+.nexus-reaction-pill.mine {
+    background: rgba(124, 77, 255, 0.2);
+    border-color: rgba(124, 77, 255, 0.4);
+}
 /* Scroll Lock Fix */
 .nexus-content-area {
     scroll-behavior: auto; /* Smoother programmatic scroll */
