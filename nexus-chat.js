@@ -115,8 +115,9 @@ function renderMediaFromUrl(url, name) {
     const fileName = name || basePath.split('/').pop() || 'File';
 
     const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif|heic|tiff)(?:\?|$)/i.test(decodedUrl) || /content-type=image/i.test(url) || /unsplash\.com/i.test(url);
-    const isVideo = /\.(mp4|webm|mov|avi|mkv|m4v)(?:\?|$)/i.test(decodedUrl) || /content-type=video/i.test(url);
-    const isAudio = /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(basePath);
+    const isVoiceMessage = fileName.startsWith('voice_') && ext === 'webm';
+    const isVideo = (/\.(mp4|webm|mov|avi|mkv|m4v)(?:\?|$)/i.test(decodedUrl) || /content-type=video/i.test(url)) && !isVoiceMessage;
+    const isAudio = /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(basePath) || isVoiceMessage;
 
     if (isImage) {
         return `<div class="nexus-img-wrap">
@@ -574,6 +575,7 @@ class NexusChatUI {
         this.sb = sb; this.userId = userId; this.userRole = userRole; this.userName = userName;
         this.rooms = []; this.currentRoomId = null; this.currentRoomIsAI = false;
         this.blockedUsers = []; this.msgSub = null; this.roomSub = null; this.presenceCh = null;
+        this.subs = []; // FIX: Initialize subs array for realtime subscriptions
         this.renderedMessageIds = new Set();
         this._autoScroll = true;
         this._isTypingEnabled = true;
@@ -587,6 +589,24 @@ class NexusChatUI {
     // ── INIT ─────────────────────────────────────────────────────────────────
     async init() {
         console.log('NexusChatUI: STEP 1 - Starting initialization');
+        
+        // Force refresh session if email shows as unconfirmed in current JWT
+        try {
+            const { data: { session } } = await this.sb.auth.getSession();
+            if (session && session.user && (!session.user.email_confirmed_at || !session.user.user_metadata?.email_verified)) {
+                console.log('NexusChatUI: Session state check - Refreshing to sync confirmation flags...');
+                const { error: refreshError } = await this.sb.auth.refreshSession();
+                if (refreshError) {
+                    console.warn('NexusChatUI: Session refresh attempt failed', refreshError);
+                    // If still unconfirmed after refresh attempt, we might be blocked
+                } else {
+                    console.log('✅ NexusChatUI: Session refreshed successfully');
+                }
+            }
+        } catch (e) {
+            console.warn('NexusChatUI: Session management error', e);
+        }
+
         try {
             // Load Full User Profile (including avatar)
             await this._loadUserProfile();
@@ -634,8 +654,8 @@ class NexusChatUI {
 
     async _loadBlockedUsers() {
         try {
-            const { data, error } = await this.sb.from('blocked_users').select('blocked_id').eq('blocker_id', this.userId);
-            this.blockedUsers = (data || []).map(r => r.blocked_id);
+            const { data, error } = await this.sb.from('blocked_users').select('blocked_user_id').eq('user_id', this.userId);
+            this.blockedUsers = (data || []).map(r => r.blocked_user_id);
         } catch (e) {
             this.blockedUsers = [];
         }
@@ -654,7 +674,7 @@ class NexusChatUI {
             await this.sb.from('chat_room_members').upsert({
                 room_id: existing.id,
                 user_id: this.userId,
-                role: 'owner'
+                role: 'admin'
             }, { onConflict: 'room_id,user_id', ignoreDuplicates: true });
             return;
         }
@@ -675,7 +695,7 @@ class NexusChatUI {
         await this.sb.from('chat_room_members').insert({
             room_id: newRoom.id,
             user_id: this.userId,
-            role: 'owner'
+            role: 'admin'
         });
     }
 
@@ -1577,16 +1597,27 @@ class NexusChatUI {
 
     async _loadMessages(roomId) {
         const msgArea = $id('nexusMessages'); if (!msgArea) return;
-        msgArea.innerHTML = '<div style="text-align:center;color:#6b7390;padding:20px;font-size:0.85rem;">Loading…</div>';
+        msgArea.innerHTML = '<div style="text-align:center;color:#6b7390;padding:20px;font-size:0.85rem;"><i class="fas fa-spinner fa-spin"></i> Loading messages…</div>';
 
         // Clear rendered tracking for new room
         this.renderedMessageIds.clear();
 
         const { data, error } = await this.sb.from('chat_messages')
-            .select('id, room_id, sender_id, content, file_url, file_name, message_type, created_at, profiles:sender_id(full_name), chat_message_reactions(emoji, user_id)')
-            .eq('room_id', roomId).order('created_at', { ascending: true }).limit(100);
+            .select(`
+                id, room_id, sender_id, content, file_url, file_name, message_type, created_at, is_pinned,
+                profiles:sender_id(full_name, avatar_url),
+                chat_message_reactions(emoji, user_id)
+            `)
+            .eq('room_id', roomId)
+            .order('created_at', { ascending: true })
+            .limit(100);
 
-        if (error) { msgArea.innerHTML = `<div style="color:#ff5252;padding:20px;">Error loading messages: ${nexusEsc(error.message)}</div>`; return; }
+        if (error) { 
+            console.error('Error loading messages:', error);
+            msgArea.innerHTML = `<div style="color:#ff5252;padding:20px;text-align:center;">Error loading messages: ${nexusEsc(error.message)}</div>`; 
+            nexusShowToast('Failed to load message history.', 'error');
+            return; 
+        }
 
         msgArea.innerHTML = '';
         if (!data || data.length === 0) {
@@ -1596,24 +1627,26 @@ class NexusChatUI {
 
         let lastDate = '';
         let prevMsg = null;
-        for (const msg of data) {
+        data.forEach(msg => {
+            if (this.renderedMessageIds.has(msg.id)) return;
+            
             const msgDate = nexusFmtDate(msg.created_at);
             if (msgDate !== lastDate) {
                 const sep = document.createElement('div');
-                sep.className = 'nexus-date-sep'; sep.innerHTML = `<span> ${nexusEsc(msgDate)}</span> `;
+                sep.className = 'nexus-date-sep';
+                sep.innerHTML = `<span>${nexusEsc(msgDate)}</span>`;
                 msgArea.appendChild(sep);
                 lastDate = msgDate;
                 prevMsg = null; // Don't group across dates
             }
-            
-            // Track rendered ID
+
             this.renderedMessageIds.add(msg.id);
-            
             const el = this._buildMsgEl(msg, prevMsg);
             msgArea.appendChild(el);
             prevMsg = msg;
-        }
-        msgArea.scrollTop = msgArea.scrollHeight;
+        });
+        
+        this._scrollToBottom(false);
     }
 
     _buildMsgEl(msg, prevMsg = null) {
@@ -1670,184 +1703,36 @@ class NexusChatUI {
                 ${!isGrouped ? `
                     <div class="nexus-msg-header">
                         <span class="nexus-msg-sender">${nexusEsc(senderName)}</span>
-                        <span class="nexus-msg-time">${time}</span>
+                        <span class="nexus-msg-time">${time}${isOwn ? ' <span style="margin-left:4px;color:#4fc3f7;font-size:0.75rem;" title="Seen"><i class="fas fa-check-double"></i></span>' : ''}</span>
                         ${isAI ? '<span class="nexus-msg-ai-badge">AI</span>' : ''}
                     </div>
                 ` : ''}
                 <div class="nexus-msg-text">${msg.file_url ? fullContent : nexusRenderContent(msg.content)}</div>
                 <div class="nexus-msg-reactions-area"></div>
             </div>
-            <div class="nexus-msg-actions" style="display:flex; gap:4px; opacity:0; transition:0.2s; position:absolute; right:20px; top:-10px; background:rgba(22,28,45,0.95); padding:4px 6px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); z-index:10; box-shadow:0 4px 12px rgba(0,0,0,0.5);">
-                <button class="nexus-msg-action-btn rx" title="React"><i class="far fa-smile"></i></button>
-                <button class="nexus-msg-action-btn reply" title="Reply"><i class="fas fa-reply"></i></button>
-                <button class="nexus-msg-action-btn copy" title="Copy"><i class="far fa-copy"></i></button>
-                <button class="nexus-msg-action-btn forward" title="Forward"><i class="fas fa-share"></i></button>
-                ${isOwn ? `<button class="nexus-msg-action-btn edit" title="Edit"><i class="fas fa-pen" style="color:#f59e0b;"></i></button>` : ''}
-                <button class="nexus-msg-action-btn del-menu" title="Delete" style="position:relative;"><i class="far fa-trash-alt" style="color:#ff5252;"></i></button>
-            </div>`;
+            </div>`; // End of div.innerHTML
 
         // Reactions
         const rxArea = div.querySelector('.nexus-msg-reactions-area');
         if (rxArea) rxArea.innerHTML = this._buildReactions(msg.chat_message_reactions || [], msg.id);
 
-        // Events
-        div.querySelector('.rx')?.addEventListener('click', (e) => this._showReactionPicker(msg.id, e.currentTarget));
-
-        // ── DELETE CONTEXT MENU ──
-        div.querySelector('.del-menu')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            // Remove existing delete menus
-            document.querySelectorAll('.nexus-delete-ctx').forEach(m => m.remove());
-            
-            const ctx = document.createElement('div');
-            ctx.className = 'nexus-delete-ctx';
-            ctx.style.cssText = 'position:absolute;right:0;top:100%;margin-top:6px;background:#1a2035;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:6px;z-index:100;min-width:180px;box-shadow:0 10px 30px rgba(0,0,0,0.6);animation:nexusFadeIn 0.15s ease;';
-            
-            const makeBtn = (icon, label, color, handler) => {
-                const btn = document.createElement('button');
-                btn.style.cssText = `display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:none;border:none;color:${color};font-size:0.85rem;cursor:pointer;border-radius:8px;transition:background 0.15s;text-align:left;`;
-                btn.innerHTML = `<i class="${icon}" style="width:16px;text-align:center;"></i>${label}`;
-                btn.onmouseover = () => btn.style.background = 'rgba(255,255,255,0.05)';
-                btn.onmouseout = () => btn.style.background = 'none';
-                btn.onclick = handler;
-                return btn;
+        // ── CONTEXT MENU (Right-click & Long-press) ──
+        if (!isSystem) {
+            let pressTimer;
+            const openMenu = (e) => {
+                e.preventDefault();
+                this._showContextMenu(e, msg, div, isOwn);
             };
 
-            // Delete for Me (just hide locally) 
-            ctx.appendChild(makeBtn('fas fa-eye-slash', 'Delete for me', '#8f9bc0', () => {
-                div.style.opacity = '0';
-                div.style.transform = 'translateX(20px)';
-                setTimeout(() => div.style.display = 'none', 200);
-                ctx.remove();
-                nexusShowToast('Message hidden for you.', 'info');
-            }));
+            div.addEventListener('contextmenu', openMenu);
 
-            // Delete for Everyone (only if own message)
-            if (isOwn) {
-                ctx.appendChild(makeBtn('fas fa-trash-alt', 'Delete for everyone', '#ff5252', async () => {
-                    ctx.remove();
-                    // Store content for undo
-                    const originalContent = msg.content;
-                    const originalType = msg.message_type;
-                    
-                    // Quick visual feedback
-                    div.style.opacity = '0.4';
-                    
-                    // Show undo toast
-                    const undoToast = document.createElement('div');
-                    undoToast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:0.9rem;z-index:99999;box-shadow:0 8px 30px rgba(0,0,0,0.5);display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,0.1);';
-                    undoToast.innerHTML = '<span>Message deleted</span>';
-                    const undoBtn = document.createElement('button');
-                    undoBtn.style.cssText = 'background:#7c4dff;color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;';
-                    undoBtn.textContent = 'Undo';
-                    let undone = false;
-                    undoBtn.onclick = () => { undone = true; div.style.opacity = '1'; undoToast.remove(); nexusShowToast('Delete cancelled.', 'success'); };
-                    undoToast.appendChild(undoBtn);
-                    document.body.appendChild(undoToast);
-
-                    // Wait 5 seconds for undo
-                    setTimeout(async () => {
-                        undoToast.remove();
-                        if (!undone) {
-                            const { error } = await this.sb.from('chat_messages').delete().eq('id', msg.id).eq('sender_id', this.userId);
-                            if (error) {
-                                console.error('Delete error:', error);
-                                div.style.opacity = '1';
-                                nexusShowToast('Could not delete: ' + error.message, 'error');
-                            } else {
-                                div.remove();
-                            }
-                        }
-                    }, 5000);
-                }));
-            }
-
-            e.currentTarget.parentNode.appendChild(ctx);
-            setTimeout(() => document.addEventListener('click', () => ctx.remove(), { once: true }), 10);
-        });
-        
-        div.querySelector('.copy')?.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(msg.content || '');
-                nexusShowToast('Message copied!', 'success');
-            } catch (err) { }
-        });
-
-        // ── FORWARD ──
-        div.querySelector('.forward')?.addEventListener('click', () => {
-            this._openForwardModal(msg);
-        });
-
-        // ── EDIT (own messages only) ──
-        div.querySelector('.edit')?.addEventListener('click', () => {
-            const textEl = div.querySelector('.nexus-msg-text');
-            if (!textEl) return;
-            const originalText = msg.content || '';
-            
-            // Replace text with editable textarea
-            const editArea = document.createElement('textarea');
-            editArea.value = originalText;
-            editArea.style.cssText = 'width:100%;min-height:40px;background:rgba(15,23,42,0.8);border:1px solid rgba(124,77,255,0.5);border-radius:8px;color:#fff;padding:8px 12px;font-size:0.9rem;resize:none;font-family:inherit;';
-            editArea.rows = Math.min(5, Math.max(1, originalText.split('\n').length));
-            
-            const editControls = document.createElement('div');
-            editControls.style.cssText = 'display:flex;gap:8px;margin-top:6px;';
-            editControls.innerHTML = `
-                <button class="nexus-edit-save" style="background:#7c4dff;color:#fff;border:none;padding:5px 14px;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;">Save</button>
-                <button class="nexus-edit-cancel" style="background:rgba(255,255,255,0.08);color:#8f9bc0;border:none;padding:5px 14px;border-radius:8px;cursor:pointer;font-size:0.8rem;">Cancel</button>
-                <span style="font-size:0.72rem;color:#6b7390;margin-left:auto;align-self:center;">Press Esc to cancel</span>
-            `;
-            
-            textEl.style.display = 'none';
-            textEl.parentNode.insertBefore(editArea, textEl.nextSibling);
-            textEl.parentNode.insertBefore(editControls, editArea.nextSibling);
-            editArea.focus();
-            editArea.setSelectionRange(editArea.value.length, editArea.value.length);
-            
-            const cancelEdit = () => {
-                editArea.remove();
-                editControls.remove();
-                textEl.style.display = '';
-            };
-            
-            editControls.querySelector('.nexus-edit-cancel').onclick = cancelEdit;
-            editArea.onkeydown = (e) => { if (e.key === 'Escape') cancelEdit(); };
-            
-            editControls.querySelector('.nexus-edit-save').onclick = async () => {
-                const newText = editArea.value.trim();
-                if (!newText || newText === originalText) { cancelEdit(); return; }
-                
-                const { error } = await this.sb.from('chat_messages').update({ content: newText }).eq('id', msg.id).eq('sender_id', this.userId);
-                if (error) {
-                    nexusShowToast('Edit failed: ' + error.message, 'error');
-                } else {
-                    msg.content = newText;
-                    textEl.innerHTML = nexusRenderContent(newText) + '<span style="font-size:0.65rem;color:#6b7390;margin-left:6px;">(edited)</span>';
-                    cancelEdit();
-                    nexusShowToast('Message edited.', 'success');
-                }
-            };
-        });
-
-        div.querySelector('.reply')?.addEventListener('click', () => {
-             const preview = document.getElementById('nexusReplyPreview');
-             if(preview) {
-                 const replyName = nexusEsc(msg.profiles?.full_name || 'User');
-                 const text = nexusEsc((msg.content || '').substring(0, 60)) + ((msg.content || '').length > 60 ? '...' : '');
-                 preview.innerHTML = `
-                 <div style="flex:1; border-left:3px solid #7c4dff; padding-left:10px; margin-left:10px;">
-                    <div style="font-size:0.75rem; color:#7c4dff; font-weight:700;">Replying to ${replyName}</div>
-                    <div style="font-size:0.85rem; color:#8f9bc0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${text}</div>
-                 </div>
-                 <i class="fas fa-times" style="cursor:pointer; padding:10px; color:#8f9bc0;" onclick="document.getElementById('nexusReplyPreview').style.display='none'; window.nexusReplyMsgId=null;"></i>
-                 `;
-                 preview.style.display = 'flex';
-                 window.nexusReplyMsgId = msg.id;
-                 window.nexusReplyText = text;
-                 window.nexusReplyAuthor = replyName;
-                 document.getElementById('nexusMsgInput')?.focus();
-             }
-        });
+            // Mobile long press
+            div.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => openMenu(e.touches[0] || e), 500);
+            }, { passive: true });
+            div.addEventListener('touchend', () => clearTimeout(pressTimer));
+            div.addEventListener('touchmove', () => clearTimeout(pressTimer));
+        }
 
         if (!isAI) {
             div.querySelector('.nexus-msg-avatar')?.addEventListener('click', () => this.openProfileModal(msg.sender_id));
@@ -1855,6 +1740,171 @@ class NexusChatUI {
         }
 
         return div;
+    }
+
+    _showContextMenu(e, msg, div, isOwn) {
+        // Remove existing menus
+        document.querySelectorAll('.nexus-context-menu').forEach(m => m.remove());
+        
+        const ctx = document.createElement('div');
+        ctx.className = 'nexus-context-menu';
+        
+        // Context menu HTML
+        let html = `
+            <div class="nexus-ctx-reactions">
+                ${['👍','❤️','😂','😮','😢','🙏','🔥','🎉'].map(emoji => 
+                    `<span class="nexus-ctx-rx-btn" data-emoji="${emoji}">${emoji}</span>`
+                ).join('')}
+                <span class="nexus-ctx-rx-btn" data-emoji="+" style="background:rgba(255,255,255,0.1); border-radius:50%;"><i class="fas fa-plus" style="font-size:0.8rem;color:#8f9bc0;"></i></span>
+            </div>
+            <div class="nexus-ctx-actions">
+                <button class="nexus-ctx-btn" data-action="reply"><i class="fas fa-reply"></i> Reply</button>
+                <button class="nexus-ctx-btn" data-action="reply-privately"><i class="fas fa-user-lock"></i> Reply privately</button>
+                <button class="nexus-ctx-btn" data-action="copy"><i class="far fa-copy"></i> Copy message</button>
+                <button class="nexus-ctx-btn" data-action="forward"><i class="fas fa-share"></i> Forward</button>
+                <button class="nexus-ctx-btn" data-action="star"><i class="far fa-star"></i> Star message</button>
+                <button class="nexus-ctx-btn" data-action="pin"><i class="fas fa-thumbtack"></i> Pin message</button>
+                ${msg.file_url ? `<button class="nexus-ctx-btn" data-action="download"><i class="fas fa-download"></i> Download media</button>` : ''}
+                ${isOwn ? `<button class="nexus-ctx-btn" data-action="edit"><i class="fas fa-pen"></i> Edit message</button>` : ''}
+                <button class="nexus-ctx-btn" data-action="report"><i class="fas fa-flag"></i> Report</button>
+                <button class="nexus-ctx-btn danger" data-action="delete"><i class="far fa-trash-alt"></i> Delete message</button>
+            </div>
+        `;
+        ctx.innerHTML = html;
+
+        // Position it
+        document.body.appendChild(ctx);
+        let x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+        let y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+        
+        // Prevent off-screen
+        const rect = ctx.getBoundingClientRect();
+        if (x + rect.width > window.innerWidth) x -= rect.width;
+        if (y + rect.height > window.innerHeight) y -= rect.height;
+        
+        ctx.style.left = `${x}px`;
+        ctx.style.top = `${y}px`;
+
+        // Action routing
+        ctx.addEventListener('click', async (evt) => {
+            const btn = evt.target.closest('.nexus-ctx-btn');
+            const rxBtn = evt.target.closest('.nexus-ctx-rx-btn');
+            
+            if (rxBtn) {
+                const emoji = rxBtn.dataset.emoji;
+                if (emoji === '+') { this._showReactionPicker(msg.id, div); } 
+                else { this._toggleReaction(msg.id, emoji); }
+                ctx.remove();
+            } else if (btn) {
+                const action = btn.dataset.action;
+                ctx.remove();
+                
+                if (action === 'reply') {
+                    const preview = document.getElementById('nexusReplyPreview');
+                    if(preview) {
+                        const replyName = nexusEsc(msg.profiles?.full_name || 'User');
+                        const text = nexusEsc((msg.content || '').substring(0, 60)) + ((msg.content || '').length > 60 ? '...' : '');
+                        preview.innerHTML = `
+                        <div style="flex:1; border-left:3px solid #7c4dff; padding-left:10px; margin-left:10px;">
+                            <div style="font-size:0.75rem; color:#7c4dff; font-weight:700;">Replying to ${replyName}</div>
+                            <div style="font-size:0.85rem; color:#8f9bc0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${text}</div>
+                        </div>
+                        <i class="fas fa-times" style="cursor:pointer; padding:10px; color:#8f9bc0;" onclick="document.getElementById('nexusReplyPreview').style.display='none'; window.nexusReplyMsgId=null;"></i>
+                        `;
+                        preview.style.display = 'flex';
+                        window.nexusReplyMsgId = msg.id;
+                        window.nexusReplyText = text;
+                        window.nexusReplyAuthor = replyName;
+                        document.getElementById('nexusMsgInput')?.focus();
+                    }
+                } else if (action === 'copy') {
+                    try { await navigator.clipboard.writeText(msg.content || ''); nexusShowToast('Message copied!', 'success'); } catch (err) {}
+                } else if (action === 'forward') {
+                    this._openForwardModal(msg);
+                } else if (action === 'star') {
+                    nexusShowToast('Message starred', 'success');
+                } else if (action === 'pin') {
+                    nexusShowToast('Message pinned', 'success');
+                } else if (action === 'download' && msg.file_url) {
+                    window.open(msg.file_url, '_blank');
+                } else if (action === 'report') {
+                    nexusShowToast('Message reported to admins.', 'info');
+                } else if (action === 'edit' && isOwn) {
+                    const originalText = msg.content || '';
+                    const editArea = prompt("Edit message:", originalText);
+                    if (editArea !== null && editArea.trim() !== originalText && editArea.trim() !== '') {
+                        const { error } = await this.sb.from('chat_messages').update({ content: editArea.trim() }).eq('id', msg.id).eq('sender_id', this.userId);
+                        if (error) nexusShowToast('Edit failed: ' + error.message, 'error');
+                        else nexusShowToast('Message edited.', 'success');
+                    }
+                } else if (action === 'delete') {
+                    this._showDeleteOptions(e, msg, div, isOwn);
+                }
+            }
+        });
+
+        setTimeout(() => document.addEventListener('click', () => ctx.remove(), { once: true }), 10);
+    }
+    
+    _showDeleteOptions(e, msg, div, isOwn) {
+        const ctx = document.createElement('div');
+        ctx.className = 'nexus-delete-ctx';
+        ctx.style.cssText = 'position:absolute; background:#1a2035; border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:6px; z-index:100; min-width:180px; box-shadow:0 10px 30px rgba(0,0,0,0.6); animation:nexusFadeIn 0.15s ease;';
+        
+        let x = e.clientX || (e.touches ? e.touches[0].clientX : window.innerWidth/2);
+        let y = e.clientY || (e.touches ? e.touches[0].clientY : window.innerHeight/2);
+        ctx.style.left = `${x}px`;
+        ctx.style.top = `${y}px`;
+
+        const makeBtn = (icon, label, color, handler) => {
+            const btn = document.createElement('button');
+            btn.style.cssText = `display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:none;border:none;color:${color};font-size:0.85rem;cursor:pointer;border-radius:8px;transition:background 0.15s;text-align:left;`;
+            btn.innerHTML = `<i class="${icon}" style="width:16px;text-align:center;"></i>${label}`;
+            btn.onmouseover = () => btn.style.background = 'rgba(255,255,255,0.05)';
+            btn.onmouseout = () => btn.style.background = 'none';
+            btn.onclick = handler;
+            return btn;
+        };
+
+        ctx.appendChild(makeBtn('fas fa-eye-slash', 'Delete for me', '#8f9bc0', () => {
+            div.style.opacity = '0';
+            div.style.transform = 'translateX(20px)';
+            setTimeout(() => div.style.display = 'none', 200);
+            ctx.remove();
+            nexusShowToast('Message hidden for you.', 'info');
+        }));
+
+        if (isOwn) {
+            ctx.appendChild(makeBtn('fas fa-trash-alt', 'Delete for everyone', '#ff5252', async () => {
+                ctx.remove();
+                div.style.opacity = '0.4';
+                
+                const undoToast = document.createElement('div');
+                undoToast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:0.9rem;z-index:99999;box-shadow:0 8px 30px rgba(0,0,0,0.5);display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,0.1);';
+                undoToast.innerHTML = '<span>Message deleted</span>';
+                const undoBtn = document.createElement('button');
+                undoBtn.style.cssText = 'background:#7c4dff;color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;';
+                undoBtn.textContent = 'Undo';
+                let undone = false;
+                undoBtn.onclick = () => { undone = true; div.style.opacity = '1'; undoToast.remove(); nexusShowToast('Delete cancelled.', 'success'); };
+                undoToast.appendChild(undoBtn);
+                document.body.appendChild(undoToast);
+
+                setTimeout(async () => {
+                    undoToast.remove();
+                    if (!undone) {
+                        const { error } = await this.sb.from('chat_messages').delete().eq('id', msg.id).eq('sender_id', this.userId);
+                        if (error) {
+                            div.style.opacity = '1';
+                            nexusShowToast('Could not delete: ' + error.message, 'error');
+                        } else div.remove();
+                    }
+                }, 5000); // 5 sec undo
+            }));
+        }
+
+        document.body.appendChild(ctx);
+        setTimeout(() => document.addEventListener('click', () => ctx.remove(), { once: true }), 10);
     }
 
     _buildReactions(reactions, msgId) {
@@ -2048,12 +2098,24 @@ class NexusChatUI {
                 // Double check if we are still in this room (race condition safety)
                 if (this.currentRoomId !== roomId) return;
 
-                // Fetch full details (profile/reactions)
-                const { data: full } = await this.sb.from('chat_messages')
-                    .select('*, profiles(full_name, avatar_url), chat_message_reactions(emoji, user_id)')
-                    .eq('id', msg.id).single();
+                // Fetch full details (profile/reactions) with small retry/delay for replication
+                let full = null;
+                for (let i = 0; i < 3; i++) {
+                    const { data } = await this.sb.from('chat_messages')
+                        .select('*, profiles(full_name, avatar_url), chat_message_reactions(emoji, user_id)')
+                        .eq('id', msg.id).single();
+                    if (data?.profiles) {
+                        full = data;
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 500 * (i + 1)));
+                }
 
-                if (!full) return;
+                if (!full) {
+                    // Fallback: If profile still not found, use a skeletal version
+                    full = { ...msg, profiles: { full_name: 'Unknown User' }, chat_message_reactions: [] };
+                    console.warn('Realtime: Profile fetch failed after retries for msg:', msg.id);
+                }
 
                 const msgArea = $id('nexusMessages');
                 if (msgArea) {
@@ -2346,7 +2408,11 @@ class NexusChatUI {
             scope: 'direct',
             created_by: this.userId
         }).select().single();
-        if (error || !room) { console.error('DM create error:', error); return; }
+        if (error || !room) { 
+            console.error('DM create error:', error); 
+            nexusShowToast('Failed to start chat. ' + (error?.message || ''), 'error');
+            return; 
+        }
 
         await this.sb.from('chat_room_members').insert([
             { room_id: room.id, user_id: this.userId, role: 'member' },
@@ -2359,7 +2425,33 @@ class NexusChatUI {
     }
 
     // ── MESSAGING ────────────────────────────────────────────────────────────
-    async sendMessage() {
+    async uploadFile(file) {
+        if (!file) return null;
+        try {
+            const ext = file.name.split('.').pop();
+            const fileName = `${this.userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+            
+            nexusShowToast(`Uploading ${file.name}...`, 'info');
+            
+            const { data, error } = await this.sb.storage
+                .from('chat_attachments')
+                .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+            if (error) throw error;
+
+            const { data: { publicUrl } } = this.sb.storage
+                .from('chat_attachments')
+                .getPublicUrl(fileName);
+
+            return { url: publicUrl, name: file.name, size: file.size, type: file.type };
+        } catch (e) {
+            console.error('Upload failed:', e);
+            nexusShowToast('Upload failed: ' + e.message, 'error');
+            return null;
+        }
+    }
+
+    async sendMessage(attachment = null) {
         if (!this.currentRoomId) return;
 
         // Check block restriction defensively
@@ -2371,10 +2463,13 @@ class NexusChatUI {
 
         const msgInp = document.getElementById('nexusMsgInput');
         if (!msgInp) return;
-        const content = msgInp.value.trim();
-        if (!content) return;
+        const rawContent = msgInp.value.trim();
+        
+        // Allow sending if either content or attachment exists
+        if (!rawContent && !attachment) return;
 
         msgInp.value = '';
+        msgInp.style.height = 'auto';
 
         // OPTIMISTIC UI RENDER
         const msgArea = document.getElementById('nexusMessages');
@@ -2387,8 +2482,10 @@ class NexusChatUI {
                 id: tempId,
                 room_id: this.currentRoomId,
                 sender_id: this.userId,
-                content: content,
-                message_type: 'text',
+                content: rawContent || (attachment ? `Sent ${attachment.name}` : ''),
+                file_url: attachment ? attachment.url : null,
+                file_name: attachment ? attachment.name : null,
+                message_type: attachment ? (attachment.type.startsWith('image/') ? 'image' : 'file') : 'text',
                 created_at: new Date().toISOString(),
                 profiles: { full_name: this.userName }
             };
@@ -2416,31 +2513,61 @@ class NexusChatUI {
         }
 
         // Insert user message
-        const finalContent = window.nexusReplyMsgId ? 
-            `<blockquote data-reply="${window.nexusReplyMsgId}"><strong>${window.nexusReplyAuthor}:</strong> ${window.nexusReplyText}</blockquote>` + content : 
-            content;
+        let finalContent = window.nexusReplyMsgId ? 
+            `<blockquote data-reply="${window.nexusReplyMsgId}"><strong>${window.nexusReplyAuthor}:</strong> ${window.nexusReplyText}</blockquote>` + rawContent : 
+            rawContent;
 
-        // Detect image persistence - extract first URL if it's an image
-        let attachmentUrl = null;
-        const imgMatch = content.match(/https?:\/\/[^\s<>)"']+\.(jpg|jpeg|png|gif|webp|avif|heic)(?:\?[^\s]*)?/i);
-        if (imgMatch) attachmentUrl = imgMatch[0];
+        // If no text but has attachment, set content to filename for searchability
+        if (!finalContent && attachment) finalContent = attachment.name;
 
-        const { data: insertedMsg, error } = await this.sb.from('chat_messages').insert({
-            room_id: this.currentRoomId,
-            sender_id: this.userId,
-            content: finalContent,
-            message_type: attachmentUrl ? 'image' : 'text',
-            file_url: attachmentUrl
-        }).select().single();
+        // Message Type Detection
+        let msgType = 'text';
+        if (attachment) {
+            msgType = attachment.type.startsWith('image/') ? 'image' : 
+                      attachment.type.startsWith('video/') ? 'video' : 
+                      attachment.type.startsWith('audio/') ? 'audio' : 'file';
+        }
 
-        if (error) {
-            console.error('Send error:', error);
-            msgInp.value = content;
-             // Remove optimistic UI if failed
-             const failedEl = msgArea?.querySelector('[data-temp-msg="true"]');
-             if(failedEl) failedEl.remove();
+        // Insert user message with resilient retry for "Email not confirmed"
+        let retryCount = 0;
+        let insertResult;
+        
+        const performInsert = async () => {
+            return await this.sb.from('chat_messages').insert({
+                room_id: this.currentRoomId,
+                sender_id: this.userId,
+                content: finalContent,
+                message_type: msgType,
+                file_url: attachment ? attachment.url : null,
+                file_name: attachment ? attachment.name : null,
+                file_size: attachment ? attachment.size : null
+            }).select().single();
+        };
+
+        insertResult = await performInsert();
+
+        // RESILIENCE: If Supabase returns "Email not confirmed", refresh session and retry once
+        if (insertResult.error && insertResult.error.message?.includes('Email not confirmed') && retryCount < 1) {
+            console.warn('⚠️ NexusChatUI: "Email not confirmed" error detected. Attempting session refresh and retry...');
+            retryCount++;
+            const { error: refreshErr } = await this.sb.auth.refreshSession();
+            if (!refreshErr) {
+                console.log('🔄 NexusChatUI: Session refreshed. Retrying message send...');
+                insertResult = await performInsert();
+            }
+        }
+
+        if (insertResult.error) {
+            console.error('Send error:', insertResult.error);
+            msgInp.value = rawContent;
+            nexusShowToast('Message failed to send: ' + (insertResult.error.message || 'Check connection'), 'error');
+            // Remove optimistic UI if failed
+            const failedEl = msgArea?.querySelector('[data-temp-msg="true"]');
+            if (failedEl) failedEl.remove();
             return;
         }
+
+        const insertedMsg = insertResult.data;
 
         // Cleanup reply state
         if (window.nexusReplyMsgId) {
@@ -2460,7 +2587,7 @@ class NexusChatUI {
 
         if (room && room.type === 'assistant') {
             console.log('AI assistant triggered');
-            this._generateAIResponse(this.currentRoomId, content);
+            this._generateAIResponse(this.currentRoomId, rawContent);
         }
     }
 
@@ -3262,6 +3389,7 @@ function _nexusAttachEvents(ctrl) {
                     }
                 } catch (err) {
                     console.error('Mention error', err);
+                nexusShowToast('Failed to load mentions.', 'error');
                 }
             } else {
                 if (mentionDropdown) mentionDropdown.style.display = 'none';
@@ -3360,79 +3488,124 @@ function _nexusAttachEvents(ctrl) {
         });
     });
 
-    $('nexusFileInput')?.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
+    const handleFileUpload = async (file) => {
         if (!file) return;
         if (!ctrl.currentRoomId) { nexusShowToast('Please select a chat first.', 'warning'); return; }
 
-        // Show a loading indicator in the message area
-        const msgArea = $('nexusMessages');
-        if (!msgArea) return;
-
-        const loadingId = 'upload_' + Date.now();
-        const loadingEl = document.createElement('div');
-        loadingEl.className = 'nexus-msg-row';
-        loadingEl.id = loadingId;
-        loadingEl.innerHTML = `
-            <div class="nexus-msg-avatar-col"><div class="nexus-msg-avatar" title="${nexusEsc(ctrl.userName)}">${nexusEsc(nexusInitials(ctrl.userName))}</div></div>
-            <div class="nexus-msg-content-col">
-                <div class="nexus-msg-text" style="color:#9198b0;font-style:italic;opacity:0.7;">
-                    <i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>
-                    Uploading ${nexusEsc(file.name)}...
-                </div>
-            </div>`;
-        msgArea.appendChild(loadingEl);
-        msgArea.scrollTop = msgArea.scrollHeight;
-
         try {
-            const ext = file.name.split('.').pop();
-            const safeFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-            const path = `uploads/${ctrl.currentRoomId}/${safeFileName}`;
-
-            const { data, error } = await ctrl.sb.storage.from('chat_attachments').upload(path, file, {
-                cacheControl: '3600',
-                upsert: false,
-                contentType: file.type
-            });
-
-            if (error) {
-                loadingEl.remove();
-                console.error('Upload error:', error);
-                nexusShowToast(`Upload failed: ${error.message}`, 'error');
-                return;
-            }
-
-            const { data: urlData } = ctrl.sb.storage.from('chat_attachments').getPublicUrl(path);
-            const publicUrl = urlData?.publicUrl;
-
-            if (!publicUrl) { 
-                loadingEl.remove();
-                nexusShowToast('Could not get public URL for attachment.', 'error');                 return; 
-            }
-
-            // Insert message with file_url field
-            const { error: msgErr } = await ctrl.sb.from('chat_messages').insert({
-                room_id: ctrl.currentRoomId,
-                sender_id: ctrl.userId,
-                content: `[${file.name}](${publicUrl})`,
-                file_url: publicUrl,
-                file_name: file.name,
-                message_type: 'file'
-            });
-            
-            loadingEl.remove();
-            
-            if (msgErr) {
-                console.error('File message insert error:', msgErr.message);
-                nexusShowToast('File uploaded but record failed: ' + msgErr.message, 'warning');
+            const attachment = await ctrl.uploadFile(file);
+            if (attachment) {
+                await ctrl.sendMessage(attachment);
             }
         } catch (err) {
-            loadingEl.remove();
-            console.error('File upload catch error:', err);
+            console.error('File upload wrapper error:', err);
             nexusShowToast('Upload failed: ' + err.message, 'error');
         }
+    };
+
+    // Voice Recording Logic
+    const micBtn = $('nexusMicBtn');
+    if (input && micBtn) {
+        const sendBtn = $('nexusSendBtn');
+        const toggleMicSend = () => {
+            if (input.value.trim().length > 0) {
+                micBtn.style.display = 'none';
+                if(sendBtn) sendBtn.style.display = 'flex';
+            } else {
+                micBtn.style.display = 'flex';
+                if(sendBtn) sendBtn.style.display = 'none';
+            }
+        };
+        input.addEventListener('input', toggleMicSend);
+        toggleMicSend(); // Initial check
+        
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordStartTime = 0;
+
+        const startRecording = async (e) => {
+            e.preventDefault();
+            if (mediaRecorder && mediaRecorder.state === 'recording') return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    stream.getTracks().forEach(track => track.stop());
+                    const duration = Date.now() - recordStartTime;
+                    
+                    if (duration > 1000) {
+                        const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
+                        handleFileUpload(audioFile);
+                    } else {
+                        nexusShowToast('Voice message too short.', 'info');
+                    }
+                };
+                
+                mediaRecorder.start();
+                recordStartTime = Date.now();
+                micBtn.style.color = '#ff5252';
+                micBtn.classList.add('recording-pulse');
+                input.placeholder = "Recording... (Release to send)";
+                input.disabled = true;
+            } catch (err) {
+                console.error('Mic access denied:', err);
+                nexusShowToast('Microphone access denied.', 'error');
+            }
+        };
+
+        const stopRecording = (e) => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                if (e) e.preventDefault();
+                mediaRecorder.stop();
+                micBtn.style.color = '';
+                micBtn.classList.remove('recording-pulse');
+                input.placeholder = "Type a message...";
+                input.disabled = false;
+                input.focus();
+            }
+        };
+
+        micBtn.addEventListener('mousedown', startRecording);
+        micBtn.addEventListener('touchstart', startRecording, {passive: false});
+        document.addEventListener('mouseup', stopRecording);
+        document.addEventListener('touchend', stopRecording);
+    }
+
+    $('nexusFileInput')?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) await handleFileUpload(file);
         e.target.value = '';
     });
+
+    // Drag and Drop support
+    const chatLayout = $('nexusChatLayout');
+    if (chatLayout) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            chatLayout.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            chatLayout.addEventListener(eventName, () => chatLayout.classList.add('nexus-drag-active'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            chatLayout.addEventListener(eventName, () => chatLayout.classList.remove('nexus-drag-active'), false);
+        });
+
+        chatLayout.addEventListener('drop', async (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0) {
+                await handleFileUpload(files[0]);
+            }
+        }, false);
+    }
 
     // WebRTC Call Controls
     $('nexusVoiceCallBtn')?.addEventListener('click', () => {
@@ -3968,7 +4141,7 @@ function _nexusAttachEvents(ctrl) {
                 room_id: c.id,
                 sender_id: ctrl.userId,
                 content: msg,
-                message_type: 'bulk_broadcast'
+                message_type: 'broadcast'
             }));
 
             const { error: insertErr } = await ctrl.sb.from('chat_messages').insert(inserts);
