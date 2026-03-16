@@ -5,6 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXUS | Advanced Chat System</title>
+    <script>
+        // Global Alert Interceptor (Must be first)
+        (function() {
+            const originalAlert = window.alert;
+            window.alert = function(msg) {
+                console.error('[NEXUS_ALERT_INTERCEPTED]', msg);
+                // Try to use toast if available, else console
+                if (window.nexusShowToast) {
+                    window.nexusShowToast(msg, 'error');
+                } else if (window.console) {
+                    console.warn('Intercepted Alert (Toast not ready):', msg);
+                }
+            };
+        })();
+    </script>
 
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -280,15 +295,27 @@
 
                 <!-- Welcome -->
                 <div class="nexus-welcome" id="nexusWelcome">
-                    <div
-                        style="width: 100px; height: 100px; background: rgba(124, 77, 255, 0.1); border-radius: 30px; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; border: 1px solid rgba(124, 77, 255, 0.2);">
+                    <div class="nexus-welcome-bg" style="position:absolute; top:0; left:0; right:0; bottom:0; background: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat; opacity:0.05; z-index:-1;"></div>
+                    <div class="nexus-welcome-icon nexus-floating-glow">
                         <i class="fas fa-comments" style="font-size: 3rem; color: #7c4dff;"></i>
                     </div>
                     <h3
-                        style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.8rem; margin-bottom: 0.5rem; color: #fff;">
+                        style="font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 2.2rem; margin-bottom: 0.5rem; color: #fff;">
                         Welcome to NEXUS</h3>
-                    <p style="color: #8f9bc0; max-width: 400px; line-height: 1.6;">Your workspace for collaboration.
+                    <p style="color: #8f9bc0; max-width: 400px; line-height: 1.6; margin-bottom: 2rem;">Your workspace for collaboration.
                         Select any channel or start a new conversation to get started.</p>
+                    
+                    <div class="nexus-welcome-actions">
+                        <button class="nexus-welcome-btn primary">
+                            <i class="fas fa-plus-circle"></i> Start a Conversation
+                        </button>
+                        <button class="nexus-welcome-btn secondary">
+                            <i class="fas fa-hashtag"></i> Create a Channel
+                        </button>
+                        <button class="nexus-welcome-btn secondary">
+                            <i class="fas fa-user-plus"></i> Invite Members
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Chat Layout -->
@@ -311,6 +338,8 @@
                                         style="color:#ffb37b;"></i>Document</div>
                                 <div class="nexus-attach-item" data-type="video"><i class="fas fa-video"
                                         style="color:#ff8a8a;"></i>Video</div>
+                                <div class="nexus-attach-item" data-type="audio"><i class="fas fa-headphones"
+                                        style="color:#a78bfa;"></i>Audio</div>
                             </div>
                             <input type="file" id="nexusFileInput" style="display:none;"
                                 accept="image/*,.pdf,.doc,.docx,.zip,.txt,.mp4,.mp3">
@@ -320,6 +349,7 @@
                                 <button class="nexus-input-tool" id="nexusAttachBtn" title="Attach file"><i
                                         class="fas fa-paperclip"></i></button>
                                 <textarea id="nexusMsgInput" placeholder="Type a message..." rows="1"></textarea>
+                                <button class="nexus-input-tool nexus-mic-btn" id="nexusMicBtn" title="Hold to record audio" style="display:none;"><i class="fas fa-microphone"></i></button>
                                 <button class="nexus-input-tool nexus-send-btn" id="nexusSendBtn" title="Send"><i
                                         class="fas fa-paper-plane"></i></button>
                             </div>
