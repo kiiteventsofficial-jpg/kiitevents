@@ -3717,6 +3717,51 @@ mark.nexus-search-hl {
     background: rgba(255, 82, 82, 0.1);
 }
 
+/* ── MOBILE CONTEXT MENU FIXES ────────────────────────── */
+@media (max-width: 768px) {
+    .nexus-context-menu {
+        position: fixed !important;
+        min-width: unset;
+        width: calc(100vw - 32px);
+        max-width: 90vw;
+        max-height: 70vh;
+        overflow-y: auto;
+        border-radius: 16px !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nexus-ctx-rx-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.4rem;
+    }
+
+    .nexus-ctx-btn {
+        min-height: 48px;
+        padding: 14px 16px;
+        font-size: 0.95rem;
+    }
+
+    .nexus-ctx-btn i {
+        font-size: 1.1rem;
+    }
+
+    .nexus-delete-ctx {
+        position: fixed !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        bottom: 16px !important;
+        top: auto !important;
+        width: calc(100vw - 32px) !important;
+        max-width: 90vw !important;
+        border-radius: 16px !important;
+    }
+
+    .nexus-delete-ctx button {
+        min-height: 48px !important;
+    }
+}
+
 /* ── MOBILE INPUT FIXES ───────────────────────────────── */
 @media (max-width: 768px) {
     .nexus-input-wrapper.horizontal-layout {
