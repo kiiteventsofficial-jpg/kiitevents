@@ -1696,8 +1696,8 @@ window.addSponsorRow = function (name = '', tier = '', logo = '') {
     div.style.borderRadius = '24px';
     div.style.padding = '16px';
     div.innerHTML = `
-        <input type="text" placeholder="Name (e.g. Google)" class="sponsor-name" value="${name}">
-        <select class="sponsor-tier">
+        <input type="text" placeholder="Name (e.g. Google)" class="sponsor-name bg-[#0f172a] text-white border-[#1e293b]" value="${name}">
+        <select class="sponsor-tier bg-[#0f172a] text-white border-[#1e293b]">
             <option value="Title" ${tier === 'Title' ? 'selected' : ''}>Title Sponsor</option>
             <option value="Platinum" ${tier === 'Platinum' ? 'selected' : ''}>Platinum</option>
             <option value="Gold" ${tier === 'Gold' ? 'selected' : ''}>Gold</option>
@@ -1705,7 +1705,7 @@ window.addSponsorRow = function (name = '', tier = '', logo = '') {
             <option value="Partner" ${tier === 'Partner' ? 'selected' : ''}>Partner</option>
         </select>
         <div class="flex items-center gap-2" style="flex: 1; min-width: 150px;">
-            <input type="file" accept="image/*" class="sponsor-logo-file text-xs text-gray-400" ${logo ? '' : ''}>
+            <input type="file" accept="image/*" class="sponsor-logo-file text-xs text-gray-400 bg-[#0f172a] border-[#1e293b]" ${logo ? '' : ''}>
             ${logo ? `<img src="${logo}" width="24" height="24" class="rounded-full sponsor-existing-logo" data-url="${logo}">` : ''}
         </div>
         <button type="button" onclick="this.closest('.sponsor-row').remove()" class="remove-btn">
@@ -1724,9 +1724,9 @@ window.addAgendaRow = function (time = '', title = '', speaker = '') {
     div.style.borderRadius = '24px';
     div.style.padding = '16px';
     div.innerHTML = `
-        <input type="text" placeholder="Time (9:00 AM)" class="agenda-time" value="${time}">
-        <input type="text" placeholder="Session Title" class="agenda-title" value="${title}">
-        <input type="text" placeholder="Speaker" class="agenda-speaker" value="${speaker}">
+        <input type="text" placeholder="Time (9:00 AM)" class="agenda-time bg-[#0f172a] text-white border-[#1e293b]" value="${time}">
+        <input type="text" placeholder="Session Title" class="agenda-title bg-[#0f172a] text-white border-[#1e293b]" value="${title}">
+        <input type="text" placeholder="Speaker" class="agenda-speaker bg-[#0f172a] text-white border-[#1e293b]" value="${speaker}">
         <button type="button" onclick="this.closest('.agenda-row').remove()" class="remove-btn">
             <i class="fas fa-trash"></i>
         </button>
@@ -1745,12 +1745,12 @@ window.addFaqRow = function (question = '', answer = '') {
     div.style.padding = '16px';
     div.innerHTML = `
         <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-            <input type="text" placeholder="Question" class="faq-question" style="flex:1" value="${question}">
+            <input type="text" placeholder="Question" class="faq-question bg-[#0f172a] text-white border-[#1e293b]" style="flex:1" value="${question}">
             <button type="button" onclick="this.closest('.faq-row').remove()" class="remove-btn">
                 <i class="fas fa-trash"></i>
             </button>
         </div>
-        <input type="text" placeholder="Answer" class="faq-answer" value="${answer}">
+        <input type="text" placeholder="Answer" class="faq-answer bg-[#0f172a] text-white border-[#1e293b]" value="${answer}">
     `;
     container.appendChild(div);
 };
