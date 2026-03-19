@@ -3009,17 +3009,64 @@ textarea {
     gap: 12px;
 }
 
+/* --- MEGA FIX FOR DYNAMIC ROWS (Sponsors, Agenda, FAQ) --- */
 .dynamic-item {
-    background: #f1f5f9;
-    padding: 15px 20px;
-    border-radius: 20px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
+    background: rgba(15, 23, 42, 0.4) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 20px !important;
+    border-radius: 20px !important;
+    display: flex !important;
+    gap: 12px !important;
+    align-items: center !important;
+    margin-bottom: 12px !important;
+    position: relative !important;
+    overflow: visible !important;
+}
+
+/* Force dark background on all inputs and selects inside dynamic items */
+.dynamic-item input[type="text"],
+.dynamic-item input[type="file"],
+.dynamic-item select,
+.dynamic-item textarea,
+.sponsor-name,
+.sponsor-tier,
+.agenda-time,
+.agenda-title,
+.faq-question,
+.faq-answer {
+    background-color: #0f172a !important;
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    outline: none !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Ensure dropdown options are also readable */
+.dynamic-item select option {
+    background-color: #1e293b !important;
+    color: white !important;
+}
+
+/* Focused states */
+.dynamic-item input:focus,
+.dynamic-item select:focus,
+.dynamic-item textarea:focus {
+    background-color: #1e293b !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.dynamic-item input::placeholder {
+    color: rgba(148, 163, 184, 0.5) !important;
 }
 
 .remove-btn {
-    background: #fee2e2;
+    background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
     border: none;
     width: 38px;
@@ -3033,7 +3080,7 @@ textarea {
 }
 
 .remove-btn:hover {
-    background: #fecaca;
+    background: rgba(239, 68, 68, 0.2);
 }
 
 .add-btn {
@@ -3053,7 +3100,7 @@ textarea {
 }
 
 .add-btn:hover {
-    background: #eff6ff;
+    background: rgba(37, 99, 235, 0.1);
 }
 
 .action-row {
@@ -3064,8 +3111,8 @@ textarea {
 
 .draft-btn {
     flex: 1;
-    background: #eff6ff;
-    color: #2563eb;
+    background: rgba(37, 99, 235, 0.1);
+    color: #60a5fa;
     border: none;
     padding: 18px;
     border-radius: 24px;
