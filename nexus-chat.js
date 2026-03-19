@@ -684,55 +684,59 @@ class NexusChatUI {
 
     // ── INIT ─────────────────────────────────────────────────────────────────
     async init() {
-        console.log('NexusChatUI: STEP 1 - Starting initialization');
+        console.log('NexusChatUI: Starting initialization sequence...');
         
-        // Force refresh session if email shows as unconfirmed in current JWT
         try {
+            console.log('NexusChatUI: Phase 0 - Checking session state');
             const { data: { session } } = await this.sb.auth.getSession();
+            console.log('NexusChatUI: Session check result:', session ? 'Authenticated' : 'Not Authenticated');
+            
             if (session && session.user && (!session.user.email_confirmed_at || !session.user.user_metadata?.email_verified)) {
-                console.log('NexusChatUI: Session state check - Refreshing to sync confirmation flags...');
-                const { error: refreshError } = await this.sb.auth.refreshSession();
-                if (refreshError) {
-                    console.warn('NexusChatUI: Session refresh attempt failed', refreshError);
-                    // If still unconfirmed after refresh attempt, we might be blocked
-                } else {
-                    console.log('✅ NexusChatUI: Session refreshed successfully');
-                }
+                console.log('NexusChatUI: Refreshing session for verification sync...');
+                await this.sb.auth.refreshSession();
             }
         } catch (e) {
             console.warn('NexusChatUI: Session management error', e);
         }
 
         try {
-            // Load Full User Profile (including avatar)
+            console.log('NexusChatUI: Phase 1 - Loading User Profile');
             await this._loadUserProfile();
+            console.log('NexusChatUI: Phase 1 complete. User:', this.userName);
 
-            // Populate Sidebar Profile
+            console.log('NexusChatUI: Phase 1.1 - Rendering Profile UI');
             this._renderProfileUI();
 
-            console.log('NexusChatUI: STEP 2 - Loading blocked users');
+            console.log('NexusChatUI: Phase 2 - Loading blocked users');
             await this._loadBlockedUsers();
+            console.log('NexusChatUI: Phase 2 complete. Blocked count:', this.blockedUsers.length);
 
-            console.log('NexusChatUI: STEP 3 - Ensuring AI room');
+            console.log('NexusChatUI: Phase 3 - Ensuring AI room');
             await this._ensureAIRoom();
+            console.log('NexusChatUI: Phase 3 complete.');
 
-            console.log('NexusChatUI: STEP 4 - Loading rooms');
+            console.log('NexusChatUI: Phase 4 - Loading rooms');
             await this._loadRooms();
+            console.log('NexusChatUI: Phase 4 complete. Room count:', this.rooms.length);
 
-            console.log('NexusChatUI: STEP 5 - Initializing presence & global subscriptions');
+            console.log('NexusChatUI: Phase 5 - Initializing settings & global subs');
             await this.initSettingsV3();
             this._initPresence();
             this._subscribeNewRooms();
             this._subscribeToMessages();
             this.bindSearch();
 
-            // Start listening for incoming calls on all rooms
-            console.log('NexusChatUI: STEP 6 - Setting up incoming call listeners');
+            console.log('NexusChatUI: Phase 6 - Setting up call listeners');
             this.callMgr.listenForIncomingCalls(this.rooms.map(r => r.id));
 
+            console.log('✅ NexusChatUI: INITIALIZATION SUCCESS - Hiding loading overlay');
+            const overlay = document.getElementById('nexusLoadingOverlay');
+            if (overlay) overlay.style.display = 'none';
+            
             console.log('✅ NexusChatUI: Initialization complete');
         } catch (e) {
-            console.error('❌ NexusChatUI: init error:', e);
+            console.error('❌ NexusChatUI: init FATAL error:', e);
+            nexusShowToast('Connection failed. Please refresh.', 'error');
         }
     }
 
@@ -1204,6 +1208,7 @@ class NexusChatUI {
 
         // Subscribe to real-time updates for THIS room specifically
         this._subscribeToRoomMessages(roomId);
+        this._subscribeToRoomMembers(roomId);
 
         // Update Contextual Bar if open
         const cbar = document.getElementById('nexusContextualBar');
@@ -2417,6 +2422,31 @@ class NexusChatUI {
             });
     }
 
+    _subscribeToRoomMembers(roomId) {
+        // Clean up previous member sub
+        if (this.memberSub) {
+            try { this.sb.removeChannel(this.memberSub); } catch (_) {}
+        }
+
+        console.log(`Subscribing to realtime members for room: ${roomId}`);
+
+        this.memberSub = this.sb.channel(`members-${roomId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'chat_room_members',
+                filter: `room_id=eq.${roomId}`
+            }, async (payload) => {
+                console.log('Realtime member change detected:', payload.eventType);
+                // Refresh the list if the contextual bar is visible
+                const cbar = document.getElementById('nexusContextualBar');
+                if (cbar && cbar.style.display !== 'none') {
+                    await this._populateRoomInfo();
+                }
+            })
+            .subscribe();
+    }
+
     _updateConnectionStatus(status) {
         const meta = document.getElementById('nexusChatMeta');
         if (!meta) return;
@@ -2592,7 +2622,12 @@ class NexusChatUI {
                     }
                 });
 
-                // 2. Typing Indicator Logic
+                // 2. Update Members List in Contextual Bar (if open)
+                if (this._allMembers) {
+                    this._renderMemberList(this._allMembers);
+                }
+
+                // 3. Typing Indicator Logic
                 this._updateTypingIndicators(state);
             }).subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
@@ -3182,10 +3217,21 @@ class NexusChatUI {
         const titleEl = document.getElementById('nexusCBarTitle');
         if (titleEl) titleEl.innerText = room.type === 'direct' ? 'User Info' : 'Room Info';
 
-        // Get members
-        const { data: members } = await this.sb.from('chat_room_members')
-            .select('created_at, role, user_id, profiles(full_name, avatar_url, email)')
+        // Get members via view (more reliable join)
+        const { data: members, error: memErr } = await this.sb.from('chat_room_members_view')
+            .select('*')
             .eq('room_id', this.currentRoomId);
+        
+        if (memErr) {
+            console.error('Error fetching members from view:', memErr);
+            // Fallback to table if view fails
+            const { data: fallbackMembers } = await this.sb.from('chat_room_members')
+                .select('joined_at, role, user_id, profiles(full_name, avatar_url, email)')
+                .eq('room_id', this.currentRoomId);
+            this._allMembers = fallbackMembers || [];
+        } else {
+            this._allMembers = members || [];
+        }
 
         // Get pinned count
         const { count: pinnedCount } = await this.sb.from('chat_messages')
@@ -3309,18 +3355,40 @@ class NexusChatUI {
     _renderMemberList(members) {
         const container = $id('nexusMemberListContainer');
         if (!container) return;
+
+        if (!members || members.length === 0) {
+            container.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px; color:#6b7390; text-align:center;">
+                    <i class="fas fa-users" style="font-size:2rem; opacity:0.3; margin-bottom:15px;"></i>
+                    <div style="font-size:0.9rem;">No members in this channel yet</div>
+                </div>
+            `;
+            return;
+        }
+
         const room = this.rooms.find(r => r.id === this.currentRoomId);
         const isAdmin = room && (room.memberRole === 'admin' || room.created_by === this.userId);
+        
+        // Presence state for online indicator
+        const presence = this.presenceCh ? this.presenceCh.presenceState() : {};
+        const onlineUserIds = new Set(Object.values(presence).flat().map(p => p.userId));
 
         container.innerHTML = members.map(m => {
-            const profile = m.profiles || {};
+            // Support both flat view structure and nested table structure
+            const profile = m.profiles || m;
+            const isOnline = onlineUserIds.has(m.user_id);
+            
             const avatar = profile.avatar_url
                 ? `<img src="${profile.avatar_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" />`
                 : `<div class="nexus-dm-avatar" style="width:36px; height:36px; font-size:12px;">${nexusEsc(nexusInitials(profile.full_name || profile.email || '?'))}</div>`;
+            
+            const statusDot = `<div style="position:absolute; bottom:0; right:0; width:10px; height:10px; border-radius:50%; background:${isOnline ? '#2ecc71' : '#6b7390'}; border:2px solid #1a2035;"></div>`;
+            
             const roleBadge = m.role === 'admin'
                 ? '<span style="font-size:0.65rem;background:rgba(124,77,255,0.2);color:#a78bfa;padding:2px 8px;border-radius:10px;font-weight:600;">Admin</span>'
                 : '<span style="font-size:0.65rem;background:rgba(255,255,255,0.05);color:#8f9bc0;padding:2px 8px;border-radius:10px;">Member</span>';
-            const date = new Date(m.created_at).toLocaleDateString();
+            const dateStr = m.joined_at || m.created_at;
+            const date = dateStr ? new Date(dateStr).toLocaleDateString() : 'Unknown';
 
             let actions = '';
             if (isAdmin && m.user_id !== this.userId) {
@@ -3341,9 +3409,10 @@ class NexusChatUI {
             <div style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(255,255,255,0.02); border-radius:12px; cursor:pointer;" data-member-id="${m.user_id}">
                 <div style="position:relative; flex-shrink:0;">
                     ${avatar}
+                    ${statusDot}
                 </div>
                 <div style="flex:1; overflow:hidden;">
-                    <div style="font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nexusEsc(profile.full_name || profile.email || 'Unknown')}</div>
+                    <div style="font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nexusEsc(profile.full_name || profile.email || 'Unknown')} ${m.user_id === this.userId ? '<span style="color:#7c4dff; font-weight:400; font-size:0.75rem;">(You)</span>' : ''}</div>
                     <div style="display:flex; align-items:center; gap:6px; margin-top:3px;">
                         ${roleBadge}
                         <span style="font-size:0.65rem; color:#6b7390;">Joined ${date}</span>
@@ -3389,7 +3458,7 @@ class NexusChatUI {
             row.onclick = (e) => {
                 if (e.target.closest('.nexus-member-action-btn')) return;
                 const uid = row.dataset.memberId;
-                if (uid) this._viewUserProfile(uid);
+                if (uid) this.openProfileModal(uid);
             };
         });
     }
