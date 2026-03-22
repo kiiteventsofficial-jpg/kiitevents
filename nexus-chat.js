@@ -120,11 +120,12 @@ function renderMediaFromUrl(url, name) {
     const isAudio = /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(basePath) || isVoiceMessage;
 
     if (isImage) {
+        // FIX: Added noopener,noreferrer for security
         return `<div class="nexus-img-wrap">
             <img src="${url}" alt="${nexusEsc(fileName)}" class="nexus-inline-img"
                 loading="lazy"
-                onclick="window.open(this.src,'_blank')"
-                onerror="this.parentNode.innerHTML='<a class=nexus-file-card href=&quot;${url}&quot; target=_blank><i class=\'fas fa-image\'></i><span>${nexusEsc(fileName)}</span></a>'">
+                onclick="window.open(this.src,'_blank','noopener,noreferrer')"
+                onerror="this.parentNode.innerHTML='<a class=nexus-file-card href=&quot;${url}&quot; target=_blank rel=noopener><i class=\'fas fa-image\'></i><span>${nexusEsc(fileName)}</span></a>'">
         </div>`;
     }
     if (isVideo) {
@@ -507,11 +508,29 @@ class NexusCallManager {
 
     // ── CREATE PEER CONNECTION ─────────────────────────────────────────────
     _createPeerConnection() {
+        // FIX: Added TURN servers for NAT traversal - STUN only works on same network
+        // 80%+ of real-world calls require TURN servers to work across NAT/firewall
         this.pc = new RTCPeerConnection({
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
+                { urls: 'stun:stun2.l.google.com:19302' },
+                // Free TURN servers from OpenRelay (for development/testing)
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
             ]
         });
 
@@ -1115,6 +1134,8 @@ class NexusChatUI {
         // Clear unread count and mention flag
         room.unreadCount = 0;
         room.hasMention = false;
+        // FIX: Update browser tab title with total unread count
+        this._updateTabTitle();
 
         // UI Updates for Active State
         document.querySelectorAll('.nexus-room-item').forEach(el => {
@@ -1135,7 +1156,8 @@ class NexusChatUI {
         if (room.type === 'assistant') {
             this.currentRoomIsAI = true;
             document.getElementById('nexusChatTitle').innerText = 'Nexus AI Assistant';
-            document.getElementById('nexusChatMeta').innerHTML = '<span class="status-dot" style="background:#7c4dff;"></span><span class="meta-content">Online • GPT-4 Turbo</span>';
+            // FIX: Changed label from "GPT-4 Turbo" to correct "NEXUS AI (Groq)"
+            document.getElementById('nexusChatMeta').innerHTML = '<span class="status-dot" style="background:#7c4dff;"></span><span class="meta-content">Online • NEXUS AI (Groq)</span>';
             document.getElementById('nexusHeaderRoomIcon').innerHTML = '<i class="fas fa-robot"></i>';
             document.getElementById('nexusHeaderRoomIcon').style.background = 'rgba(124, 77, 255, 0.2)';
             document.getElementById('nexusHeaderRoomIcon').style.color = '#7c4dff';
@@ -1210,6 +1232,9 @@ class NexusChatUI {
         this._subscribeToRoomMessages(roomId);
         this._subscribeToRoomMembers(roomId);
 
+        // Start polling fallback as safety net (catches messages if realtime fails)
+        this._startPollingFallback(roomId);
+
         // Update Contextual Bar if open
         const cbar = document.getElementById('nexusContextualBar');
         if (cbar && cbar.style.display !== 'none') {
@@ -1218,6 +1243,12 @@ class NexusChatUI {
 
         // Display connection status
         this._updateConnectionStatus('Connected');
+    }
+
+    // FIX: Add method to update browser tab title with unread count
+    _updateTabTitle() {
+        const totalUnread = this.rooms.reduce((sum, r) => sum + (r.unreadCount || 0), 0);
+        document.title = totalUnread > 0 ? `(${totalUnread}) NEXUS | KIIT Events` : 'NEXUS | KIIT Events';
     }
 
 
@@ -1706,9 +1737,17 @@ class NexusChatUI {
 
     async _loadMessages(roomId, loadOlder = false) {
         const msgArea = $id('nexusMessages'); if (!msgArea) return;
-        
+
+        // FIX: Better loading spinner for room switches
         if (!loadOlder) {
-            msgArea.innerHTML = '<div style="text-align:center;color:#6b7390;padding:20px;font-size:0.85rem;"><i class="fas fa-spinner fa-spin"></i> Loading messages…</div>';
+            msgArea.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                height:100%;gap:16px;color:#6b7390;">
+                    <div style="width:32px;height:32px;border:3px solid rgba(124,77,255,0.2);
+                    border-top-color:#7c4dff;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+                    <span style="font-size:0.85rem;">Loading messages...</span>
+                </div>
+            `;
             this.renderedMessageIds.clear();
             this._oldestMsgTimestamp = null;
             this._hasMoreMessages = true;
@@ -2033,7 +2072,8 @@ class NexusChatUI {
                         nexusShowToast('Pin failed: ' + err.message, 'error');
                     }
                 } else if (action === 'download' && msg.file_url) {
-                    window.open(msg.file_url, '_blank');
+                    // FIX: Added noopener,noreferrer for security
+                    window.open(msg.file_url, '_blank', 'noopener,noreferrer');
                 } else if (action === 'report') {
                     nexusShowToast('Message reported to admins.', 'info');
                 } else if (action === 'edit' && isOwn) {
@@ -2238,17 +2278,54 @@ class NexusChatUI {
         document.getElementById(thinkingId)?.remove();
 
         // Insert AI reply into database
-        const { error: insertErr } = await this.sb.from('chat_messages').insert({
+        const { data: insertedMsg, error: insertErr } = await this.sb.from('chat_messages').insert({
             room_id: targetRoomId,
             sender_id: this.userId,
             content: aiReply,
             message_type: 'assistant'
-        });
+        }).select('*').single();
 
         if (insertErr) {
             console.error('STEP 4 FAILED — AI insert error:', insertErr.message);
+
+            // Show user-visible error instead of silent failure
+            if (msgArea) {
+                const errorEl = document.createElement('div');
+                errorEl.className = 'nexus-msg-row nexus-error-msg';
+                errorEl.innerHTML = `
+                    <div class="nexus-msg-content-col">
+                        <div class="nexus-msg-text" style="color: #ff6b6b; font-style: italic; padding: 8px; background: rgba(255, 107, 107, 0.1); border-radius: 8px; border: 1px solid rgba(255, 107, 107, 0.3);">
+                            ⚠️ Failed to save AI response. Please try again.
+                        </div>
+                    </div>`;
+                msgArea.appendChild(errorEl);
+            }
         } else {
             console.log('STEP 4: AI reply inserted into database');
+
+            // FIX: Immediately render AI response to UI (don't rely on realtime)
+            if (msgArea && insertedMsg) {
+                // Add to rendered set to prevent duplicate from realtime
+                this.renderedMessageIds.add(insertedMsg.id);
+
+                // Create AI message element
+                const aiMsgData = {
+                    ...insertedMsg,
+                    profiles: { full_name: 'NEXUS AI' },
+                    chat_message_reactions: []
+                };
+
+                const el = this._buildMsgEl(aiMsgData);
+                el.classList.add('nexus-animate-fade-in');
+                msgArea.appendChild(el);
+
+                // Auto-scroll to show the new AI message
+                if (this._autoScroll) {
+                    this._scrollToBottom(true);
+                }
+
+                console.log('STEP 5: AI response rendered to UI');
+            }
         }
     }
 
@@ -2320,8 +2397,9 @@ class NexusChatUI {
                 table: 'chat_messages',
                 filter: `room_id=eq.${roomId}`
             }, async (payload) => {
+                console.log('🔔 REALTIME: New message received!', payload);
                 const msg = payload.new;
-                
+
                 // 1. Prevent Duplicates
                 if (this.renderedMessageIds.has(msg.id)) return;
                 this.renderedMessageIds.add(msg.id);
@@ -2410,16 +2488,81 @@ class NexusChatUI {
                     }
                 }
             })
-            .subscribe((status) => {
+            .subscribe((status, err) => {
+                console.log(`📡 Realtime status: ${status}`, err || '');
                 if (status === 'SUBSCRIBED') {
-                    console.log('Successfully subscribed to room realtime channel');
+                    console.log('✅ Successfully subscribed to room realtime channel');
                     this._updateConnectionStatus('Connected');
                 } else if (status === 'CLOSED') {
+                    console.warn('⚠️ Realtime channel closed');
                     this._updateConnectionStatus('Offline');
                 } else if (status === 'CHANNEL_ERROR') {
+                    console.error('❌ Realtime channel error:', err);
                     this._updateConnectionStatus('Reconnecting');
                 }
             });
+    }
+
+    // Polling fallback for realtime (safety net if WebSocket fails)
+    _startPollingFallback(roomId) {
+        // Clear any existing polling
+        if (this._pollInterval) {
+            clearInterval(this._pollInterval);
+            this._pollInterval = null;
+        }
+
+        this._pollInterval = setInterval(async () => {
+            // Stop polling if we've switched to a different room
+            if (this.currentRoomId !== roomId) {
+                clearInterval(this._pollInterval);
+                this._pollInterval = null;
+                return;
+            }
+
+            // Get latest message timestamp from rendered messages
+            const lastMsg = document.querySelector('.nexus-msg-row:last-of-type');
+            const lastTimestamp = lastMsg?.dataset.timestamp;
+
+            if (!lastTimestamp) return;
+
+            // Query for newer messages
+            const { data: newMsgs, error } = await this.sb.from('chat_messages')
+                .select('*, profiles(full_name, avatar_url), chat_message_reactions(emoji, user_id)')
+                .eq('room_id', roomId)
+                .gt('created_at', lastTimestamp)
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.warn('📬 Polling error:', error.message);
+                return;
+            }
+
+            if (newMsgs?.length > 0) {
+                console.log('📬 Polling found new messages:', newMsgs.length);
+                const msgArea = document.getElementById('nexusMessages');
+
+                newMsgs.forEach(msg => {
+                    // Skip if already rendered (realtime already got it)
+                    if (this.renderedMessageIds.has(msg.id)) return;
+
+                    this.renderedMessageIds.add(msg.id);
+
+                    // Remove optimistic UI if this is our own message
+                    if (msg.sender_id === this.userId) {
+                        const optimistic = msgArea?.querySelector('[data-temp-msg="true"]');
+                        if (optimistic) optimistic.remove();
+                    }
+
+                    if (msgArea) {
+                        const el = this._buildMsgEl(msg);
+                        el.classList.add('nexus-animate-fade-in');
+                        msgArea.appendChild(el);
+                    }
+                });
+
+                if (this._autoScroll) this._scrollToBottom(true);
+            }
+        }, 5000); // Poll every 5 seconds
     }
 
     _subscribeToRoomMembers(roomId) {
@@ -2513,10 +2656,12 @@ class NexusChatUI {
                 if (room) {
                     room.lastMsg = msg.content;
                     room.lastAt = msg.created_at;
-                    
+
                     // Increment unread if message is not from us and not in the current room
                     if (msg.sender_id !== this.userId && msg.room_id !== this.currentRoomId) {
                         room.unreadCount = (room.unreadCount || 0) + 1;
+                        // FIX: Update browser tab title with unread count
+                        this._updateTabTitle();
 
                         // @mention detection
                         const content = (msg.content || '').toLowerCase();
@@ -2878,7 +3023,29 @@ class NexusChatUI {
 
         if (room && room.type === 'assistant') {
             console.log('AI assistant triggered');
-            this._generateAIResponse(this.currentRoomId, rawContent);
+
+            // Enhanced debug logging for AI flow
+            console.log('🤖 AI Flow Debug Info:', {
+                currentRoomId: this.currentRoomId,
+                roomType: room?.type,
+                userMessage: rawContent,
+                timestamp: new Date().toISOString()
+            });
+
+            try {
+                await this._generateAIResponse(this.currentRoomId, rawContent);
+            } catch (error) {
+                console.error('❌ AI response failed:', error.message);
+                // Show user-friendly error message
+                const msgArea = document.getElementById('nexusMessages');
+                if (msgArea) {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'nexus-error-banner';
+                    errorMsg.style.cssText = 'padding: 12px; margin: 8px 0; background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; border-radius: 8px; color: #ff6b6b; font-size: 0.9rem;';
+                    errorMsg.innerHTML = '⚠️ AI Assistant temporarily unavailable. Please try again.';
+                    msgArea.appendChild(errorMsg);
+                }
+            }
         }
     }
 
@@ -3328,14 +3495,15 @@ class NexusChatUI {
                     .order('created_at', { ascending: false })
                     .limit(30);
                 if (mediaMessages && mediaMessages.length > 0) {
+                    // FIX: Added noopener,noreferrer for security in all window.open calls
                     mediaGrid.innerHTML = mediaMessages.map(m => {
                         const isImage = m.message_type === 'image' || /\.(jpg|jpeg|png|gif|webp)$/i.test(m.file_url || '');
                         if (isImage) {
-                            return `<div style="aspect-ratio:1;border-radius:8px;overflow:hidden;cursor:pointer;" onclick="window.open('${m.file_url}','_blank')">
+                            return `<div style="aspect-ratio:1;border-radius:8px;overflow:hidden;cursor:pointer;" onclick="window.open('${m.file_url}','_blank','noopener,noreferrer')">
                                 <img src="${m.file_url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />
                             </div>`;
                         }
-                        return `<div style="aspect-ratio:1;border-radius:8px;background:rgba(255,255,255,0.04);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;padding:8px;" onclick="window.open('${m.file_url}','_blank')">
+                        return `<div style="aspect-ratio:1;border-radius:8px;background:rgba(255,255,255,0.04);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;padding:8px;" onclick="window.open('${m.file_url}','_blank','noopener,noreferrer')">
                             <i class="fas fa-file" style="font-size:1.2rem;color:#7c4dff;"></i>
                             <span style="font-size:0.65rem;color:#8f9bc0;text-align:center;overflow:hidden;text-overflow:ellipsis;max-width:100%;white-space:nowrap;">${nexusEsc(m.file_name || 'File')}</span>
                         </div>`;
@@ -3563,6 +3731,17 @@ function _nexusAttachEvents(ctrl) {
         document.body.classList.remove('sidebar-open');
     };
 
+    // FIX: Welcome screen button handlers - previously these buttons did nothing
+    document.querySelector('.nexus-welcome-btn.primary')?.addEventListener('click', () => {
+        document.getElementById('nexusDMModal')?.classList.add('show');
+    });
+    document.querySelectorAll('.nexus-welcome-btn.secondary')[0]?.addEventListener('click', () => {
+        document.getElementById('nexusCreateGroupModal')?.classList.add('show');
+    });
+    document.querySelectorAll('.nexus-welcome-btn.secondary')[1]?.addEventListener('click', () => {
+        document.getElementById('nexusAddMemberModal')?.classList.add('show');
+    });
+
     // Sidebar Toggle (Desktop Collapse / Mobile Close)
     $('nexusSidebarToggle')?.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -3629,13 +3808,33 @@ function _nexusAttachEvents(ctrl) {
     bindMobileBtn('nexusMobInfoBtn', 'nexusInfoToggleBtn');
     bindMobileBtn('nexusMobBlockBtn', 'nexusBlockBtn');
 
-    // Scroll Management
+    // FIX: Add scroll-to-bottom button for when user scrolls up
+    const scrollBtn = document.createElement('button');
+    scrollBtn.id = 'nexusScrollBottomBtn';
+    scrollBtn.innerHTML = '<i class="fas fa-arrow-down"></i>';
+    scrollBtn.style.cssText = `position:absolute;bottom:80px;right:20px;width:40px;height:40px;
+    border-radius:50%;background:#7c4dff;color:white;border:none;cursor:pointer;
+    display:none;z-index:100;box-shadow:0 4px 12px rgba(124,77,255,0.4);
+    align-items:center;justify-content:center;transition:all 0.2s;`;
+    scrollBtn.onclick = () => {
+        const msgArea = $('nexusMessages');
+        if (msgArea) {
+            msgArea.scrollTo({ top: msgArea.scrollHeight, behavior: 'smooth' });
+        }
+    };
+    $('nexusChatLayout')?.appendChild(scrollBtn);
+
+    // Scroll Management with scroll-to-bottom button visibility
     const msgArea = $('nexusMessages');
     if (msgArea) {
         msgArea.addEventListener('scroll', () => {
             const threshold = 100; // px from bottom
             const isAtBottom = msgArea.scrollHeight - msgArea.scrollTop - msgArea.clientHeight < threshold;
             ctrl._autoScroll = isAtBottom;
+            // Show/hide scroll-to-bottom button
+            if (scrollBtn) {
+                scrollBtn.style.display = isAtBottom ? 'none' : 'flex';
+            }
         });
     }
 
@@ -4002,6 +4201,9 @@ function _nexusAttachEvents(ctrl) {
         if (!query) { $('nexusGifResults').innerHTML = '<p style="text-align:center;color:#6b7390;grid-column:1/-1;padding:20px;">Type to search GIFs</p>'; return; }
         gifSearchTimer = setTimeout(async () => {
             try {
+                // FIX/TODO: Tenor API key is exposed in frontend code.
+                // For production, move this to a Supabase Edge Function like the AI endpoint.
+                // Current key should be domain-restricted in Google Cloud Console.
                 const resp = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=nexus_chat&limit=12&media_filter=tinygif`);
                 const data = await resp.json();
                 const results = $('nexusGifResults');
@@ -4863,121 +5065,9 @@ function _nexusAttachEvents(ctrl) {
         }
     });
 
-    // --- Profile Settings ---
-    $('btnSaveProfileV3')?.addEventListener('click', () => {
-        ctrl.saveProfileV3();
-    });
-
-    $('btnEditAvatarV3')?.addEventListener('click', () => {
-        $('settingsAvatarInputV3')?.click();
-    });
-
-    $('settingsAvatarInputV3')?.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) ctrl.updateAvatarV3(file);
-    });
-
-    // --- Navigation ---
-    document.querySelectorAll('.settings-nav-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const section = item.dataset.section;
-            document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('show'));
-            document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
-            
-            $id(`settings-${section}`)?.classList.add('show');
-            item.classList.add('active');
-        });
-    });
-
-    $('nexusCloseSettingsV3')?.addEventListener('click', () => {
-        $('nexusSettingsModalV3')?.classList.remove('show');
-    });
-
-    $('nexusOpenSettingsBtn')?.addEventListener('click', () => {
-        $('nexusProfileModal')?.classList.remove('show');
-        $('nexusSettingsModalV3')?.classList.add('show');
-    });
-
-    // --- Appearance Toggles ---
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const theme = btn.dataset.theme;
-            ctrl.saveSettingsV3({ theme });
-        });
-    });
-
-    document.querySelectorAll('#accentPresets .color-swatch-v3').forEach(swatch => {
-        swatch.addEventListener('click', () => {
-            const accent_color = swatch.dataset.color;
-            ctrl.saveSettingsV3({ accent_color });
-            
-            // UI feedback
-            document.querySelectorAll('#accentPresets .color-swatch-v3').forEach(s => s.classList.remove('active'));
-            swatch.classList.add('active');
-        });
-    });
-
-    $('settingsFontSize')?.addEventListener('change', (e) => {
-        ctrl.saveSettingsV3({ font_size: e.target.value });
-    });
-
-    // --- Chat Settings ---
-    $('settingsShowTime')?.addEventListener('change', (e) => {
-        ctrl.saveSettingsV3({ show_timestamps: e.target.checked });
-    });
-
-    $('settingsCompactMode')?.addEventListener('change', (e) => {
-        ctrl.saveSettingsV3({ compact_mode: e.target.checked });
-    });
-
-    $('settingsChatBgInp')?.addEventListener('change', (e) => {
-        ctrl.saveSettingsV3({ chat_bg_url: e.target.value.trim() });
-    });
-
-    $('settingsBubbleInColor')?.addEventListener('input', (e) => {
-        ctrl.saveSettingsV3({ incoming_bubble_color: e.target.value });
-    });
-
-    $('settingsBubbleOutColor')?.addEventListener('input', (e) => {
-        ctrl.saveSettingsV3({ outgoing_bubble_color: e.target.value });
-    });
-
-    $('btnPreviewBg')?.addEventListener('click', () => {
-        const url = $('settingsChatBgInp').value.trim();
-        if (url) {
-            ctrl._isApplyingWallpaper = true;
-            ctrl.saveSettingsV3({ chat_bg_url: url });
-        } else {
-            ctrl.saveSettingsV3({ chat_bg_url: null });
-        }
-    });
-
-    // --- Notification Toggles ---
-    $('settingsNotifEnable')?.addEventListener('change', (e) => {
-        ctrl.saveSettingsV3({ push_enabled: e.target.checked });
-    });
-
-    $('settingsSoundEnable')?.addEventListener('change', (e) => {
-        ctrl.saveSettingsV3({ sounds_enabled: e.target.checked });
-    });
-
-    $('settingsDesktopNotif')?.addEventListener('change', (e) => {
-        ctrl.saveSettingsV3({ desktop_notifs: e.target.checked });
-    });
-
-    // --- Privacy Settings ---
-    $('settingsLastSeen')?.addEventListener('change', (e) => {
-        ctrl.saveSettingsV3({ privacy_last_seen: e.target.value });
-    });
-
-    // --- Storage Actions ---
-    $('btnClearCacheV3')?.addEventListener('click', () => {
-        ctrl.clearChatCache();
-    });
-
-    $('btnDeleteMediaV3')?.addEventListener('click', () => {
-        ctrl.deleteAllMedia();
-    });
+    // FIX: Removed duplicate event listener block (lines 4872-4986) that was causing
+    // double API saves, double toasts, and race conditions. All these events are
+    // already attached earlier in _nexusAttachEvents().
 
     console.log('✅ Nexus interactive events attached');
 }
@@ -4986,7 +5076,8 @@ function _nexusAttachEvents(ctrl) {
 window.initNexusChat = async function (role) {
     if (window.nexusInitInProgress) {
         console.warn('NexusChatUI: Initialization already in progress');
-        return;
+        // FIX: Throw error instead of silent return so bootstrap can handle it
+        throw new Error('Initialization already in progress');
     }
     window.nexusInitInProgress = true;
 
@@ -4996,7 +5087,8 @@ window.initNexusChat = async function (role) {
         if (!sb) {
             console.error('initNexusChat: Supabase not found on window');
             window.nexusInitInProgress = false;
-            return;
+            // FIX: Throw error instead of silent return
+            throw new Error('Supabase client not loaded');
         }
 
         console.log('initNexusChat: Getting user session');
@@ -5004,7 +5096,8 @@ window.initNexusChat = async function (role) {
         if (error || !user) {
             console.warn('initNexusChat: Not authenticated');
             window.nexusInitInProgress = false;
-            return;
+            // FIX: Throw error so bootstrap redirects properly
+            throw new Error('User not authenticated');
         }
 
         console.log('initNexusChat: Synchronizing profile for user:', user.id);
@@ -5025,6 +5118,9 @@ window.initNexusChat = async function (role) {
         console.log('initNexusChat: Success');
     } catch (err) {
         console.error('initNexusChat: FATAL EXCEPTION:', err);
+        window.nexusInitInProgress = false;
+        // FIX: Re-throw so bootstrap can handle the error
+        throw err;
     } finally {
         window.nexusInitInProgress = false;
     }
