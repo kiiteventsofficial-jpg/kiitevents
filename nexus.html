@@ -133,6 +133,12 @@
 </head>
 
 <body>
+    <!-- Loading overlay - MUST be first element in body for bootstrap script to find it -->
+    <div id="loadingOverlay" style="position:fixed;inset:0;background:#020617;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:99999;">
+        <div style="width:40px;height:40px;border:3px solid rgba(124,77,255,0.3);border-top-color:#7c4dff;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        <p style="color:#8f9bc0;font-size:0.9rem;">Connecting to NEXUS...</p>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
     <div class="nexus-standalone-wrapper">
         <div class="blob blob-1"></div>
@@ -227,7 +233,8 @@
                 <div class="nexus-header">
                     <div class="nexus-header-left">
                         <button class="nexus-mobile-toggle" id="nexusMobileToggle"><i class="fas fa-bars"></i></button>
-                        <button class="nexus-header-action-btn" onclick="window.close()" title="Back to Dashboard"
+                        <!-- FIX: Changed window.close() to redirect - window.close() only works if page was opened via script -->
+                        <button class="nexus-header-action-btn" onclick="window.location.href='index.html'" title="Back to Dashboard"
                             style="margin-right: 8px;"><i class="fas fa-arrow-left"></i></button>
                         <button class="nexus-back-btn" id="nexusBackBtn" style="display:none;"><i
                                 class="fas fa-arrow-left"></i></button>
@@ -525,22 +532,7 @@
         </div>
     </div>
 
-    <div class="nexus-modal" id="nexusBroadcastModal">
-        <div class="nexus-modal-content">
-            <h3><i class="fas fa-bullhorn" style="color:#7c4dff;margin-right:8px;"></i>Broadcast Message</h3>
-            <select class="nexus-modal-select" id="nexusBroadcastTarget">
-                <option value="all">Everyone</option>
-                <option value="students">Students Only</option>
-                <option value="admins">Admins Only</option>
-            </select>
-            <textarea class="nexus-modal-input" id="nexusBroadcastMsg" placeholder="Your broadcast content..." rows="4"
-                style="border-radius:14px;resize:none;"></textarea>
-            <div class="nexus-modal-footer">
-                <button class="nexus-modal-btn cancel" id="nexusCancelBroadcast">Cancel</button>
-                <button class="nexus-modal-btn primary" id="nexusSendBroadcast">Send</button>
-            </div>
-        </div>
-    </div>
+    <!-- FIX: Removed first duplicate nexusBroadcastModal - keeping the more complete version below -->
 
     <div class="nexus-modal" id="nexusProfileModal">
         <div class="nexus-modal-content" style="max-width: 360px;">
@@ -578,54 +570,7 @@
         </div>
     </div>
 
-    <!-- CALL OVERLAY (Fullscreen) -->
-    <div id="nexusCallOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background:#0a0d16; flex-direction:column;">
-        <!-- Call Header -->
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:rgba(0,0,0,0.4); z-index:2;">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <div id="nexusCallTimer" style="display:flex; align-items:center; gap:6px; background:rgba(255,60,60,0.15); padding:6px 14px; border-radius:20px;">
-                    <span style="width:8px; height:8px; background:#ff3c3c; border-radius:50; animation:nexusPulse 1.5s infinite;"></span>
-                    <span id="nexusCallTimerText" style="color:#ff6b6b; font-size:0.85rem; font-weight:600; font-family:monospace;">00:00</span>
-                </div>
-                <span id="nexusCallOverlayStatus" style="color:#a3b1cc; font-size:0.85rem;">Connecting...</span>
-            </div>
-            <button id="nexusFullscreenBtn" title="Toggle Fullscreen" style="background:rgba(255,255,255,0.08); border:none; color:#fff; width:40px; height:40px; border-radius:10px; cursor:pointer; font-size:1rem; transition:all 0.2s;">
-                <i class="fas fa-expand"></i>
-            </button>
-        </div>
-
-        <!-- Video Area -->
-        <div style="flex:1; position:relative; display:flex; justify-content:center; align-items:center; overflow:hidden;">
-            <!-- Remote Video (Main) -->
-            <video id="nexusRemoteVideo" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-            <!-- Local Video (Picture-in-Picture) -->
-            <video id="nexusLocalVideo" autoplay playsinline muted style="position:absolute; bottom:24px; right:24px; width:180px; height:240px; object-fit:cover; border-radius:16px; border:2px solid rgba(255,255,255,0.15); box-shadow:0 10px 30px rgba(0,0,0,0.6); z-index:3;"></video>
-            <!-- No Camera / Connecting State -->
-            <div id="nexusCallPlaceholder" style="position:absolute; display:flex; flex-direction:column; align-items:center; gap:12px; color:#6b7390;">
-                <i class="fas fa-video" style="font-size:3rem; opacity:0.3;"></i>
-                <span>Video call in progress...</span>
-            </div>
-        </div>
-
-        <!-- Controls Bar -->
-        <div class="nexus-call-ctrl" style="display:flex; justify-content:center; align-items:center; gap:20px; padding:20px; background:rgba(0,0,0,0.5); z-index:2;">
-            <button id="nexusMuteBtn" class="nexus-call-ctrl-btn" title="Toggle Mic" style="width:54px; height:54px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:1.1rem; cursor:pointer; transition:all 0.2s;">
-                <i class="fas fa-microphone"></i>
-            </button>
-            <button id="nexusVidOffBtn" class="nexus-call-ctrl-btn" title="Toggle Camera" style="width:54px; height:54px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:1.1rem; cursor:pointer; transition:all 0.2s;">
-                <i class="fas fa-video"></i>
-            </button>
-            <button id="nexusScreenShareBtn" class="nexus-call-ctrl-btn" title="Screen Share" style="width:54px; height:54px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:1.1rem; cursor:pointer; transition:all 0.2s;">
-                <i class="fas fa-desktop"></i>
-            </button>
-            <button id="nexusSwitchCameraBtn" class="nexus-call-ctrl-btn" title="Switch Camera" style="width:54px; height:54px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:1.1rem; cursor:pointer; transition:all 0.2s;">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-            <button id="nexusEndCallBtn" class="nexus-call-ctrl-btn" title="End Call" style="width:62px; height:62px; border-radius:50%; border:none; background:linear-gradient(145deg, #ff5252, #e04040); color:#fff; font-size:1.3rem; cursor:pointer; box-shadow:0 4px 20px rgba(255,82,82,0.4); transition:all 0.2s;">
-                <i class="fas fa-phone-slash"></i>
-            </button>
-        </div>
-    </div>
+    <!-- FIX: Removed first duplicate nexusCallOverlay - keeping the more complete version below -->
 
     <!-- INCOMING CALL MODAL (WhatsApp/Telegram style) -->
     <div class="nexus-modal" id="nexusIncomingCallModal" style="background: rgba(10,13,22,0.97); backdrop-filter: blur(20px);">
@@ -742,6 +687,13 @@
                 } catch (err) {
                     console.error(`[NexusLoader] Attempt ${attempt} failed:`, err);
 
+                    // FIX: Handle authentication error by redirecting
+                    if (err.message === 'User not authenticated') {
+                        console.warn('[NexusLoader] User not authenticated, redirecting to login...');
+                        window.location.replace('auth.html');
+                        return;
+                    }
+
                     if (attempt < 3) {
                         if (statusText) statusText.textContent = `Retrying connection...`;
                         setTimeout(() => bootstrap(attempt + 1), 1500); // Retry with delay
@@ -754,6 +706,7 @@
                                     <p style="color:#ff5252; font-weight:600; margin-bottom:10px;">Nexus Connection Failed</p>
                                     <p style="font-size:13px; color:#8f9bc0; margin-bottom:20px;">${err.message || 'Unknown error'}</p>
                                     <button onclick="window.location.reload()" style="background:#7c4dff; color:white; border:none; padding:8px 20px; border-radius:8px; cursor:pointer; font-weight:500;">Retry Now</button>
+                                    <button onclick="window.location.href='index.html'" style="background:transparent; color:#8f9bc0; border:1px solid rgba(255,255,255,0.1); padding:8px 20px; border-radius:8px; cursor:pointer; font-weight:500; margin-left:10px;">Back to Home</button>
                                 </div>
                             `;
                         }
