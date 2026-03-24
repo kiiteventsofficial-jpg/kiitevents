@@ -1,5 +1,9 @@
 import { supabase } from "./supabase.js";
 
+let currentStudentId = null;
+let currentStudentName = "Student";
+let studentCharts = {};
+
 // --- SUPABASE SESSION CHECK ---
 async function initUserDashboard() {
     try {
@@ -37,6 +41,13 @@ async function initUserDashboard() {
         if (profileRole) profileRole.value = userData.role.charAt(0).toUpperCase() + userData.role.slice(1);
         if (profileJoined) profileJoined.value = new Date(userData.joined).toLocaleDateString();
 
+        // GENERATE QR TICKET
+        const qrContainer = document.getElementById('qrCodeContainer');
+        if(qrContainer) {
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${userData.id}&margin=10`;
+            qrContainer.innerHTML = `<img src="${qrCodeUrl}" alt="Digital ID QR Code" class="w-full h-full object-contain rounded-lg">`;
+        }
+
         console.log("🔐 Student Dashboard Init | Role:", userData.role);
 
         // 🛡️ SECURITY KICK-OUT (If Admin somehow landed here)
@@ -52,7 +63,13 @@ async function initUserDashboard() {
         }
 
         // Load specific dashboard data
+        currentStudentId = userData.id;
+        currentStudentName = userData.name;
+        
         renderWatchlist();
+        renderRegisteredEvents(userData.id);
+        renderCertificates(userData.id);
+        renderStudentAnalytics(userData.id);
 
         // Finish initialization and remove overlay
         finishAuth();
@@ -161,6 +178,58 @@ window.removeFromWatchlist = (id) => {
     alert('Removed from watchlist');
 };
 
+// FETCH & RENDER REGISTERED EVENTS
+async function renderRegisteredEvents(userId) {
+    const grid = document.getElementById('registeredEventsGrid');
+    const emptyState = document.getElementById('emptyRegisteredState');
+    if(!grid || !emptyState) return;
+
+    try {
+        const { data: regs, error } = await supabase
+            .from('event_registrations')
+            .select('*, events(*)')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Clear previous event cards
+        grid.querySelectorAll('.event-card').forEach(e => e.remove());
+
+        if (!regs || regs.length === 0) {
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        regs.forEach(reg => {
+            const ev = reg.events;
+            if(!ev) return;
+            
+            let statusColor = reg.status === 'registered' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400';
+            
+            grid.innerHTML += `
+                <div class="event-card">
+                    <img src="${ev.banner_url || ev.image_url || 'assets/logo_final.png'}" alt="${ev.title || ev.name}">
+                    <div class="event-info">
+                        <h4>${ev.title || ev.name}</h4>
+                        <div class="event-meta">
+                            <span>🗓 ${ev.date ? new Date(ev.date).toLocaleDateString() : 'TBA'}</span>
+                            <span class="badge ${statusColor}" style="border: 1px solid currentColor;">${reg.status.toUpperCase()}</span>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        <button class="edit-btn" style="width:100%" onclick="window.open('index.html', '_blank')">View Event Details</button>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (err) {
+        console.error("Error loading registered events:", err);
+    }
+}
+
 // INITIAL RENDER
 renderWatchlist();
 
@@ -192,6 +261,12 @@ window.showSection = function (sectionId) {
     if (sectionId === 'overview' || sectionId === 'watchlist') {
         renderWatchlist();
     }
+    if (sectionId === 'certificates') {
+        renderCertificates(currentStudentId);
+    }
+    if (sectionId === 'analytics') {
+        renderStudentAnalytics(currentStudentId);
+    }
 
     // Close sidebar on mobile
     if (window.innerWidth < 1024) {
@@ -204,15 +279,205 @@ window.showSection = function (sectionId) {
     // SAVE STATE
     sessionStorage.setItem('studentLastSection', sectionId);
 };
+// --- ADVANCED STUDENT FEATURES ---
 
-// Restore State
-window.addEventListener("DOMContentLoaded", () => {
-    initUserDashboard(); // Trigger session check and data fetch
-    const lastSection = sessionStorage.getItem("studentLastSection");
-    if (lastSection) {
-        setTimeout(() => window.showSection(lastSection), 50);
+async function renderCertificates(userId) {
+    const grid = document.getElementById('certificatesGrid');
+    const emptyState = document.getElementById('emptyCertState');
+    if (!grid || !emptyState) return;
+
+    try {
+        const { data: attended, error } = await supabase
+            .from('event_registrations')
+            .select('*, events(*)')
+            .eq('user_id', userId)
+            .eq('attended', true);
+
+        if (error) throw error;
+
+        // Clear existing
+        grid.querySelectorAll('.event-card').forEach(e => e.remove());
+
+        if (!attended || attended.length === 0) {
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        attended.forEach(reg => {
+            const ev = reg.events;
+            if (!ev) return;
+
+            const date = ev.date ? new Date(ev.date).toLocaleDateString() : 'N/A';
+            
+            grid.innerHTML += `
+                <div class="event-card group">
+                    <div class="relative overflow-hidden rounded-t-2xl">
+                        <img src="${ev.banner_url || ev.image_url || 'assets/logo_final.png'}" alt="${ev.title || ev.name}" class="group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+                        <div class="absolute bottom-3 left-3 flex items-center gap-2">
+                             <span class="p-1 px-2 rounded-md bg-emerald-500 text-[10px] font-black text-white uppercase tracking-tighter shadow-lg">Verified</span>
+                        </div>
+                    </div>
+                    <div class="event-info">
+                        <h4 class="text-white font-bold truncate">${ev.title || ev.name}</h4>
+                        <div class="event-meta">
+                            <span>🗓 Attended: ${date}</span>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        <button class="edit-btn gap-2" style="width:100%" onclick="downloadCertificate('${currentStudentName.replace(/'/g, "\\'")}', '${(ev.title || ev.name).replace(/'/g, "\\'")}', '${date}')">
+                            <span class="material-icons-round text-sm">download</span> Download Certificate
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (err) {
+        console.error("Error rendering certificates:", err);
     }
-});
+}
+
+window.downloadCertificate = function(studentName, eventName, date) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [800, 600]
+    });
+
+    // Background Gradient (Faux)
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, 800, 600, 'F');
+    
+    // Border
+    doc.setDrawColor(59, 130, 246); // blue-500
+    doc.setLineWidth(10);
+    doc.rect(20, 20, 760, 560);
+    
+    // Header
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(40);
+    doc.setFont("helvetica", "bold");
+    doc.text("CERTIFICATE OF PARTICIPATION", 400, 100, { align: 'center' });
+    
+    doc.setDrawColor(255, 255, 255, 0.2);
+    doc.line(200, 120, 600, 120);
+
+    // Body
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(148, 163, 184); // slate-400
+    doc.text("This is to certify that", 400, 180, { align: 'center' });
+    
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(50);
+    doc.setFont("helvetica", "bold");
+    doc.text(studentName.toUpperCase(), 400, 240, { align: 'center' });
+    
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "normal");
+    doc.text("has successfully attended and participated in the event", 400, 300, { align: 'center' });
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(30);
+    doc.setFont("helvetica", "bold");
+    doc.text(eventName, 400, 350, { align: 'center' });
+    
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(16);
+    doc.text(`Held on ${date}`, 400, 380, { align: 'center' });
+
+    // Footer / Logo Placeholder
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(18);
+    doc.text("KIIT EVENTS OFFICIAL", 400, 500, { align: 'center' });
+    
+    doc.setDrawColor(59, 130, 246);
+    doc.line(350, 480, 450, 480);
+
+    // Seal / Accent
+    doc.setFillColor(59, 130, 246, 0.1);
+    doc.circle(700, 500, 40, 'F');
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(12);
+    doc.text("OFFICIAL\nSEAL", 700, 495, { align: 'center' });
+
+    doc.save(`${eventName}_Certificate.pdf`);
+};
+
+async function renderStudentAnalytics(userId) {
+    if (typeof Chart === 'undefined') return;
+    
+    try {
+        const { data: regs } = await supabase
+            .from('event_registrations')
+            .select('attended, created_at')
+            .eq('user_id', userId);
+            
+        const total = regs.length;
+        const attended = regs.filter(r => r.attended).length;
+        const participationRate = total > 0 ? Math.round((attended / total) * 100) : 0;
+        
+        // XP Calculation: 100 per registration, 500 per attendance
+        const points = (total * 100) + (attended * 500);
+        
+        if (document.getElementById('statParticipation')) document.getElementById('statParticipation').textContent = `${participationRate}%`;
+        if (document.getElementById('statPoints')) document.getElementById('statPoints').textContent = points.toLocaleString();
+
+        // Monthly Stats (Last 6 Months)
+        const months = [];
+        const monthData = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(); d.setMonth(d.getMonth() - i);
+            const mName = d.toLocaleString('default', { month: 'short' });
+            months.push(mName);
+            
+            const count = regs.filter(r => {
+                const rd = new Date(r.created_at);
+                return rd.getMonth() === d.getMonth() && rd.getFullYear() === d.getFullYear();
+            }).length;
+            monthData.push(count);
+        }
+
+        const ctx = document.getElementById('studentActivityChart')?.getContext('2d');
+        if (!ctx) return;
+        
+        if (studentCharts.activity) studentCharts.activity.destroy();
+        
+        studentCharts.activity = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Events Registered',
+                    data: monthData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#3b82f6',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error("Student Analytics Error:", err);
+    }
+}
 window.toggleSidebar = function () {
     const aside = document.querySelector('aside');
     if (aside) aside.classList.toggle('active');
@@ -241,4 +506,3 @@ window.toggleSidebarDesktop = function () {
 };
 
 
-v
