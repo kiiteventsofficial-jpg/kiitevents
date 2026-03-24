@@ -622,6 +622,8 @@ window.showSection = function (sectionId) {
             'societies': 'Society Management',
             'events': 'Event Control',
             'adminEvents': 'My Personal Events',
+            'scanner': 'Ticket Scanner',
+            'analytics': 'System Analytics',
             'logs': 'Activity Logs',
             'settings': 'System Settings'
         };
@@ -637,7 +639,8 @@ window.showSection = function (sectionId) {
         if (sectionId === 'societies') renderSocieties();
         if (sectionId === 'events') renderEvents();
         if (sectionId === 'adminEvents') renderAdminEvents();
-        if (sectionId === 'logs') renderLogs();
+        if (sectionId === 'logs') fetchActivityLogs();
+        if (sectionId === 'analytics') renderAnalyticsCharts();
         renderStats(); // Always update stats
 
         // 7. Auto-close sidebar on mobile
@@ -733,10 +736,9 @@ async function logAction(action, details = {}) {
     // 2. Persistent update (Supabase)
     if (window.supabase) {
         try {
-            await window.supabase.from('activity_logs').insert([{
+            await window.supabase.from('activity_log').insert([{
                 action: action,
-                admin_name: (currentUser && currentUser.name) ? currentUser.name : 'Admin',
-                admin_id: (currentUser && currentUser.id) ? currentUser.id : null,
+                user_id: (currentUser && currentUser.id) ? currentUser.id : null,
                 details: details
             }]);
         } catch (dbErr) {
@@ -898,10 +900,10 @@ function renderLogs() {
     if (fullList) fullList.innerHTML = html;
 }
 
-function renderStats() {
+async function renderStats() {
     const isSuper = currentUser.type === 'SUPERUSER';
 
-    // Filter functions
+    // Local filter functions
     const myEvents = events.filter(e => isSuper || (e.created_by === currentUser.id || e.created_by === currentUser.uid));
     const mySocieties = societies.filter(s => isSuper || (s.created_by_admin_id === currentUser.id || s.created_by_admin_id === currentUser.uid));
     const adminsOnly = users.filter(u => u.role === 'Admin');
@@ -924,10 +926,320 @@ function renderStats() {
     const myEventsEl = document.getElementById('myEventsCount');
     if (myEventsEl) myEventsEl.textContent = myPersonalEvents.length;
 
+    // Fetch Registration Stats from Supabase
+    if (supabase) {
+        try {
+            // Total Registrations
+            const { count: regCount } = await supabase
+                .from('event_registrations')
+                .select('*', { count: 'exact', head: true });
+            
+            const regEl = document.getElementById('totalRegistrationsCount');
+            if (regEl) regEl.textContent = regCount || 0;
+
+            // Total Attended
+            const { count: attendCount } = await supabase
+                .from('event_registrations')
+                .select('*', { count: 'exact', head: true })
+                .eq('attended', true);
+            
+            const attendEl = document.getElementById('totalAttendedCount');
+            if (attendEl) attendEl.textContent = attendCount || 0;
+            
+            // Dashboard Summary Cards
+            const regCard = document.getElementById('totalRegistrationsCard');
+            if (regCard) regCard.textContent = regCount || 0;
+            
+            const attendCard = document.getElementById('totalAttendedCard');
+            if (attendCard) attendCard.textContent = attendCount || 0;
+
+        } catch (err) {
+            console.warn("Stats Fetch Error:", err);
+        }
+    }
+
     const blockedCount = users.filter(u => u.status === 'Blocked').length;
     const blockedEl = document.getElementById('blockedUsersCount');
     if (blockedEl) blockedEl.textContent = blockedCount;
 }
+
+// --- ADVANCED ANALYTICS & LOGGING ---
+
+window.fetchActivityLogs = async function() {
+    const list = document.getElementById('recentLogs');
+    const fullList = document.getElementById('fullLogs');
+    if (!list && !fullList) return;
+
+    try {
+        const { data: dbLogs, error } = await supabase
+            .from('activity_log')
+            .select('*, profiles(full_name, email)')
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) throw error;
+
+        const html = dbLogs.length === 0 
+            ? '<div class="flex flex-col items-center justify-center p-12 text-slate-500 opacity-50"><span class="material-icons-round text-4xl mb-2">history</span><p>No activity recorded yet.</p></div>'
+            : dbLogs.map(log => {
+                const name = log.profiles?.full_name || log.profiles?.email || 'System';
+                const time = new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const date = new Date(log.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                
+                let icon = 'info';
+                let color = 'text-blue-400';
+                let bg = 'bg-blue-500/10';
+                
+                if (log.action.includes('attendance')) { icon = 'verified'; color = 'text-emerald-400'; bg = 'bg-emerald-500/10'; }
+                if (log.action.includes('registration')) { icon = 'person_add'; color = 'text-indigo-400'; bg = 'bg-indigo-500/10'; }
+                if (log.action.includes('event')) { icon = 'event'; color = 'text-sky-400'; bg = 'bg-sky-500/10'; }
+                if (log.action.includes('blocked')) { icon = 'block'; color = 'text-rose-400'; bg = 'bg-rose-500/10'; }
+
+                return `
+                    <div class="flex items-start gap-4 p-4 rounded-xl hover:bg-white/[0.03] transition-all group border border-transparent hover:border-white/5">
+                        <div class="w-10 h-10 rounded-xl ${bg} flex items-center justify-center ${color} shrink-0 shadow-lg">
+                            <span class="material-icons-round text-xl">${icon}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-start">
+                                <p class="text-xs font-semibold text-white truncate">${name}</p>
+                                <span class="text-[10px] text-slate-500">${date}, ${time}</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1 leading-relaxed capitalize">
+                                ${log.action.replace(/_/g, ' ')}
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+        if (list) list.innerHTML = html;
+        if (fullList) fullList.innerHTML = html;
+    } catch (err) {
+        console.error("Error fetching logs:", err);
+    }
+};
+
+let analyticsCharts = {};
+
+window.renderAnalyticsCharts = async function() {
+    if (typeof Chart === 'undefined') {
+        console.warn("Chart.js not loaded");
+        return;
+    }
+
+    try {
+        // Fetch All Required Data
+        const [regRes, userRes] = await Promise.all([
+            supabase.from('event_registrations').select('attended, created_at, events(title, name)'),
+            supabase.from('profiles').select('role, created_at')
+        ]);
+
+        const regs = regRes.data || [];
+        const allUsers = userRes.data || [];
+
+        // 1. Attendance & Event Stats
+        const eventStats = {};
+        regs.forEach(r => {
+            const name = r.events?.title || r.events?.name || 'Unknown';
+            if (!eventStats[name]) eventStats[name] = { reg: 0, att: 0 };
+            eventStats[name].reg++;
+            if (r.attended) eventStats[name].att++;
+        });
+
+        const evLabels = Object.keys(eventStats).sort((a,b) => eventStats[b].reg - eventStats[a].reg).slice(0, 8);
+        const regData = evLabels.map(l => eventStats[l].reg);
+        const attData = evLabels.map(l => eventStats[l].att);
+
+        // 2. Growth Trend (Last 14 Days)
+        const days = 14;
+        const trendLabels = [];
+        const trendData = [];
+        for (let i = days - 1; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            trendLabels.push(dateStr);
+            
+            const count = regs.filter(r => {
+                const rd = new Date(r.created_at);
+                return rd.toDateString() === d.toDateString();
+            }).length;
+            trendData.push(count);
+        }
+
+        // 3. User Roles
+        const roleDist = { admin: 0, student: 0, super_admin: 0 };
+        allUsers.forEach(u => { 
+            const r = (u.role || 'student').toLowerCase();
+            if (roleDist.hasOwnProperty(r)) roleDist[r]++;
+            else roleDist.student++;
+        });
+
+        // 4. Update Summary Metrics
+        const totalReg = regs.length;
+        const totalAtt = regs.filter(r => r.attended).length;
+        const convRate = totalReg > 0 ? Math.round((totalAtt / totalReg) * 100) : 0;
+        
+        const convEl = document.getElementById('conversionRateStat');
+        if (convEl) {
+            convEl.textContent = `${convRate}%`;
+            // Add progress bar if exists
+            const progress = convEl.parentElement.querySelector('.bg-emerald-500');
+            if (progress) progress.style.width = `${convRate}%`;
+        }
+
+        // 5. Render Charts
+        renderBarChart('attendanceChart', evLabels, [
+            { label: 'Registrations', data: regData, backgroundColor: 'rgba(99, 102, 241, 0.6)', borderRadius: 6 },
+            { label: 'Attendance', data: attData, backgroundColor: 'rgba(16, 185, 129, 0.6)', borderRadius: 6 }
+        ]);
+
+        renderLineChart('growthChart', trendLabels, trendData);
+
+        renderPieChart('userDistChart', ['Students', 'Admins', 'Super Admins'], 
+            [roleDist.student, roleDist.admin, roleDist.super_admin],
+            ['#6366f1', '#8b5cf6', '#10b981']
+        );
+
+    } catch (err) {
+        console.error("Analytics Performance Error:", err);
+    }
+};
+
+function renderLineChart(id, labels, data) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (analyticsCharts[id]) analyticsCharts[id].destroy();
+    const ctx = el.getContext('2d');
+    analyticsCharts[id] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'New Registrations',
+                data: data,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#6366f1',
+                borderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+}
+
+function renderBarChart(id, labels, datasets) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (analyticsCharts[id]) analyticsCharts[id].destroy();
+    const ctx = el.getContext('2d');
+    analyticsCharts[id] = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { position: 'top', labels: { color: '#f8fafc', font: { size: 11 }, padding: 15 } } 
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+}
+
+function renderPieChart(id, labels, data, colors) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (analyticsCharts[id]) analyticsCharts[id].destroy();
+    const ctx = el.getContext('2d');
+    analyticsCharts[id] = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 10 }] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 20, font: { size: 11 }, usePointStyle: true } } 
+            },
+            cutout: '75%'
+        }
+    });
+}
+
+// --- REAL-TIME ANALYTICS SUBSCRIPTIONS ---
+window.subscribeToAnalytics = function() {
+    console.log("📡 Starting Live Analytics Subscriptions...");
+    
+    // Subscribe to Registrations
+    supabase
+        .channel('public:event_registrations')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'event_registrations' }, () => {
+            console.log("⚡ Analytics Sync: New registration/attendance detected.");
+            if (document.getElementById('analyticsSection').style.display !== 'none') {
+                renderAnalyticsCharts();
+            }
+            renderStats(); // Update header cards too
+        })
+        .subscribe();
+
+    // Subscribe to Activity Logs
+    supabase
+        .channel('public:activity_log')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_log' }, () => {
+            console.log("⚡ Analytics Sync: New activity log entry.");
+            if (document.getElementById('analyticsSection').style.display !== 'none') {
+                fetchActivityLogs();
+            }
+        })
+        .subscribe();
+};
+
+window.exportAnalyticsCSV = async function() {
+    try {
+        const { data: regs } = await supabase.from('event_registrations').select('user_id, attended, created_at, events(title)');
+        if (!regs || regs.length === 0) return alert("No data to export");
+
+        const csvRows = [
+            ['Registration ID', 'User ID', 'Event', 'Attended', 'Date'].join(',')
+        ];
+
+        regs.forEach((r, idx) => {
+            csvRows.push([
+                idx + 1,
+                r.user_id,
+                r.events?.title || 'Unknown',
+                r.attended ? 'YES' : 'NO',
+                new Date(r.created_at).toLocaleString().replace(/,/g, '')
+            ].join(','));
+        });
+
+        const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `KIIT_Events_Analytics_${new Date().toLocaleDateString()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (err) {
+        console.error("Export Error:", err);
+        alert("Export failed. See console for details.");
+    }
+};
 
 
 
@@ -1143,6 +1455,7 @@ function renderEvents(tab = 'all') {
                     <span class="badge ${ev.status === 'Pending' ? 'paid' : 'free'}">
                         ${ev.status || 'Active'}
                     </span>
+                    ${ev.is_sponsored ? '<span class="badge" style="background: linear-gradient(135deg, #f59e0b, #ea580c); color: white; margin-left: 4px;">⭐ TOP</span>' : ''}
                 </td>
                 <td>${actionsHtml}</td>
             </tr>
@@ -1193,6 +1506,7 @@ function renderAdminEvents(tab = 'all') {
                     <span class="badge ${ev.status === 'Pending' ? 'paid' : 'free'}">
                         ${ev.status || 'Active'}
                     </span>
+                    ${ev.is_sponsored ? '<span class="badge" style="background: linear-gradient(135deg, #f59e0b, #ea580c); color: white; margin-left: 4px;">⭐ TOP</span>' : ''}
                 </td>
                 <td>${actionsHtml}</td>
             </tr>
@@ -1484,6 +1798,23 @@ window.editEvent = function (id) {
         toggleShare.checked = !!(ev.allow_sharing || ev.allowShare);
     }
 
+    // Top Event toggle
+    const toggleTopEvent = document.getElementById('toggleTopEvent');
+    const priorityWrapper = document.getElementById('priorityInputWrapper');
+    const priorityInput = document.getElementById('eventPriority');
+
+    if (toggleTopEvent) {
+        toggleTopEvent.checked = !!(ev.is_sponsored);
+        // Show/hide priority input based on toggle state
+        if (priorityWrapper) {
+            priorityWrapper.classList.toggle('hidden', !toggleTopEvent.checked);
+            priorityWrapper.classList.toggle('flex', toggleTopEvent.checked);
+        }
+    }
+    if (priorityInput && ev.priority) {
+        priorityInput.value = ev.priority;
+    }
+
     // Additional Settings
     if (advanced) {
         setVal('settingRegistration', advanced.registration);
@@ -1508,9 +1839,9 @@ window.editEvent = function (id) {
             }
         };
 
-        clearAndPopulate('sponsorContainer', advanced.sponsors, window.addSponsorRow);
-        clearAndPopulate('agendaContainer', advanced.agenda, window.addAgendaRow);
-        clearAndPopulate('faqContainer', advanced.faqs, window.addFaqRow);
+        clearAndPopulate('sponsorContainer', ev.sponsors || advanced.sponsors || [], window.addSponsorRow);
+        clearAndPopulate('agendaContainer', ev.agenda || advanced.agenda || [], window.addAgendaRow);
+        clearAndPopulate('faqContainer', ev.faq || advanced.faqs || [], window.addFaqRow);
     }
 
     // Populate Contact (Multiple Rows Handling)
@@ -1848,6 +2179,16 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.classList.toggle('active');
         }
     });
+
+    // Top Event Toggle - Show/Hide Priority Input
+    const toggleTopEvent = document.getElementById('toggleTopEvent');
+    const priorityWrapper = document.getElementById('priorityInputWrapper');
+    if (toggleTopEvent && priorityWrapper) {
+        toggleTopEvent.addEventListener('change', (e) => {
+            priorityWrapper.classList.toggle('hidden', !e.target.checked);
+            priorityWrapper.classList.toggle('flex', e.target.checked);
+        });
+    }
 });
 
 function renderImagePreviews() {
@@ -1983,6 +2324,10 @@ const attachEventFormListener = () => {
                 const isFeatured = document.getElementById('featuredBtn')?.classList.contains('active') || false;
                 const allowShare = document.getElementById('charitableBtn')?.classList.contains('active') || false;
 
+                // Top Event (Sponsored) toggle and priority
+                const isTopEvent = document.getElementById('toggleTopEvent')?.checked || false;
+                const eventPriority = isTopEvent ? (parseInt(document.getElementById('eventPriority')?.value) || 5) : 0;
+
                 // 6. Contact rows
                 const contacts = [...document.querySelectorAll('.contact-row')].map(row => ({
                     name: row.querySelector('.contact-name')?.value,
@@ -2014,13 +2359,13 @@ const attachEventFormListener = () => {
                             const fileName = Date.now() + "_" + Math.random().toString(36).substring(2, 9) + "." + fileExt;
 
                             const { error } = await supabase.storage
-                                .from("event-sponsors")
+                                .from("event-images")
                                 .upload(`sponsors/${fileName}`, file, { cacheControl: '3600', upsert: false });
 
                             if (error) throw error;
 
                             const { data: { publicUrl } } = supabase.storage
-                                .from("event-sponsors")
+                                .from("event-images")
                                 .getPublicUrl(`sponsors/${fileName}`);
 
                             logoUrl = publicUrl;
@@ -2122,6 +2467,8 @@ const attachEventFormListener = () => {
                     banner_url: finalImage,
                     organizer_name: organizers.join(', ') || 'Independent',
                     is_featured: isFeatured,
+                    is_sponsored: isTopEvent,
+                    priority: eventPriority,
                     allow_sharing: allowShare,
                     link: regLink || null,
                     meeting_link: meetingLink || null,
@@ -2808,17 +3155,17 @@ let unreadCount = 0;
 // Ensure setupNotifications is assigned to window immediately when this part of the script runs
 window.setupNotifications = function () {
     console.log("🔔 Setting up Real-time Notifications...");
-    if (!window.supabase) return;
+    if (!supabase) return;
 
     // Listen for new activity logs
-    window.supabase
+    supabase
         .channel('schema-db-changes')
         .on(
             'postgres_changes',
             {
                 event: 'INSERT',
                 schema: 'public',
-                table: 'activity_logs'
+                table: 'activity_log'
             },
             (payload) => {
                 console.log('🔔 New Notification:', payload.new);
@@ -2915,6 +3262,9 @@ window.markAllRead = function () {
 // are defined and attached to window before auth returns.
 console.log("🚀 admin.js: Starting Auth Sequence at end of script...");
 initAdminAuth();
+if (typeof window.subscribeToAnalytics === 'function') {
+    window.subscribeToAnalytics();
+}
 
 // --- IMAGE 4 REPLICA: DOWNLOAD AS PNG LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -2955,3 +3305,112 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// --- QR SCANNER LOGIC ---
+let html5QrCode = null;
+
+window.startScanner = function() {
+    const resultsContainer = document.getElementById('qr-reader-results');
+    resultsContainer.className = "mt-6 w-full max-w-lg text-center p-4 rounded-xl hidden border";
+    resultsContainer.innerHTML = "";
+
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("qr-reader");
+    }
+
+    const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
+        // Stop scanning after a successful scan to prevent multiple hits
+        window.stopScanner();
+        
+        resultsContainer.className = "mt-6 w-full max-w-lg text-center p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 block";
+        resultsContainer.innerHTML = `<span class="material-icons-round animate-spin text-blue-500 text-3xl">refresh</span><p class="text-blue-400 mt-2 font-bold">Verifying Ticket...</p><p class="text-xs text-slate-500">${decodedText}</p>`;
+        
+        // Verify via Supabase
+        try {
+            // Check if user is registered for any event today or generally check the registration table
+            const { data, error } = await window.supabase
+                .from('event_registrations')
+                .select(`
+                    id,
+                    created_at,
+                    events (
+                        id,
+                        title,
+                        name,
+                        start_date
+                    ),
+                    profiles (
+                        full_name,
+                        email
+                    )
+                `)
+                .eq('user_id', decodedText);
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                // Return any valid registration for simplicity right now
+                const validRegs = data; 
+                if (validRegs.length > 0) {
+                    const reg = validRegs[0];
+                    const eventName = reg.events?.title || reg.events?.name || 'Unknown Event';
+                    const userName = reg.profiles?.full_name || reg.profiles?.email || 'Unknown User';
+                    
+                    resultsContainer.className = "mt-6 w-full max-w-lg text-center p-6 rounded-xl border border-emerald-500/50 bg-emerald-500/10 block";
+                    resultsContainer.innerHTML = `
+                        <span class="material-icons-round text-emerald-500 text-6xl shadow-[0_0_30px_rgba(16,185,129,0.5)] rounded-full mb-2">check_circle</span>
+                        <h4 class="text-2xl font-bold text-emerald-400">ACCESS GRANTED</h4>
+                        <p class="text-white font-medium mt-2 text-lg">${userName}</p>
+                        <p class="text-slate-400 text-sm mt-1">Verified for: <strong>${eventName}</strong></p>
+                        <button onclick="window.startScanner()" class="mt-4 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg">Scan Next Ticket</button>
+                    `;
+                } else {
+                    showScanError("No valid events found for this user today.", decodedText);
+                }
+            } else {
+                showScanError("Not Registered", decodedText);
+            }
+        } catch (err) {
+            console.error("Scanner DB Error:", err);
+            showScanError("Database Error", decodedText);
+        }
+    };
+
+    function showScanError(msg, uid) {
+        resultsContainer.className = "mt-6 w-full max-w-lg text-center p-6 rounded-xl border border-red-500/50 bg-red-500/10 block";
+        resultsContainer.innerHTML = `
+            <span class="material-icons-round text-red-500 text-6xl shadow-[0_0_30px_rgba(239,68,68,0.5)] rounded-full mb-2">cancel</span>
+            <h4 class="text-2xl font-bold text-red-400">ACCESS DENIED</h4>
+            <p class="text-white font-medium mt-2 text-lg">${msg}</p>
+            <p class="text-slate-500 text-xs mt-1">ID: ${uid}</p>
+            <button onclick="window.startScanner()" class="mt-4 px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg">Scan Again</button>
+        `;
+    }
+
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+        .then(() => {
+            document.getElementById('startScanBtn').classList.add('hidden');
+            document.getElementById('stopScanBtn').classList.remove('hidden');
+        })
+        .catch((err) => {
+            console.error("Error starting scanner:", err);
+            alert("Could not start camera. Please ensure camera permissions are granted.");
+            document.getElementById('startScanBtn').classList.remove('hidden');
+            document.getElementById('stopScanBtn').classList.add('hidden');
+        });
+};
+
+window.stopScanner = function() {
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('startScanBtn').classList.remove('hidden');
+            document.getElementById('stopScanBtn').classList.add('hidden');
+            const resultsContainer = document.getElementById('qr-reader-results');
+            resultsContainer.classList.add('hidden');
+        }).catch(err => {
+            console.error("Error stopping scanner:", err);
+        });
+    }
+};
