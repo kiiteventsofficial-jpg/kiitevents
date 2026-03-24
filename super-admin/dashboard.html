@@ -15,6 +15,9 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="stylesheet" href="../admin.css">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <style>
         .custom-scrollbar::-webkit-scrollbar {
             width: 10px;
@@ -394,6 +397,20 @@
                         <span
                             class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">confirmation_number</span>
                         <span class="text-sm font-medium menu-text">Event Control</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        onclick="showSection('scanner'); window.stopScanner();">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">qr_code_scanner</span>
+                        <span class="text-sm font-medium menu-text">Ticket Scanner</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        onclick="showSection('analytics')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">analytics</span>
+                        <span class="text-sm font-medium menu-text">Analytics</span>
                     </button>
                     <button
                         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
@@ -999,6 +1016,81 @@
                     </div>
                 </section>
 
+                <!-- TICKET SCANNER SECTION -->
+                <section id="scannerSection" class="content-section" style="display: none;">
+                    <div class="glass-panel rounded-3xl p-8 border border-white/10 bg-[#0f172a]/40 backdrop-blur-md">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-lg shadow-blue-500/5">
+                                    <span class="material-icons-round text-blue-500 text-3xl">qr_code_scanner</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-black text-white tracking-tight">Ticket Scanner</h3>
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-1">Real-time Attendance Verification</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
+                                <span class="material-icons-round text-blue-400 ml-2">videocam</span>
+                                <select id="scanner-camera-select" class="bg-transparent text-white text-sm border-none focus:ring-0 cursor-pointer pr-10 font-bold min-w-[200px]">
+                                    <option value="">Select Camera</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+                            <div class="relative group">
+                                <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                                <div class="relative bg-[#0b0f1a] rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl">
+                                    <div id="qr-reader" class="w-full aspect-square md:aspect-video lg:aspect-square"></div>
+                                    <div class="absolute inset-0 pointer-events-none border-[20px] border-[#0b0f1a]/50 flex items-center justify-center">
+                                        <div class="w-64 h-64 border-2 border-blue-500/50 rounded-3xl relative">
+                                            <div class="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-xl"></div>
+                                            <div class="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-xl"></div>
+                                            <div class="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-xl"></div>
+                                            <div class="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-xl"></div>
+                                            <div class="absolute inset-0 bg-blue-500/10 animate-pulse rounded-3xl"></div>
+                                        </div>
+                                    </div>
+                                    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10">
+                                        <button onclick="window.startScanner()" class="flex items-center gap-2 text-white font-black text-xs uppercase tracking-widest hover:text-blue-400 transition-colors">
+                                            <span class="material-icons-round text-lg">play_circle</span> Start
+                                        </button>
+                                        <div class="w-px h-4 bg-white/20"></div>
+                                        <button onclick="window.stopScanner()" class="flex items-center gap-2 text-white font-black text-xs uppercase tracking-widest hover:text-red-400 transition-colors">
+                                            <span class="material-icons-round text-lg">stop_circle</span> Stop
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col items-center justify-center min-h-[400px]">
+                                <div id="qr-reader-results" class="w-full max-w-lg text-center p-8 rounded-[2rem] border border-white/5 bg-[#0f172a]/60 backdrop-blur-xl transition-all duration-500 scale-95 opacity-50">
+                                    <div class="flex flex-col items-center gap-6 py-10">
+                                        <div class="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center border border-white/10 animate-bounce">
+                                            <span class="material-icons-round text-white/20 text-5xl">qr_code_2</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xl font-bold text-white/40 uppercase tracking-[0.3em]">Scanner Ready</h4>
+                                            <p class="text-slate-500 mt-3 font-medium text-sm leading-relaxed mx-auto max-w-[280px]">Align the attendee's QR code within the frame to verify their registration</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-8 grid grid-cols-2 gap-4 w-full max-w-lg">
+                                    <div class="p-4 rounded-2xl bg-white/5 border border-white/5 text-center">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Status</p>
+                                        <p class="text-blue-400 font-bold text-xs uppercase">Awaiting Scan</p>
+                                    </div>
+                                    <div class="p-4 rounded-2xl bg-white/5 border border-white/5 text-center">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Session</p>
+                                        <p class="text-emerald-400 font-bold text-xs uppercase">Active</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- LOGS SECTION -->
                 <section id="logsSection" class="content-section" style="display: none;">
                     <div class="glass-panel rounded-2xl p-6 h-full flex flex-col">
@@ -1072,6 +1164,105 @@
                     </div>
                 </section>
             </div>
+            <!-- ANALYTICS SECTION -->
+            <section id="analyticsSection" class="content-section" style="display:none;">
+                <div class="flex flex-col gap-8">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-2xl font-bold text-white tracking-tight">System-Wide Analytics</h3>
+                                <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <span class="text-[9px] font-bold text-emerald-500 uppercase tracking-tighter">Live Sync</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-slate-500">Comprehensive platform performance and user engagement metrics</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="px-5 py-2.5 bg-slate-800 text-slate-300 border border-white/5 rounded-xl text-xs font-bold hover:bg-slate-700 hover:text-white transition-all flex items-center gap-2" onclick="exportAnalyticsCSV()">
+                                <span class="material-icons-round text-sm">download</span> Export Metrics
+                            </button>
+                            <button class="px-5 py-2.5 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2" onclick="renderAnalyticsCharts()">
+                                <span class="material-icons-round text-sm">refresh</span> Refresh Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Growth Trend Chart -->
+                    <div class="glass-panel rounded-3xl p-8 border border-white/10 bg-white/[0.02] shadow-2xl">
+                        <h4 class="text-base font-bold text-white mb-8 flex items-center gap-3">
+                            <span class="material-icons-round p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">trending_up</span>
+                            Registration & Growth Trend (Last 14 Days)
+                        </h4>
+                        <div class="h-[300px] w-full relative">
+                            <canvas id="growthChart"></canvas>
+                        </div>
+                    </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <div class="glass-panel p-8 rounded-3xl border border-white/10 bg-white/[0.02] shadow-2xl overflow-hidden relative group">
+                        <div class="flex items-center justify-between mb-8">
+                            <div>
+                                <h4 class="text-lg font-bold text-white tracking-tight">Registration vs Attendance</h4>
+                                <p class="text-xs text-slate-500 mt-1 uppercase tracking-widest">Real-time Platform Performance</p>
+                            </div>
+                            <span class="material-icons-round text-slate-600 group-hover:text-blue-400 transition-colors">bar_chart</span>
+                        </div>
+                        <div class="h-[350px] w-full">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-8 rounded-3xl border border-white/10 bg-white/[0.02] shadow-2xl overflow-hidden relative group">
+                        <div class="flex items-center justify-between mb-8">
+                            <div>
+                                <h4 class="text-lg font-bold text-white tracking-tight">User Distribution</h4>
+                                <p class="text-xs text-slate-500 mt-1 uppercase tracking-widest">Role Segments & Growth</p>
+                            </div>
+                            <span class="material-icons-round text-slate-600 group-hover:text-emerald-400 transition-colors">pie_chart</span>
+                        </div>
+                        <div class="h-[350px] w-full flex items-center justify-center relative">
+                            <canvas id="userDistChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="glass-panel rounded-3xl p-10 border-l-8 border-emerald-500 overflow-hidden relative bg-white/[0.01]">
+                        <div class="relative z-10">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Global Conversion Rate</p>
+                            <h2 class="text-6xl font-black text-white" id="conversionRateStat">0%</h2>
+                            <div class="mt-8 w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                                <div class="h-full bg-emerald-500 rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(16,185,129,0.4)]" style="width: 0%"></div>
+                            </div>
+                            <p class="text-[11px] text-emerald-400 font-bold flex items-center gap-2 mt-6 uppercase tracking-wider">
+                                <span class="material-icons-round text-sm">check_circle</span>
+                                System-wide attendance efficiency
+                            </p>
+                        </div>
+                        <span class="material-icons-round absolute -right-6 -bottom-6 text-[200px] text-emerald-500/5 rotate-12">analytics</span>
+                    </div>
+                    
+                    <div class="glass-panel rounded-3xl p-10 border-l-8 border-blue-500 overflow-hidden relative bg-white/[0.01]">
+                        <div class="relative z-10">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Total Platform Engagement</p>
+                            <div class="flex items-baseline gap-3">
+                                <h2 class="text-6xl font-black text-white" id="activeUsersStat">0</h2>
+                                <span class="text-slate-500 font-bold text-xl uppercase">Users</span>
+                            </div>
+                            <div class="mt-8 flex items-center gap-6">
+                                <div class="flex -space-x-3">
+                                    <div class="w-10 h-10 rounded-full border-4 border-[#0f172a] bg-blue-500 flex items-center justify-center text-xs font-bold">JD</div>
+                                    <div class="w-10 h-10 rounded-full border-4 border-[#0f172a] bg-emerald-500 flex items-center justify-center text-xs font-bold">SK</div>
+                                    <div class="w-10 h-10 rounded-full border-4 border-[#0f172a] bg-purple-500 flex items-center justify-center text-xs font-bold">AB</div>
+                                </div>
+                                <p class="text-[11px] text-blue-400 font-bold uppercase tracking-widest">Live Audience platform-wide</p>
+                            </div>
+                        </div>
+                        <span class="material-icons-round absolute -right-6 -bottom-6 text-[200px] text-blue-500/5 -rotate-12">groups</span>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -1255,6 +1446,27 @@
                                     <span
                                         class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">Sharable</span>
                                 </label>
+
+                                <!-- Top Event Toggle -->
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <div class="relative">
+                                        <input type="checkbox" id="toggleTopEvent" class="sr-only peer">
+                                        <div
+                                            class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500">
+                                        </div>
+                                    </div>
+                                    <span
+                                        class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors flex items-center gap-1">
+                                        <span class="material-icons-round text-amber-400 text-sm">star</span>Top Event
+                                    </span>
+                                </label>
+
+                                <!-- Priority Input (shown when Top Event is checked) -->
+                                <div id="priorityInputWrapper" class="hidden items-center gap-2">
+                                    <input type="number" id="eventPriority" min="1" max="10" value="5"
+                                        class="w-16 px-3 py-1.5 rounded-lg bg-gray-700 border border-gray-600 text-white text-sm focus:outline-none focus:border-amber-500">
+                                    <span class="text-xs text-gray-500">Priority (1-10)</span>
+                                </div>
                             </div>
                         </div>
 
@@ -1944,38 +2156,48 @@
     <script type="module">
         import { ChatManager } from '../chat.js';
 
-        // Resilience Wrapper for showSection
-        const _origShowSection = window.showSection;
-        window.showSection = (section) => {
-            console.log("Navigating to section:", section);
-
+        // Resilience Wrapper for showSection        // ── UNIFIED SECTION CONTROLLER ──────────────────────────────
+        const _baseShowSection = window.showSection; // Original from admin.js
+        
+        window.showSection = function(id) {
+            console.log("📍 Super Admin Navigating to:", id);
+            
             // Handle Chat Section specifically
-            if (section === 'chat') {
-                if (typeof initSAChat === 'function') initSAChat();
+            if (id === 'chat') {
                 document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
                 const chatSec = document.getElementById('chatSection');
                 if (chatSec) {
                     chatSec.style.display = 'flex';
-                    // Force flex for the special layout
                     chatSec.style.setProperty('display', 'flex', 'important');
+                    if (typeof initSAChat === 'function') initSAChat();
                 }
-                return;
-            }
-
-            // Normal sections
-            if (typeof _origShowSection === 'function' && _origShowSection !== window.showSection) {
-                _origShowSection(section);
             } else {
-                document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
-                const target = document.getElementById(section + 'Section');
-                if (target) target.style.display = 'block';
+                // Delegate to admin.js logic
+                if (typeof _baseShowSection === 'function') {
+                    _baseShowSection(id);
+                } else {
+                    document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+                    const target = document.getElementById(id + 'Section');
+                    if (target) target.style.display = 'block';
+                }
+            }
+            
+            // Trigger Specific Renders if function exists
+            if (id === 'analytics' && typeof renderAnalyticsCharts === 'function') {
+                renderAnalyticsCharts();
+            }
+            if (id === 'logs' && typeof fetchActivityLogs === 'function') {
+                fetchActivityLogs();
+            }
+            if (typeof renderStats === 'function') {
+                renderStats();
             }
 
             // Update active state in sidebar
-            document.querySelectorAll('.nav-item').forEach(btn => {
-                btn.classList.remove('active', 'sidebar-item-active');
-                if (btn.getAttribute('onclick')?.includes(`'${section}'`)) {
-                    btn.classList.add('active', 'sidebar-item-active');
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active', 'sidebar-item-active');
+                if (item.onclick?.toString().includes(`'${id}'`)) {
+                    item.classList.add('active', 'sidebar-item-active');
                 }
             });
         };
@@ -2176,10 +2398,132 @@
                 console.error('File upload failed:', err);
                 alert('Upload failed: ' + (err.content || 'Please try again'));
             } finally {
-                if (iconEl) iconEl.textContent = 'add';
-                input.value = '';
+                if (iconEl) iconEl.textContent = 'attach_file';
             }
         };
+
+        // --- QR SCANNER LOGIC (Super Admin Dashboard) ---
+        let html5QrCode = null;
+
+        window.startScanner = function() {
+            const resultsContainer = document.getElementById('qr-reader-results');
+            resultsContainer.className = "w-full max-w-lg text-center p-8 rounded-[2rem] border border-blue-500/20 bg-blue-500/5 block opacity-100 scale-100 transition-all duration-500";
+            resultsContainer.innerHTML = `
+                <div class="py-12 flex flex-col items-center">
+                    <span class="material-icons-round animate-spin text-blue-500 text-5xl mb-6">refresh</span>
+                    <h4 class="text-xl font-bold text-blue-400 uppercase tracking-[0.2em]">Scanner Active</h4>
+                    <p class="text-slate-500 mt-2 font-medium">Waiting for ticket...</p>
+                </div>
+            `;
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
+            }
+
+            const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
+                window.stopScanner();
+                
+                resultsContainer.innerHTML = `
+                    <div class="py-12 flex flex-col items-center">
+                        <span class="material-icons-round animate-spin text-blue-500 text-5xl mb-6">hourglass_empty</span>
+                        <h4 class="text-xl font-bold text-blue-400 uppercase tracking-[0.2em]">Verifying...</h4>
+                        <p class="text-slate-500 mt-1 text-xs font-mono">${decodedText}</p>
+                    </div>
+                `;
+                
+                try {
+                    const sb = window.supabase;
+                    // First check if the user exists
+                    const { data: regData, error: regError } = await sb
+                        .from('event_registrations')
+                        .select(`
+                            id,
+                            created_at,
+                            events (
+                                id,
+                                title,
+                                name
+                            ),
+                            profiles (
+                                full_name,
+                                email
+                            )
+                        `)
+                        .eq('user_id', decodedText);
+
+                    if (regError) throw regError;
+
+                    if (regData && regData.length > 0) {
+                        const reg = regData[0];
+                        const eventName = reg.events?.title || reg.events?.name || 'Registered Event';
+                        const userName = reg.profiles?.full_name || reg.profiles?.email || 'Student';
+
+                        // Mark attendance
+                        await sb.from('event_registrations').update({ attended: true }).eq('id', reg.id);
+                        // Log activity
+                        await sb.from('activity_log').insert({
+                            user_id: decodedText,
+                            action: 'attendance_verified',
+                            details: { event_name: eventName, student_name: userName, registration_id: reg.id, verified_by: 'super_admin' }
+                        }).then(() => {}).catch(() => {});
+                        
+                        resultsContainer.className = "w-full max-w-lg text-center p-8 rounded-[3rem] border-2 border-emerald-500/30 bg-emerald-500/5 block opacity-100 scale-100 shadow-[0_0_50px_rgba(16,185,129,0.1)]";
+                        resultsContainer.innerHTML = `
+                            <div class="py-6 flex flex-col items-center">
+                                <div class="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)] mb-6 animate-in zoom-in duration-500">
+                                    <span class="material-icons-round text-white text-6xl">check_circle</span>
+                                </div>
+                                <h4 class="text-3xl font-black text-emerald-400 tracking-tight uppercase">Access Granted</h4>
+                                <div class="mt-6 p-6 bg-white/5 rounded-2xl border border-white/5 w-full">
+                                    <p class="text-white font-bold text-xl">${userName}</p>
+                                    <div class="mt-2 flex items-center justify-center gap-2 text-slate-400">
+                                        <span class="material-icons-round text-sm">event</span>
+                                        <span class="text-sm font-medium">${eventName}</span>
+                                    </div>
+                                    <p class="text-emerald-400 text-xs mt-2 font-bold">✓ Attendance Recorded</p>
+                                </div>
+                                <button onclick="window.startScanner()" class="mt-8 w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95">Verify Next Attendee</button>
+                            </div>
+                        `;
+
+                    } else {
+                        showScanError("Not Registered", decodedText);
+                    }
+                } catch (err) {
+                    console.error("Scanner DB Error:", err);
+                    showScanError("System Error", decodedText);
+                }
+            };
+
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
+        };
+
+        window.stopScanner = function() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    console.log("Scanner stopped.");
+                }).catch(err => console.error("Error stopping scanner:", err));
+            }
+        };
+
+        function showScanError(msg, uid) {
+            const resultsContainer = document.getElementById('qr-reader-results');
+            resultsContainer.className = "w-full max-w-lg text-center p-8 rounded-[3rem] border-2 border-rose-500/30 bg-rose-500/5 block opacity-100 scale-100 shadow-[0_0_50px_rgba(244,63,94,0.1)]";
+            resultsContainer.innerHTML = `
+                <div class="py-6 flex flex-col items-center">
+                    <div class="w-24 h-24 bg-rose-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(244,63,94,0.5)] mb-6 animate-in zoom-in duration-500">
+                        <span class="material-icons-round text-white text-6xl">block</span>
+                    </div>
+                    <h4 class="text-3xl font-black text-rose-400 tracking-tight uppercase">Access Denied</h4>
+                    <div class="mt-6 p-6 bg-white/5 rounded-2xl border border-white/5 w-full">
+                        <p class="text-white font-bold text-xl">${msg}</p>
+                        <p class="text-slate-500 text-xs mt-2 font-mono">UID: ${uid}</p>
+                    </div>
+                    <button onclick="window.startScanner()" class="mt-8 w-full py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-xl shadow-rose-500/20 active:scale-95">Try Again</button>
+                </div>
+            `;
+        }
 
         // Nexus Chat lazy-init (replaces initSAChat)
         document.addEventListener('DOMContentLoaded', () => {
