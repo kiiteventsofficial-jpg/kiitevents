@@ -334,7 +334,8 @@
         };
     </script>
     <script type="module" src="./supabase.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 </head>
 
@@ -421,6 +422,20 @@
                         <span
                             class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">confirmation_number</span>
                         <span class="text-sm font-medium menu-text">Event Control</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navScanner" onclick="showSection('scanner')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">qr_code_scanner</span>
+                        <span class="text-sm font-medium menu-text">Ticket Scanner</span>
+                    </button>
+                    <button
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
+                        id="navAnalytics" onclick="showSection('analytics')">
+                        <span
+                            class="material-symbols-outlined text-[20px] group-hover:text-blue-400 transition-colors">insights</span>
+                        <span class="text-sm font-medium menu-text">Analytics</span>
                     </button>
                     <button
                         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all duration-200 group nav-item"
@@ -861,6 +876,38 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-indigo-400">confirmation_number</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-400/20 text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">confirmation_number</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight" id="totalRegistrationsCount">0</h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">Total Registrations</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-[80px] text-emerald-400">verified</span>
+                            </div>
+                            <div class="flex flex-col h-full justify-between relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-400/20 text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[22px]">verified</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-white font-display tracking-tight" id="totalAttendedCount">0</h3>
+                                    <span class="text-sm font-medium text-slate-400 mt-1 block">Total Attended</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1128,6 +1175,126 @@
                     </div>
                 </section>
 
+                <!-- SCANNER SECTION -->
+                <section id="scannerSection" class="content-section" style="display: none;">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">Ticket Scanner</h3>
+                            <p class="text-sm text-slate-500">Scan QR codes to verify event registrations</p>
+                        </div>
+                    </div>
+                    <div class="glass-panel rounded-2xl p-6 flex flex-col items-center justify-center min-h-[500px]">
+                        <div id="qr-reader" style="width: 100%; max-width: 500px; border-radius: 1rem; overflow: hidden; border: 2px solid #1e293b; background: #0f172a;"></div>
+                        <div id="qr-reader-results" class="mt-6 w-full max-w-lg text-center p-4 rounded-xl hidden border">
+                            <!-- Results will be injected here -->
+                        </div>
+                        <div class="flex gap-4 mt-6">
+                            <button id="startScanBtn" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg flex items-center gap-2" onclick="window.startScanner()">
+                                <span class="material-icons-round">qr_code_scanner</span> Start Scanner
+                            </button>
+                            <button id="stopScanBtn" class="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all shadow-lg hidden flex items-center gap-2" onclick="window.stopScanner()">
+                                <span class="material-icons-round">stop</span> Stop
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- ANALYTICS SECTION -->
+                <section id="analyticsSection" class="content-section" style="display: none;">
+                    <div class="flex flex-col gap-8">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-2xl font-bold text-white">System Analytics</h3>
+                                    <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                        <span class="text-[9px] font-bold text-emerald-500 uppercase tracking-tighter">Live Sync</span>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-slate-500">Real-time performance and engagement metrics</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="px-4 py-2 bg-slate-800 text-slate-300 border border-white/5 rounded-lg text-xs font-bold hover:bg-slate-700 hover:text-white transition-all flex items-center gap-2" onclick="exportAnalyticsCSV()">
+                                    <span class="material-icons-round text-sm">download</span> Export CSV
+                                </button>
+                                <button class="px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2" onclick="renderAnalyticsCharts()">
+                                    <span class="material-icons-round text-sm">refresh</span> Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Growth Trend Chart -->
+                        <div class="glass-panel rounded-2xl p-6">
+                            <h4 class="text-base font-semibold text-white mb-6 flex items-center gap-2">
+                                <span class="material-icons-round text-indigo-400">trending_up</span>
+                                Registration Growth Trend (Last 14 Days)
+                            </h4>
+                            <div class="h-[250px] w-full relative">
+                                <canvas id="growthChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Charts Grid -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="glass-panel rounded-2xl p-6">
+                                <h4 class="text-base font-semibold text-white mb-6 flex items-center gap-2">
+                                    <span class="material-icons-round text-blue-400">bar_chart</span>
+                                    Registration vs Attendance
+                                </h4>
+                                <div class="h-[300px] w-full relative">
+                                    <canvas id="attendanceChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="glass-panel rounded-2xl p-6">
+                                <h4 class="text-base font-semibold text-white mb-6 flex items-center gap-2">
+                                    <span class="material-icons-round text-indigo-400">pie_chart</span>
+                                    User Distribution
+                                </h4>
+                                <div class="h-[300px] w-full relative">
+                                    <canvas id="userDistChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Summary Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="glass-panel rounded-2xl p-8 border-l-4 border-emerald-500 overflow-hidden relative">
+                                <div class="relative z-10">
+                                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Global Conversion Rate</p>
+                                    <h2 class="text-5xl font-black text-white" id="conversionRateStat">0%</h2>
+                                    <div class="mt-6 w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-500 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                                    </div>
+                                    <p class="text-[10px] text-emerald-400 font-bold flex items-center gap-1 mt-4">
+                                        <span class="material-icons-round text-sm">check_circle</span>
+                                        PROPORTION OF REGISTERED USERS WHO ATTENDED
+                                    </p>
+                                </div>
+                                <span class="material-icons-round absolute -right-4 -bottom-4 text-9xl text-emerald-500/5 rotate-12">analytics</span>
+                            </div>
+                            
+                            <div class="glass-panel rounded-2xl p-8 border-l-4 border-blue-500 overflow-hidden relative">
+                                <div class="relative z-10">
+                                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total System Engagement</p>
+                                    <div class="flex items-baseline gap-2">
+                                        <h2 class="text-5xl font-black text-white" id="totalRegistrationsCard">0</h2>
+                                        <span class="text-slate-500 font-bold text-lg">Registrations</span>
+                                    </div>
+                                    <div class="mt-6 flex items-center gap-4">
+                                        <div class="flex -space-x-2">
+                                            <div class="w-8 h-8 rounded-full border-2 border-[#0f172a] bg-blue-500 flex items-center justify-center text-[10px] font-bold">JD</div>
+                                            <div class="w-8 h-8 rounded-full border-2 border-[#0f172a] bg-emerald-500 flex items-center justify-center text-[10px] font-bold">SK</div>
+                                            <div class="w-8 h-8 rounded-full border-2 border-[#0f172a] bg-purple-500 flex items-center justify-center text-[10px] font-bold">AB</div>
+                                        </div>
+                                        <p class="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Active users platform-wide</p>
+                                    </div>
+                                </div>
+                                <span class="material-icons-round absolute -right-4 -bottom-4 text-9xl text-blue-500/5 -rotate-12">groups</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- LOGS SECTION -->
                 <section id="logsSection" class="content-section" style="display: none;">
                     <div class="glass-panel rounded-2xl p-6 h-full flex flex-col">
@@ -1386,6 +1553,27 @@
                                     <span
                                         class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">Sharable</span>
                                 </label>
+
+                                <!-- Top Event Toggle -->
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <div class="relative">
+                                        <input type="checkbox" id="toggleTopEvent" class="sr-only peer">
+                                        <div
+                                            class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500">
+                                        </div>
+                                    </div>
+                                    <span
+                                        class="text-sm font-medium text-gray-400 group-hover:text-white transition-colors flex items-center gap-1">
+                                        <span class="material-icons-round text-amber-400 text-sm">star</span>Top Event
+                                    </span>
+                                </label>
+
+                                <!-- Priority Input (shown when Top Event is checked) -->
+                                <div id="priorityInputWrapper" class="hidden items-center gap-2">
+                                    <input type="number" id="eventPriority" min="1" max="10" value="5"
+                                        class="w-16 px-3 py-1.5 rounded-lg bg-gray-700 border border-gray-600 text-white text-sm focus:outline-none focus:border-amber-500">
+                                    <span class="text-xs text-gray-500">Priority (1-10)</span>
+                                </div>
                             </div>
                         </div>
 
@@ -3160,60 +3348,64 @@
 
         // ── INIT HOOK ──────────────────────────────────────────────
 
-        const _origShowSection = window.showSection;
-        window.showSection = (section) => {
-            if (section === 'chat') {
-                initAdminChat();
-                if (typeof _origShowSection === 'function') {
-                    _origShowSection(section);
-                    const chatSec = document.getElementById('chatSection');
-                    if (chatSec) chatSec.style.display = 'flex';
+        // ── UNIFIED SECTION CONTROLLER ──────────────────────────────
+        const _baseShowSection = window.showSection; // Original from admin.js
+        
+        window.showSection = function(id) {
+            console.log("📍 Navigating to section:", id);
+            
+            // Handle Chat separately as it needs flex display
+            if (id === 'chat') {
+                document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+                const chatSec = document.getElementById('chatSection');
+                if (chatSec) {
+                    chatSec.style.display = 'flex';
+                    tryInitNexus();
+                }
+            } else {
+                // Delegate to admin.js logic for other sections
+                if (typeof _baseShowSection === 'function') {
+                    _baseShowSection(id);
                 } else {
                     document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
-                    const target = document.getElementById('chatSection');
-                    if (target) target.style.display = 'flex';
+                    const target = document.getElementById(id + 'Section');
+                    if (target) target.style.display = 'block';
                 }
-                return;
             }
-            if (typeof _origShowSection === 'function') _origShowSection(section);
-            else {
-                document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
-                const target = document.getElementById(section + 'Section');
-                if (target) target.style.display = 'block';
-            }
+            
+            // Update active state in sidebar
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active', 'sidebar-item-active');
+                if (item.onclick?.toString().includes(`'${id}'`)) {
+                    item.classList.add('active', 'sidebar-item-active');
+                }
+            });
         };
 
-        // Nexus Chat lazy-init: fires once when chatSection becomes visible
-        (function () {
-            let _nexusInited = false;
-            function tryInitNexus() {
-                if (_nexusInited) return;
-                _nexusInited = true;
-                function doInit() {
-                    if (typeof window.initNexusChat === 'function') {
-                        window.initNexusChat('admin');
-                    } else {
-                        setTimeout(doInit, 150);
-                    }
+        // Nexus Chat lazy-init
+        let _nexusInited = false;
+        function tryInitNexus() {
+            if (_nexusInited) return;
+            _nexusInited = true;
+            function doInit() {
+                if (typeof window.initNexusChat === 'function') {
+                    window.initNexusChat('admin');
+                } else {
+                    setTimeout(doInit, 150);
                 }
-                doInit();
             }
-            document.addEventListener('DOMContentLoaded', () => {
-                const chatSec = document.getElementById('chatSection');
-                if (!chatSec) return;
+            doInit();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatSec = document.getElementById('chatSection');
+            if (chatSec) {
                 const obs = new MutationObserver(() => {
                     if (chatSec.style.display !== 'none') tryInitNexus();
                 });
                 obs.observe(chatSec, { attributes: true, attributeFilter: ['style'] });
-                const _orig = window.showSection;
-                window.showSection = function (id) {
-                    if (_orig) _orig.call(this, id);
-                    if (id === 'chat') tryInitNexus();
-                };
-                const chatSec2 = document.getElementById('chatSection');
-                if (chatSec2 && chatSec2.style.display !== 'none') tryInitNexus();
-            });
-        })();
+            }
+        });
     </script>
 
     <!-- Nexus Chat Controller — must be loaded before initNexusChat is called -->
@@ -3263,7 +3455,117 @@
             </div>
         </div>
     </div>
-    \n
+    
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script>
+    // --- QR SCANNER LOGIC (Admin Dashboard) ---
+    let html5QrCode = null;
+
+    window.startScanner = function() {
+        const resultsContainer = document.getElementById('qr-reader-results');
+        resultsContainer.className = "mt-6 w-full max-w-lg text-center p-4 rounded-xl hidden border";
+        resultsContainer.innerHTML = "";
+
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("qr-reader");
+        }
+
+        const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
+            window.stopScanner();
+            
+            resultsContainer.className = "mt-6 w-full max-w-lg text-center p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 block";
+            resultsContainer.innerHTML = `<span class="material-icons-round animate-spin text-blue-500 text-3xl">refresh</span><p class="text-blue-400 mt-2 font-bold">Verifying Ticket...</p><p class="text-xs text-slate-500">${decodedText}</p>`;
+            
+            try {
+                const { data, error } = await window.supabase
+                    .from('event_registrations')
+                    .select(`
+                        id,
+                        created_at,
+                        events (
+                            id,
+                            title,
+                            name,
+                            start_date
+                        ),
+                        profiles (
+                            full_name,
+                            email
+                        )
+                    `)
+                    .eq('user_id', decodedText);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const reg = data[0];
+                    const eventName = reg.events?.title || reg.events?.name || 'Unknown Event';
+                    const userName = reg.profiles?.full_name || reg.profiles?.email || 'Unknown User';
+
+                    // Mark attendance
+                    await window.supabase.from('event_registrations').update({ attended: true }).eq('id', reg.id);
+                    // Log activity
+                    await window.supabase.from('activity_log').insert({
+                        user_id: decodedText,
+                        action: 'attendance_verified',
+                        details: { event_name: eventName, student_name: userName, registration_id: reg.id, verified_by: 'admin' }
+                    }).then(() => {}).catch(() => {});
+                    
+                    resultsContainer.className = "mt-6 w-full max-w-lg text-center p-6 rounded-xl border border-emerald-500/50 bg-emerald-500/10 block";
+                    resultsContainer.innerHTML = `
+                        <span class="material-icons-round text-emerald-500 text-6xl shadow-[0_0_30px_rgba(16,185,129,0.5)] rounded-full mb-2">check_circle</span>
+                        <h4 class="text-2xl font-bold text-emerald-400">ACCESS GRANTED</h4>
+                        <p class="text-white font-medium mt-2 text-lg">${userName}</p>
+                        <p class="text-slate-400 text-sm mt-1">Verified for: <strong>${eventName}</strong></p>
+                        <p class="text-emerald-400 text-xs mt-1 font-bold">✓ Attendance Recorded</p>
+                        <button onclick="window.startScanner()" class="mt-4 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg">Scan Next Ticket</button>
+                    `;
+                } else {
+                    showScanError("Not Registered", decodedText);
+                }
+            } catch (err) {
+                console.error("Scanner DB Error:", err);
+                showScanError("Database Error", decodedText);
+            }
+        };
+
+        function showScanError(msg, uid) {
+            resultsContainer.className = "mt-6 w-full max-w-lg text-center p-6 rounded-xl border border-red-500/50 bg-red-500/10 block";
+            resultsContainer.innerHTML = `
+                <span class="material-icons-round text-red-500 text-6xl shadow-[0_0_30px_rgba(239,68,68,0.5)] rounded-full mb-2">cancel</span>
+                <h4 class="text-2xl font-bold text-red-400">ACCESS DENIED</h4>
+                <p class="text-white font-medium mt-2 text-lg">${msg}</p>
+                <p class="text-slate-500 text-xs mt-1">ID: ${uid}</p>
+                <button onclick="window.startScanner()" class="mt-4 px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg">Scan Again</button>
+            `;
+        }
+
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .then(() => {
+                document.getElementById('startScanBtn').classList.add('hidden');
+                document.getElementById('stopScanBtn').classList.remove('hidden');
+            })
+            .catch((err) => {
+                console.error("Error starting scanner:", err);
+                alert("Could not start camera. Please ensure camera permissions are granted.");
+                document.getElementById('startScanBtn').classList.remove('hidden');
+                document.getElementById('stopScanBtn').classList.add('hidden');
+            });
+    };
+
+    window.stopScanner = function() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                document.getElementById('startScanBtn').classList.remove('hidden');
+                document.getElementById('stopScanBtn').classList.add('hidden');
+            }).catch(err => {
+                console.error("Error stopping scanner:", err);
+            });
+        }
+    };
+    </script>
 </body>
 
 </html>
