@@ -36,6 +36,9 @@
             },
         };
     </script>
+    <script type="module" src="./supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="state.js"></script>
     <script src="student-dashboard.js" type="module"></script>
 </head>
@@ -89,6 +92,18 @@
                     onclick="showSection('registered')">
                     <span class="material-icons-round text-[20px]">event_available</span>
                     <span class="text-sm font-medium menu-text">Registered Events</span>
+                </button>
+                <button
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
+                    onclick="showSection('certificates')">
+                    <span class="material-icons-round text-[20px]">workspace_premium</span>
+                    <span class="text-sm font-medium menu-text">My Certificates</span>
+                </button>
+                <button
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
+                    onclick="showSection('analytics')">
+                    <span class="material-icons-round text-[20px]">insights</span>
+                    <span class="text-sm font-medium menu-text">My Analytics</span>
                 </button>
                 <button
                     class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
@@ -157,8 +172,22 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- DIGITAL ENTRY PASS -->
+                        <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02] col-span-1 md:col-span-2 flex sm:flex-row flex-col items-center justify-between">
+                            <div class="text-left mb-4 sm:mb-0">
+                                <h4 class="text-sm font-bold text-blue-400 uppercase tracking-widest mb-1">KIIT Events Pass</h4>
+                                <p class="text-2xl font-bold text-white mb-2">Digital Entry QR</p>
+                                <p class="text-sm text-slate-400 max-w-xs">Present this unique QR code at any KIIT event venue for quick check-in and attendance verification.</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.3)]" id="qrCodeContainer">
+                                <div class="w-32 h-32 bg-slate-200 animate-pulse rounded-lg flex items-center justify-center">
+                                    <span class="material-icons-round text-slate-400">qr_code_2</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
+                    <div class="mt-8">
                         <h3 class="text-lg font-bold text-white mb-6">Quick Watchlist</h3>
                         <div id="watchlistGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <!-- Populated by JS -->
@@ -181,16 +210,74 @@
 
                 <!-- REGISTERED -->
                 <section id="registeredSection" class="content-section" style="display:none;">
-                    <div class="text-center py-20 bg-white/[0.02] rounded-3xl border border-white/5">
-                        <span class="material-icons-round text-6xl text-slate-700 mb-4">event_available</span>
-                        <h3 class="text-xl font-bold text-white">Your Registered Events</h3>
-                        <p class="text-slate-500 mt-2">You haven't registered for any events yet.</p>
-                        <button
-                            class="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/20"
-                            onclick="window.location.replace('index.html')">Browse Events</button>
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">Registered Events</h3>
+                            <p class="text-sm text-slate-500">Events you have officially registered for</p>
+                        </div>
+                    </div>
+                    <div id="registeredEventsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated by JS -->
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-20 bg-white/[0.02] rounded-3xl border border-white/5" id="emptyRegisteredState">
+                            <span class="material-icons-round text-6xl text-slate-700 mb-4">event_available</span>
+                            <h3 class="text-xl font-bold text-white">Your Registered Events</h3>
+                            <p class="text-slate-500 mt-2">You haven't registered for any internal events yet.</p>
+                            <button
+                                class="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/20"
+                                onclick="window.location.replace('index.html')">Browse Events</button>
+                        </div>
                     </div>
                 </section>
 
+                <!-- CERTIFICATES -->
+                <section id="certificatesSection" class="content-section" style="display:none;">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">My Certificates</h3>
+                            <p class="text-sm text-slate-500">Download certificates for events you've attended</p>
+                        </div>
+                    </div>
+                    <div id="certificatesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated by JS -->
+                        <div class="col-span-full text-center py-20 bg-white/[0.02] rounded-3xl border border-white/5" id="emptyCertState">
+                            <span class="material-icons-round text-6xl text-slate-700 mb-4">military_tech</span>
+                            <h3 class="text-xl font-bold text-white">No Certificates Yet</h3>
+                            <p class="text-slate-500 mt-2">Attend events and get your QR scanned to earn certificates!</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- STUDENT ANALYTICS -->
+                <section id="analyticsSection" class="content-section" style="display:none;">
+                    <div class="flex flex-col gap-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">My Engagement</h3>
+                            <p class="text-sm text-slate-500">Your event participation statistics</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Participation</p>
+                                <h2 class="text-3xl font-black text-white" id="statParticipation">0%</h2>
+                                <p class="text-[10px] text-blue-400 mt-1">Attended vs Registered</p>
+                            </div>
+                            <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Points</p>
+                                <h2 class="text-3xl font-black text-white" id="statPoints">0</h2>
+                                <p class="text-[10px] text-emerald-400 mt-1">XP earned from events</p>
+                            </div>
+                            <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Rank</p>
+                                <h2 class="text-3xl font-black text-white">#0</h2>
+                                <p class="text-[10px] text-purple-400 mt-1">Among event attendees</p>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-8 rounded-2xl border border-white/5 bg-white/[0.02] h-[350px]">
+                            <h4 class="text-sm font-bold text-white mb-6 uppercase tracking-widest">Monthly Participation</h4>
+                            <div class="h-full w-full relative">
+                                <canvas id="studentActivityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- PROFILE -->
