@@ -1,328 +1,625 @@
-<!DOCTYPE html>
-<html lang="en">
+import { supabase } from "./supabase.js";
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard | KIIT Events</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script src="nexus-chat.js" defer></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <link rel="stylesheet" href="admin.css">
-    <link rel="stylesheet" href="chat.css">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
-        rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: "#3b82f6",
-                        secondary: "#1e40af",
-                        "dark-bg": "#020617",
-                        "deep-blue": "#0f172a",
-                        "glass-border": "rgba(255, 255, 255, 0.08)",
-                        "glass-bg": "rgba(30, 41, 59, 0.4)",
-                    },
-                    fontFamily: {
-                        sans: ["Inter", "sans-serif"],
-                        display: ["Poppins", "sans-serif"],
-                    },
-                },
-            },
+let currentStudentId = null;
+let currentStudentName = "Student";
+let studentCharts = {};
+
+// --- SUPABASE SESSION CHECK ---
+async function initUserDashboard() {
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error || !session) {
+            console.log("No session found, redirecting to auth.html");
+            window.goAuth();
+            return;
+        }
+
+        const user = session.user;
+
+        // Fetch Profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+        const userData = {
+            id: user.id,
+            email: user.email,
+            name: profile?.full_name || user.user_metadata?.full_name || 'Student',
+            role: profile?.role || 'Student',
+            joined: profile?.created_at || user.created_at
         };
-    </script>
-    <script type="module" src="./supabase.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="state.js"></script>
-    <script src="student-dashboard.js" type="module"></script>
-</head>
 
-<body class="bg-[#020617] text-slate-300 min-h-screen p-0 overflow-hidden">
-    <div id="loadingOverlay"
-        class="fixed inset-0 z-[9999] bg-[#020617] flex flex-col items-center justify-center text-white transition-opacity duration-500">
-        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500/20 border-t-blue-500 mb-4"></div>
-        <p class="text-lg font-medium">Loading your dashboard...</p>
-    </div>
+        // SET UI DATA
+        if (userNameDisplay) userNameDisplay.innerText = userData.name;
+        if (userInitial) userInitial.innerText = userData.name.charAt(0).toUpperCase();
 
-    <div class="flex w-full h-screen overflow-hidden bg-[#020617] relative">
-        <!-- Sidebar -->
-        <aside
-            class="sidebar w-64 h-full flex flex-col border-r border-blue-900/20 relative z-20 transition-all bg-[#0f172a]/80 backdrop-blur-xl">
-            <div class="px-5 py-6 flex items-center justify-between mb-2">
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg border border-blue-400/20">
-                        <span class="material-icons-round text-white">person</span>
-                    </div>
-                    <div class="flex flex-col logo-text">
-                        <span class="text-[15px] font-bold text-white tracking-tight">Student</span>
-                        <span class="text-[10px] text-slate-400 uppercase tracking-widest">Dashboard</span>
+        if (profileName) profileName.value = userData.name;
+        if (profileEmail) profileEmail.value = userData.email;
+        if (profileRole) profileRole.value = userData.role.charAt(0).toUpperCase() + userData.role.slice(1);
+        if (profileJoined) profileJoined.value = new Date(userData.joined).toLocaleDateString();
+
+        // GENERATE QR TICKET
+        const qrContainer = document.getElementById('qrCodeContainer');
+        if(qrContainer) {
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${userData.id}&margin=10`;
+            qrContainer.innerHTML = `<img src="${qrCodeUrl}" alt="Digital ID QR Code" class="w-full h-full object-contain rounded-lg">`;
+        }
+
+        console.log("🔐 Student Dashboard Init | Role:", userData.role);
+
+        // 🛡️ SECURITY KICK-OUT (If Admin somehow landed here)
+        const roleLower = userData.role.toLowerCase();
+        if (roleLower === 'super_admin') {
+            console.log("⭐ Redirecting Super Admin to proper dashboard...");
+            window.location.replace('super-admin/dashboard.html');
+            return;
+        } else if (roleLower === 'admin') {
+            console.log("🛡️ Redirecting Admin to proper dashboard...");
+            window.location.replace('organizer-dashboard.html');
+            return;
+        }
+
+        // Load specific dashboard data
+        currentStudentId = userData.id;
+        currentStudentName = userData.name;
+        
+        renderWatchlist();
+        renderRegisteredEvents(userData.id);
+        renderCertificates(userData.id);
+        renderStudentAnalytics(userData.id);
+
+        // Realtime sync for personal stats
+        supabase
+            .channel('public:event_registrations_student')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'event_registrations', filter: `user_id=eq.${userData.id}` }, () => {
+                console.log("⚡ Analytics Sync: Registration change detected for student.");
+                renderStudentAnalytics(userData.id);
+                renderCertificates(userData.id);
+            })
+            .subscribe();
+
+        // Finish initialization and remove overlay
+        finishAuth();
+
+    } catch (err) {
+        console.error("Dashboard Init Error:", err);
+        finishAuth(); // Hide even on error so user can see what happened
+        window.goAuth();
+    }
+}
+
+function finishAuth() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        overlay.style.pointerEvents = 'none';
+        setTimeout(() => {
+            if (overlay.parentNode) overlay.remove();
+        }, 500);
+    }
+}
+
+// Initialize on Load
+document.addEventListener('DOMContentLoaded', initUserDashboard);
+
+// DOM ELEMENTS (Moved after declarations or ensured they exist)
+const userNameDisplay = document.getElementById('userNameDisplay');
+const userInitial = document.getElementById('userInitial');
+const profileName = document.getElementById('profileName');
+const profileEmail = document.getElementById('profileEmail');
+const profileRole = document.getElementById('profileRole');
+const profileJoined = document.getElementById('profileJoined');
+const watchlistCount = document.getElementById('watchlistCount');
+const watchlistGrid = document.getElementById('watchlistGrid');
+
+
+// LOGOUT
+window.logout = async function () {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    sessionStorage.clear();
+    window.goHome();
+};
+
+// NAVIGATION
+window.showSection = function (sectionId) {
+    // Auto-close notification drawer on navigation
+    const drawer = document.getElementById('notificationDrawer');
+    if (drawer) drawer.classList.remove('active');
+
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(el => el.style.display = 'none');
+
+    // Show selected
+    document.getElementById(sectionId + 'Section').style.display = 'block';
+
+    // Update Nav Active State
+    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+
+    if (sectionId === 'overview' || sectionId === 'watchlist') {
+        renderWatchlist();
+    }
+}
+
+// LOAD WATCHLIST
+function renderWatchlist() {
+    const savedData = JSON.parse(localStorage.getItem('savedEvents')) || { free: [], paid: [], societies: [] };
+    const allSaved = [...savedData.free, ...savedData.paid];
+
+    watchlistCount.innerText = allSaved.length;
+
+    watchlistGrid.innerHTML = '';
+
+    if (allSaved.length === 0) {
+        watchlistGrid.innerHTML = '<p class="empty-state">No saved events yet.</p>';
+        return;
+    }
+
+    allSaved.forEach(ev => {
+        watchlistGrid.innerHTML += `
+            <div class="event-card">
+                <img src="${ev.banner_url || 'assets/logo_final.png'}" alt="${ev.title || ev.name}">
+                <div class="event-info">
+                    <h4>${ev.title || ev.name}</h4>
+                    <div class="event-meta">
+                         <span>🗓 ${ev.date}</span>
+                         <span class="badge ${ev.price === 'Free' ? 'free' : 'paid'}">${ev.price}</span>
                     </div>
                 </div>
-                <!-- Desktop Toggle Button -->
-                <button
-                    class="w-8 h-8 hidden lg:flex items-center justify-center rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer group"
-                    onclick="toggleSidebarDesktop()">
-                    <span id="desktopToggleIcon"
-                        class="material-icons-round text-[20px] group-hover:scale-110 transition-transform">menu_open</span>
-                </button>
+                <div class="event-actions">
+                    <button class="delete-btn" onclick="removeFromWatchlist('${ev.id}')">Remove</button>
+                    <button class="edit-btn" onclick="window.open('index.html', '_blank')">View</button>
+                </div>
             </div>
+        `;
+    });
+}
 
-            <nav class="flex-1 overflow-y-auto px-4 space-y-1">
-                <button
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-blue-100 hover:bg-white/[0.04] transition-all nav-item active"
-                    onclick="showSection('overview')">
-                    <span class="material-icons-round text-[20px]">dashboard</span>
-                    <span class="text-sm font-medium menu-text">Overview</span>
-                </button>
-                <button
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
-                    onclick="showSection('watchlist')">
-                    <span class="material-icons-round text-[20px]">bookmark</span>
-                    <span class="text-sm font-medium menu-text">My Watchlist</span>
-                </button>
-                <button
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
-                    onclick="showSection('registered')">
-                    <span class="material-icons-round text-[20px]">event_available</span>
-                    <span class="text-sm font-medium menu-text">Registered Events</span>
-                </button>
-                <button
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
-                    onclick="showSection('certificates')">
-                    <span class="material-icons-round text-[20px]">workspace_premium</span>
-                    <span class="text-sm font-medium menu-text">My Certificates</span>
-                </button>
-                <button
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
-                    onclick="showSection('analytics')">
-                    <span class="material-icons-round text-[20px]">insights</span>
-                    <span class="text-sm font-medium menu-text">My Analytics</span>
-                </button>
-                <button
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
-                    onclick="window.open('nexus.html?role=student', '_blank')">
-                    <span class="material-icons-round text-[20px]">forum</span>
-                    <span class="text-sm font-medium menu-text">Real-time Chat</span>
-                </button>
-                <button
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-blue-100 hover:bg-white/[0.04] transition-all nav-item"
-                    onclick="showSection('profile')">
-                    <span class="material-icons-round text-[20px]">settings</span>
-                    <span class="text-sm font-medium menu-text">My Profile</span>
-                </button>
-                <div class="pt-4 mt-4 border-t border-blue-800/20">
-                    <button
-                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white transition-all"
-                        onclick="window.location.replace('index.html')">
-                        <span class="material-icons-round text-[20px]">home</span>
-                        <span class="text-sm font-medium menu-text">Home Page</span>
+// REMOVE FROM WATCHLIST
+window.removeFromWatchlist = (id) => {
+    let savedData = JSON.parse(localStorage.getItem('savedEvents')) || { free: [], paid: [], societies: [] };
+
+    // Check both arrays
+    savedData.free = savedData.free.filter(e => e.id !== id);
+    savedData.paid = savedData.paid.filter(e => e.id !== id);
+
+    localStorage.setItem('savedEvents', JSON.stringify(savedData));
+    renderWatchlist();
+    alert('Removed from watchlist');
+};
+
+// FETCH & RENDER REGISTERED EVENTS
+async function renderRegisteredEvents(userId) {
+    const grid = document.getElementById('registeredEventsGrid');
+    const emptyState = document.getElementById('emptyRegisteredState');
+    if(!grid || !emptyState) return;
+
+    try {
+        const { data: regs, error } = await supabase
+            .from('event_registrations')
+            .select('*, events(*)')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Clear previous event cards
+        grid.querySelectorAll('.event-card').forEach(e => e.remove());
+
+        if (!regs || regs.length === 0) {
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        regs.forEach(reg => {
+            const ev = reg.events;
+            if(!ev) return;
+            
+            let statusColor = reg.status === 'registered' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400';
+            
+            grid.innerHTML += `
+                <div class="event-card">
+                    <img src="${ev.banner_url || ev.image_url || 'assets/logo_final.png'}" alt="${ev.title || ev.name}">
+                    <div class="event-info">
+                        <h4>${ev.title || ev.name}</h4>
+                        <div class="event-meta">
+                            <span>🗓 ${ev.date ? new Date(ev.date).toLocaleDateString() : 'TBA'}</span>
+                            <span class="badge ${statusColor}" style="border: 1px solid currentColor;">${reg.status.toUpperCase()}</span>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        <button class="edit-btn" style="width:100%" onclick="window.open('index.html', '_blank')">View Event Details</button>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (err) {
+        console.error("Error loading registered events:", err);
+    }
+}
+
+// LOAD LEADERBOARD
+window.fetchLeaderboard = async function() {
+    const list = document.getElementById('leaderboardList');
+    if (!list) return;
+
+    try {
+        const [regRes, userRes] = await Promise.all([
+            supabase.from('event_registrations').select('user_id, attended'),
+            supabase.from('profiles').select('id, full_name, role')
+        ]);
+
+        if (regRes.error || userRes.error) throw new Error("Could not fetch leaderboard data");
+
+        const regs = regRes.data || [];
+        const students = (userRes.data || []).filter(u => u.role !== 'admin' && u.role !== 'super_admin');
+
+        // Calculate XP per student
+        const xpMap = {};
+        regs.forEach(r => {
+            if (r.attended) {
+                xpMap[r.user_id] = (xpMap[r.user_id] || 0) + 50;
+            }
+        });
+
+        // Map and Sort
+        const leaderboardData = students.map(s => ({
+            ...s,
+            xp: xpMap[s.id] || 0
+        })).sort((a, b) => b.xp - a.xp);
+
+        if (leaderboardData.length === 0) {
+            list.innerHTML = '<div class="p-12 text-center text-slate-500 font-medium tracking-widest uppercase">No students found</div>';
+            return;
+        }
+
+        list.innerHTML = leaderboardData.map((student, index) => {
+            let rankClass = "text-slate-400 font-black";
+            if (index === 0) rankClass = "text-yellow-400 font-black glow-text text-xl";
+            else if (index === 1) rankClass = "text-slate-300 font-black text-lg";
+            else if (index === 2) rankClass = "text-amber-600 font-black text-lg";
+
+            const nameParts = (student.full_name || 'Student').split(' ');
+            let initials = nameParts[0].charAt(0);
+            if(nameParts.length > 1) initials += nameParts[nameParts.length - 1].charAt(0);
+
+            const isMe = student.id === currentStudentId;
+            const bgClass = isMe ? "bg-blue-500/10 border-blue-500/30" : "hover:bg-white/[0.02] border-transparent";
+
+            return `
+                <div class="px-6 py-4 flex items-center grid grid-cols-12 gap-4 transition-all border-l-2 ${bgClass}">
+                    <div class="col-span-2 text-center ${rankClass}">#${index + 1}</div>
+                    <div class="col-span-6 md:col-span-5 flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm border border-white/10">
+                            ${initials.toUpperCase()}
+                        </div>
+                        <div class="truncate">
+                            <span class="text-sm font-bold text-white truncate block flex items-center gap-2">
+                                ${student.full_name || 'Unknown Student'}
+                                ${isMe ? '<span class="px-1.5 py-0.5 rounded text-[8px] bg-blue-500/20 text-blue-400 uppercase tracking-widest">You</span>' : ''}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-span-4 md:col-span-3 text-center">
+                        <span class="text-sm font-black text-emerald-400">${student.xp} XP</span>
+                    </div>
+                    <div class="hidden md:flex col-span-2 justify-end">
+                        <button onclick="window.open('portfolio.html?id=${student.id}', '_blank')" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer group">
+                            <span class="material-icons-round text-sm group-hover:scale-110 transition-transform">open_in_new</span>
+                        </button>
+                    </div>
+                    <!-- Mobile link -->
+                    <button onclick="window.open('portfolio.html?id=${student.id}', '_blank')" class="md:hidden absolute right-4 p-2 text-slate-500" style="margin-top: -8px;">
+                        <span class="material-icons-round text-lg">chevron_right</span>
                     </button>
                 </div>
-            </nav>
+            `;
+        }).join('');
 
-            <div class="p-4 border-t border-blue-900/30 bg-[#0f172a]/50">
-                <div class="flex items-center gap-3 px-2 py-1">
-                    <div class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white ring-2 ring-blue-900/50"
-                        id="userInitial">S</div>
-                    <div class="flex flex-col overflow-hidden">
-                        <span class="text-[13px] font-semibold text-white truncate" id="userNameDisplay">Student
-                            Name</span>
-                        <span class="text-[10px] text-blue-300/70">Student Account</span>
+    } catch(err) {
+        console.error(err);
+        list.innerHTML = '<div class="p-12 text-center text-red-400 font-bold uppercase tracking-widest text-sm">Failed to load leaderboard</div>';
+    }
+};
+
+// INITIAL RENDER
+renderWatchlist();
+
+// --- NAVIGATION ENHANCEMENTS ---
+// 1. Go Back Logic
+// 1. Go Back Logic (Handled in script.js)
+
+// 2. Section Persistence & Updated showSection
+// Override showSection to save state
+const originalShowSection = window.showSection; // If defined previously
+window.showSection = function (sectionId) {
+    // Auto-close notification drawer on navigation
+    const drawer = document.getElementById('notificationDrawer');
+    if (drawer) drawer.classList.remove('active');
+
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(el => el.style.display = 'none');
+
+    // Show selected
+    const target = document.getElementById(sectionId + 'Section');
+    if (target) target.style.display = 'block';
+
+    // Update Nav Active State
+    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+
+    if (window.event && window.event.currentTarget && window.event.currentTarget.classList) {
+        window.event.currentTarget.classList.add('active');
+    } else {
+        const btn = document.querySelector(`button[onclick*="'${sectionId}'"]`);
+        if (btn) btn.classList.add('active');
+    }
+
+    if (sectionId === 'overview' || sectionId === 'watchlist') {
+        renderWatchlist();
+    }
+    if (sectionId === 'certificates') {
+        renderCertificates(currentStudentId);
+    }
+    if (sectionId === 'analytics') {
+        renderStudentAnalytics(currentStudentId);
+    }
+    if (sectionId === 'leaderboard') {
+        window.fetchLeaderboard();
+    }
+
+    // Close sidebar on mobile
+    if (window.innerWidth < 1024) {
+        const sb = document.querySelector('aside') || document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        if (sb) sb.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
+    }
+
+    // SAVE STATE
+    sessionStorage.setItem('studentLastSection', sectionId);
+};
+// --- ADVANCED STUDENT FEATURES ---
+
+async function renderCertificates(userId) {
+    const grid = document.getElementById('certificatesGrid');
+    const emptyState = document.getElementById('emptyCertState');
+    if (!grid || !emptyState) return;
+
+    try {
+        const { data: attended, error } = await supabase
+            .from('event_registrations')
+            .select('*, events(*)')
+            .eq('user_id', userId)
+            .eq('attended', true);
+
+        if (error) throw error;
+
+        // Clear existing
+        grid.querySelectorAll('.event-card').forEach(e => e.remove());
+
+        if (!attended || attended.length === 0) {
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        attended.forEach(reg => {
+            const ev = reg.events;
+            if (!ev) return;
+
+            const date = ev.date ? new Date(ev.date).toLocaleDateString() : 'N/A';
+            
+            grid.innerHTML += `
+                <div class="event-card group">
+                    <div class="relative overflow-hidden rounded-t-2xl">
+                        <img src="${ev.banner_url || ev.image_url || 'assets/logo_final.png'}" alt="${ev.title || ev.name}" class="group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+                        <div class="absolute bottom-3 left-3 flex items-center gap-2">
+                             <span class="p-1 px-2 rounded-md bg-emerald-500 text-[10px] font-black text-white uppercase tracking-tighter shadow-lg">Verified</span>
+                        </div>
+                    </div>
+                    <div class="event-info">
+                        <h4 class="text-white font-bold truncate">${ev.title || ev.name}</h4>
+                        <div class="event-meta">
+                            <span>🗓 Attended: ${date}</span>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        <button class="edit-btn gap-2" style="width:100%" onclick="downloadCertificate('${currentStudentName.replace(/'/g, "\\'")}', '${(ev.title || ev.name).replace(/'/g, "\\'")}', '${date}')">
+                            <span class="material-icons-round text-sm">download</span> Download Certificate
+                        </button>
                     </div>
                 </div>
-            </div>
-        </aside>
+            `;
+        });
+    } catch (err) {
+        console.error("Error rendering certificates:", err);
+    }
+}
 
-        <!-- Main Content -->
-        <main class="flex-1 bg-[#020617] flex flex-col h-full overflow-hidden">
-            <header
-                class="flex items-center justify-between px-8 py-4 border-b border-blue-900/20 bg-blue-900/10 backdrop-blur-md">
-                <h2 class="text-xl font-bold text-white tracking-tight" id="pageTitle">Welcome Back</h2>
-                <div class="flex items-center gap-4">
-                    <button class="p-2 text-slate-400 hover:text-white transition-colors lg:hidden"
-                        onclick="toggleSidebar()">
-                        <span class="material-icons-round">menu</span>
-                    </button>
-                    <button
-                        class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-bold rounded-lg border border-red-500/20 transition-all"
-                        onclick="logout()">LOGOUT</button>
-                </div>
-            </header>
+window.downloadCertificate = function(studentName, eventName, date) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [800, 600]
+    });
 
-            <div class="flex-1 overflow-y-auto custom-scroll p-8" id="mainScrollAreaStudent">
-                <!-- OVERVIEW -->
-                <section id="overviewSection" class="content-section space-y-8">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
-                            <div class="flex items-center gap-4 mb-4">
-                                <div
-                                    class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                                    <span class="material-icons-round text-2xl">bookmark</span>
-                                </div>
-                                <div>
-                                    <h4 class="text-sm font-medium text-slate-400">Saved Events</h4>
-                                    <p class="text-2xl font-bold text-white" id="watchlistCount">0</p>
-                                </div>
-                            </div>
-                        </div>
+    // Background Gradient (Faux)
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, 800, 600, 'F');
+    
+    // Border
+    doc.setDrawColor(59, 130, 246); // blue-500
+    doc.setLineWidth(10);
+    doc.rect(20, 20, 760, 560);
+    
+    // Header
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(40);
+    doc.setFont("helvetica", "bold");
+    doc.text("CERTIFICATE OF PARTICIPATION", 400, 100, { align: 'center' });
+    
+    doc.setDrawColor(255, 255, 255, 0.2);
+    doc.line(200, 120, 600, 120);
 
-                        <!-- DIGITAL ENTRY PASS -->
-                        <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02] col-span-1 md:col-span-2 flex sm:flex-row flex-col items-center justify-between">
-                            <div class="text-left mb-4 sm:mb-0">
-                                <h4 class="text-sm font-bold text-blue-400 uppercase tracking-widest mb-1">KIIT Events Pass</h4>
-                                <p class="text-2xl font-bold text-white mb-2">Digital Entry QR</p>
-                                <p class="text-sm text-slate-400 max-w-xs">Present this unique QR code at any KIIT event venue for quick check-in and attendance verification.</p>
-                            </div>
-                            <div class="bg-white p-3 rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.3)]" id="qrCodeContainer">
-                                <div class="w-32 h-32 bg-slate-200 animate-pulse rounded-lg flex items-center justify-center">
-                                    <span class="material-icons-round text-slate-400">qr_code_2</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-8">
-                        <h3 class="text-lg font-bold text-white mb-6">Quick Watchlist</h3>
-                        <div id="watchlistGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </section>
+    // Body
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(148, 163, 184); // slate-400
+    doc.text("This is to certify that", 400, 180, { align: 'center' });
+    
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(50);
+    doc.setFont("helvetica", "bold");
+    doc.text(studentName.toUpperCase(), 400, 240, { align: 'center' });
+    
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "normal");
+    doc.text("has successfully attended and participated in the event", 400, 300, { align: 'center' });
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(30);
+    doc.setFont("helvetica", "bold");
+    doc.text(eventName, 400, 350, { align: 'center' });
+    
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(16);
+    doc.text(`Held on ${date}`, 400, 380, { align: 'center' });
 
-                <!-- WATCHLIST -->
-                <section id="watchlistSection" class="content-section" style="display:none;">
-                    <div class="flex items-center justify-between mb-8">
-                        <div>
-                            <h3 class="text-2xl font-bold text-white">My Watchlist</h3>
-                            <p class="text-sm text-slate-500">Events you've saved for later</p>
-                        </div>
-                    </div>
-                    <div id="watchlistGridFull" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Populated by JS (shares same logic) -->
-                    </div>
-                </section>
+    // Footer / Logo Placeholder
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(18);
+    doc.text("KIIT EVENTS OFFICIAL", 400, 500, { align: 'center' });
+    
+    doc.setDrawColor(59, 130, 246);
+    doc.line(350, 480, 450, 480);
 
-                <!-- REGISTERED -->
-                <section id="registeredSection" class="content-section" style="display:none;">
-                    <div class="flex items-center justify-between mb-8">
-                        <div>
-                            <h3 class="text-2xl font-bold text-white">Registered Events</h3>
-                            <p class="text-sm text-slate-500">Events you have officially registered for</p>
-                        </div>
-                    </div>
-                    <div id="registeredEventsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Populated by JS -->
-                        <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-20 bg-white/[0.02] rounded-3xl border border-white/5" id="emptyRegisteredState">
-                            <span class="material-icons-round text-6xl text-slate-700 mb-4">event_available</span>
-                            <h3 class="text-xl font-bold text-white">Your Registered Events</h3>
-                            <p class="text-slate-500 mt-2">You haven't registered for any internal events yet.</p>
-                            <button
-                                class="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/20"
-                                onclick="window.location.replace('index.html')">Browse Events</button>
-                        </div>
-                    </div>
-                </section>
+    // Seal / Accent
+    doc.setFillColor(59, 130, 246, 0.1);
+    doc.circle(700, 500, 40, 'F');
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(12);
+    doc.text("OFFICIAL\nSEAL", 700, 495, { align: 'center' });
 
-                <!-- CERTIFICATES -->
-                <section id="certificatesSection" class="content-section" style="display:none;">
-                    <div class="flex items-center justify-between mb-8">
-                        <div>
-                            <h3 class="text-2xl font-bold text-white">My Certificates</h3>
-                            <p class="text-sm text-slate-500">Download certificates for events you've attended</p>
-                        </div>
-                    </div>
-                    <div id="certificatesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Populated by JS -->
-                        <div class="col-span-full text-center py-20 bg-white/[0.02] rounded-3xl border border-white/5" id="emptyCertState">
-                            <span class="material-icons-round text-6xl text-slate-700 mb-4">military_tech</span>
-                            <h3 class="text-xl font-bold text-white">No Certificates Yet</h3>
-                            <p class="text-slate-500 mt-2">Attend events and get your QR scanned to earn certificates!</p>
-                        </div>
-                    </div>
-                </section>
+    doc.save(`${eventName}_Certificate.pdf`);
+};
 
-                <!-- STUDENT ANALYTICS -->
-                <section id="analyticsSection" class="content-section" style="display:none;">
-                    <div class="flex flex-col gap-8">
-                        <div>
-                            <h3 class="text-2xl font-bold text-white">My Engagement</h3>
-                            <p class="text-sm text-slate-500">Your event participation statistics</p>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
-                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Participation</p>
-                                <h2 class="text-3xl font-black text-white" id="statParticipation">0%</h2>
-                                <p class="text-[10px] text-blue-400 mt-1">Attended vs Registered</p>
-                            </div>
-                            <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
-                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Points</p>
-                                <h2 class="text-3xl font-black text-white" id="statPoints">0</h2>
-                                <p class="text-[10px] text-emerald-400 mt-1">XP earned from events</p>
-                            </div>
-                            <div class="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
-                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Rank</p>
-                                <h2 class="text-3xl font-black text-white">#0</h2>
-                                <p class="text-[10px] text-purple-400 mt-1">Among event attendees</p>
-                            </div>
-                        </div>
-                        <div class="glass-panel p-8 rounded-2xl border border-white/5 bg-white/[0.02] h-[350px]">
-                            <h4 class="text-sm font-bold text-white mb-6 uppercase tracking-widest">Monthly Participation</h4>
-                            <div class="h-full w-full relative">
-                                <canvas id="studentActivityChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+async function renderStudentAnalytics(userId) {
+    if (typeof Chart === 'undefined') return;
+    
+    try {
+        const { data: regs } = await supabase
+            .from('event_registrations')
+            .select('attended, created_at')
+            .eq('user_id', userId);
+            
+        const total = regs.length;
+        const attended = regs.filter(r => r.attended).length;
+        const participationRate = total > 0 ? Math.round((attended / total) * 100) : 0;
+        
+        // XP Calculation: 100 per registration, 500 per attendance
+        const points = (total * 100) + (attended * 500);
+        
+        if (document.getElementById('statParticipation')) document.getElementById('statParticipation').textContent = `${participationRate}%`;
+        if (document.getElementById('statPoints')) document.getElementById('statPoints').textContent = points.toLocaleString();
 
-                <!-- PROFILE -->
-                <section id="profileSection" class="content-section" style="display:none;">
-                    <div class="max-w-4xl mx-auto space-y-8">
-                        <div class="glass-panel p-8 rounded-3xl border border-white/5 bg-white/[0.02]">
-                            <h3 class="text-2xl font-bold text-white mb-8">Personal Information</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div class="space-y-2">
-                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Full
-                                        Name</label>
-                                    <input type="text" id="profileName"
-                                        class="w-full bg-[#020617] border-white/5 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40"
-                                        readonly>
-                                </div>
-                                <div class="space-y-2">
-                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Email
-                                        Address</label>
-                                    <input type="email" id="profileEmail"
-                                        class="w-full bg-[#020617] border-white/5 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40"
-                                        readonly>
-                                </div>
-                                <div class="space-y-2">
-                                    <label
-                                        class="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Account
-                                        Role</label>
-                                    <input type="text" id="profileRole"
-                                        class="w-full bg-[#020617] border-white/5 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40"
-                                        readonly>
-                                </div>
-                                <div class="space-y-2">
-                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Join
-                                        Date</label>
-                                    <input type="text" id="profileJoined"
-                                        class="w-full bg-[#020617] border-white/5 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40"
-                                        readonly>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </main>
-    </div>
+        // Monthly Stats (Last 6 Months)
+        const months = [];
+        const monthData = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(); d.setMonth(d.getMonth() - i);
+            const mName = d.toLocaleString('default', { month: 'short' });
+            months.push(mName);
+            
+            const count = regs.filter(r => {
+                const rd = new Date(r.created_at);
+                return rd.getMonth() === d.getMonth() && rd.getFullYear() === d.getFullYear();
+            }).length;
+            monthData.push(count);
+        }
 
-</body>
+        const ctx = document.getElementById('studentActivityChart')?.getContext('2d');
+        if (!ctx) return;
+        
+        if (studentCharts.activity) studentCharts.activity.destroy();
+        
+        studentCharts.activity = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Events Registered',
+                    data: monthData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#3b82f6',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
 
-</html>
+    } catch (err) {
+        console.error("Student Analytics Error:", err);
+    }
+}
+window.toggleSidebar = function () {
+    const aside = document.querySelector('aside');
+    if (aside) aside.classList.toggle('active');
+
+    // Toggle overlay if it exists
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (overlay) overlay.classList.toggle('active');
+};
+
+window.toggleSidebarDesktop = function () {
+    const sidebar = document.querySelector('aside') || document.querySelector('.sidebar');
+    const icon = document.getElementById('desktopToggleIcon');
+
+    if (!sidebar) return;
+
+    sidebar.classList.toggle('collapsed');
+
+    if (sidebar.classList.contains('collapsed')) {
+        if (icon) icon.textContent = 'menu';
+    } else {
+        if (icon) icon.textContent = 'menu_open';
+    }
+
+    // Smoothly update any charts or maps if they exist
+    window.dispatchEvent(new Event('resize'));
+};
+
+
+
+// --- GLOBAL CLICK LISTENER FOR DRAWER AUTO-CLOSE ---
+document.addEventListener('click', (e) => {
+    const drawer = document.getElementById('notificationDrawer');
+    const btn = document.getElementById('notificationBtn');
+    
+    if (drawer && drawer.classList.contains('active')) {
+        if (!drawer.contains(e.target) && !btn?.contains(e.target)) {
+            drawer.classList.remove('active');
+        }
+    }
+});
