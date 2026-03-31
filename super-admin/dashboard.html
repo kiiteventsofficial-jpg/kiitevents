@@ -1031,6 +1031,12 @@
                             </div>
                             
                             <div class="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
+                                <span class="material-icons-round text-emerald-400 ml-2">event</span>
+                                <select id="scanner-event-select" class="bg-transparent text-white text-sm border-none focus:ring-0 cursor-pointer pr-10 font-bold min-w-[200px]">
+                                    <option value="">Select Event to Scan</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
                                 <span class="material-icons-round text-blue-400 ml-2">videocam</span>
                                 <select id="scanner-camera-select" class="bg-transparent text-white text-sm border-none focus:ring-0 cursor-pointer pr-10 font-bold min-w-[200px]">
                                     <option value="">Select Camera</option>
@@ -1402,8 +1408,16 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-400">Registration Type</label>
+                                <select id="eventRegType" onchange="window.toggleRegTypeFields()"
+                                    class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium appearance-none">
+                                    <option value="link">External Link</option>
+                                    <option value="form">Custom Dynamic Form</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2" id="regLinkWrapper">
                                 <label class="block text-sm font-semibold text-gray-400">Registration Link</label>
                                 <input id="eventRegLink"
                                     class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
@@ -1414,6 +1428,22 @@
                                 <input id="eventMeetingLink"
                                     class="w-full px-5 py-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
                                     placeholder="Zoom/Meet Link" type="url" />
+                            </div>
+                        </div>
+
+                        <!-- CUSTOM FORM BUILDER -->
+                        <div id="customFormBuilderContainer" class="space-y-4 pt-6 border-t border-white/5" style="display:none;">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-white font-bold text-lg">Form Builder</h4>
+                                    <p class="text-xs text-gray-400">Design the registration form fields students will fill out.</p>
+                                </div>
+                                <button type="button" onclick="window.addFormField()" class="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-all font-bold text-sm flex items-center gap-2">
+                                    <span class="material-icons-round text-sm">add</span> Add Field
+                                </button>
+                            </div>
+                            <div id="formFieldsContainer" class="space-y-3 cursor-default">
+                                <!-- Fields populated by JS -->
                             </div>
                         </div>
 
@@ -2162,6 +2192,10 @@
         window.showSection = function(id) {
             console.log("📍 Super Admin Navigating to:", id);
             
+            // Auto-close notification drawer on navigation
+            const drawer = document.getElementById('notificationDrawer');
+            if (drawer) drawer.classList.remove('active');
+
             // Handle Chat Section specifically
             if (id === 'chat') {
                 document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
@@ -2406,6 +2440,14 @@
         let html5QrCode = null;
 
         window.startScanner = function() {
+            const eventSelect = document.getElementById('scanner-event-select');
+            const eventId = eventSelect ? eventSelect.value : null;
+
+            if (!eventId) {
+                alert("Please select an event from the dropdown before starting the scanner.");
+                return;
+            }
+
             const resultsContainer = document.getElementById('qr-reader-results');
             resultsContainer.className = "w-full max-w-lg text-center p-8 rounded-[2rem] border border-blue-500/20 bg-blue-500/5 block opacity-100 scale-100 transition-all duration-500";
             resultsContainer.innerHTML = `
@@ -2449,7 +2491,8 @@
                                 email
                             )
                         `)
-                        .eq('user_id', decodedText);
+                        .eq('user_id', decodedText)
+                        .eq('event_id', eventId);
 
                     if (regError) throw regError;
 
@@ -2487,7 +2530,7 @@
                         `;
 
                     } else {
-                        showScanError("Not Registered", decodedText);
+                        showScanError("Not Registered for this Event", decodedText);
                     }
                 } catch (err) {
                     console.error("Scanner DB Error:", err);
@@ -2524,6 +2567,18 @@
                 </div>
             `;
         }
+
+        // --- GLOBAL CLICK LISTENER FOR DRAWER AUTO-CLOSE ---
+        document.addEventListener('click', (e) => {
+            const drawer = document.getElementById('notificationDrawer');
+            const btn = document.getElementById('notificationBtn');
+            
+            if (drawer && drawer.classList.contains('active')) {
+                if (!drawer.contains(e.target) && !btn?.contains(e.target)) {
+                    drawer.classList.remove('active');
+                }
+            }
+        });
 
         // Nexus Chat lazy-init (replaces initSAChat)
         document.addEventListener('DOMContentLoaded', () => {
