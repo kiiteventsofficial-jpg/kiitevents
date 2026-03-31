@@ -540,6 +540,7 @@ window.fetchData = async function () {
         renderUsers();
         renderSocieties();
         renderStats();
+        if (typeof window.populateScannerEvents === 'function') window.populateScannerEvents();
 
         console.log("✅ fetchData: Dashboard hydrated. Counts -> Users:", users.length, "Events:", events.length, "Societies:", societies.length);
     } catch (err) {
@@ -549,6 +550,22 @@ window.fetchData = async function () {
 
 // fetchData is called inside initAdminApp
 let editingEventId = null; // Fix: Declare globally to prevent crash
+
+window.populateScannerEvents = function() {
+    const select = document.getElementById('scanner-event-select');
+    if (!select) return;
+    
+    const isSuper = currentUser && currentUser.type === 'SUPERUSER';
+    const myEvents = isSuper ? events : events.filter(e => e.created_by === currentUser.uid || e.createdBy === currentUser.uid);
+    
+    select.innerHTML = '<option value="">Select Event to Scan</option>';
+    myEvents.forEach(ev => {
+        const option = document.createElement('option');
+        option.value = ev.id;
+        option.textContent = ev.name || ev.title;
+        select.appendChild(option);
+    });
+};
 
 // 3. CORE FUNCTIONS
 
@@ -593,6 +610,10 @@ window.showSection = function (sectionId) {
         alert("Access Denied: You don't have permission to view system settings.");
         return;
     }
+
+    // Auto-close notification drawer on navigation
+    const drawer = document.getElementById('notificationDrawer');
+    if (drawer) drawer.classList.remove('active');
 
     try {
         closeAllModals(); // Close any open modal first
@@ -640,7 +661,16 @@ window.showSection = function (sectionId) {
         if (sectionId === 'events') renderEvents();
         if (sectionId === 'adminEvents') renderAdminEvents();
         if (sectionId === 'logs') fetchActivityLogs();
-        if (sectionId === 'analytics') renderAnalyticsCharts();
+        if (sectionId === 'scanner' && typeof window.populateScannerEvents === 'function') {
+            window.populateScannerEvents();
+        }
+        if (sectionId === 'analytics') {
+            if (window.location.pathname.includes('organizer')) {
+                if (typeof renderOrganizerAnalyticsCharts === 'function') renderOrganizerAnalyticsCharts();
+            } else {
+                if (typeof renderAnalyticsCharts === 'function') renderAnalyticsCharts();
+            }
+        }
         renderStats(); // Always update stats
 
         // 7. Auto-close sidebar on mobile
@@ -718,7 +748,66 @@ async function saveData() {
     localStorage.setItem('adminLogs', JSON.stringify(logs));
     localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
     renderStats();
+    
+    // Auto-update charts if on analytics tab
+    const activeSection = sessionStorage.getItem('adminLastSection');
+    if (activeSection === 'analytics') {
+        if (window.location.pathname.includes('organizer')) {
+            if (typeof renderOrganizerAnalyticsCharts === 'function') renderOrganizerAnalyticsCharts();
+        } else {
+            if (typeof renderAnalyticsCharts === 'function') renderAnalyticsCharts();
+        }
+    }
 }
+
+// --- REALTIME ANALYTICS SETUP ---
+window.setupRealtimeAnalytics = function() {
+    if (!supabase) return;
+    
+    console.log("📡 Setting up Real-time Analytics Listeners...");
+    
+    const channel = supabase.channel('admin_analytics_updates');
+    
+    const refreshCharts = () => {
+        if (sessionStorage.getItem('adminLastSection') === 'analytics') {
+            if (window.location.pathname.includes('organizer')) {
+                if (typeof renderOrganizerAnalyticsCharts === 'function') renderOrganizerAnalyticsCharts();
+            } else {
+                if (typeof renderAnalyticsCharts === 'function') renderAnalyticsCharts();
+            }
+        }
+    };
+    
+    channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'event_registrations' },
+        (payload) => {
+            console.log("Realtime: Event Registration change detected", payload);
+            if (typeof renderStats === 'function') renderStats();
+            refreshCharts();
+        }
+    ).on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        (payload) => {
+            console.log("Realtime: Event change detected", payload);
+            if (typeof renderStats === 'function') renderStats();
+            refreshCharts();
+        }
+    ).on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+             console.log("Realtime: Profile change detected", payload);
+             if (typeof renderStats === 'function') renderStats();
+             refreshCharts();
+        }
+    ).subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+            console.log("✅ Admin Analytics Real-time Active");
+        }
+    });
+};
 
 async function logAction(action, details = {}) {
     console.log("📝 Logging action:", action);
@@ -1101,8 +1190,109 @@ window.renderAnalyticsCharts = async function() {
             ['#6366f1', '#8b5cf6', '#10b981']
         );
 
+        // 6. Render Leaderboard
+        if (typeof window.renderLeaderboard === 'function') {
+            window.renderLeaderboard();
+        }
+
     } catch (err) {
         console.error("Analytics Performance Error:", err);
+    }
+};
+
+window.renderOrganizerAnalyticsCharts = async function() {
+    if (typeof Chart === 'undefined') {
+        console.warn("Chart.js not loaded");
+        return;
+    }
+
+    try {
+        const myUserId = currentUser.id || currentUser.uid;
+        
+        // Fetch My Events
+        const { data: myEvents, error: evError } = await supabase
+            .from('events')
+            .select('id, title, name')
+            .eq('created_by', myUserId);
+        
+        if (evError) throw evError;
+        
+        const myEventIds = myEvents.map(e => e.id);
+        
+        if (myEventIds.length === 0) {
+            console.log("No events to show analytics for.");
+            return;
+        }
+
+        // Fetch Registrations for my events
+        const { data: regs, error: regError } = await supabase
+            .from('event_registrations')
+            .select('attended, created_at, events(title, name)')
+            .in('event_id', myEventIds);
+            
+        if (regError) throw regError;
+
+        const regData = regs || [];
+
+        // 1. Attendance & Event Stats
+        const eventStats = {};
+        myEvents.forEach(e => {
+            const name = e.title || e.name || 'Unknown';
+            if (!eventStats[name]) eventStats[name] = { reg: 0, att: 0 };
+        });
+        
+        regData.forEach(r => {
+            const name = r.events?.title || r.events?.name || 'Unknown';
+            if (!eventStats[name]) eventStats[name] = { reg: 0, att: 0 };
+            eventStats[name].reg++;
+            if (r.attended) eventStats[name].att++;
+        });
+
+        const evLabels = Object.keys(eventStats).sort((a,b) => eventStats[b].reg - eventStats[a].reg).slice(0, 8);
+        const chartRegData = evLabels.map(l => eventStats[l].reg);
+        const chartAttData = evLabels.map(l => eventStats[l].att);
+
+        // 2. Growth Trend (Last 14 Days)
+        const days = 14;
+        const trendLabels = [];
+        const trendData = [];
+        for (let i = days - 1; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            trendLabels.push(dateStr);
+            
+            const count = regData.filter(r => {
+                const rd = new Date(r.created_at);
+                return rd.toDateString() === d.toDateString();
+            }).length;
+            trendData.push(count);
+        }
+
+        // 3. Update Summary Metrics
+        const totalReg = regData.length;
+        const totalAtt = regData.filter(r => r.attended).length;
+        const convRate = totalReg > 0 ? Math.round((totalAtt / totalReg) * 100) : 0;
+        
+        const convEl = document.getElementById('conversionRateStat');
+        if (convEl) {
+            convEl.textContent = `${convRate}%`;
+            const progress = convEl.parentElement.parentElement.querySelector('.bg-purple-500');
+            if (progress) progress.style.width = `${convRate}%`;
+        }
+        
+        const attCard = document.getElementById('totalAttendedCard');
+        if (attCard) attCard.textContent = totalAtt;
+
+        // 4. Render Charts
+        renderBarChart('attendanceChart', evLabels, [
+            { label: 'Registrations', data: chartRegData, backgroundColor: 'rgba(99, 102, 241, 0.6)', borderRadius: 6 },
+            { label: 'Attendance', data: chartAttData, backgroundColor: 'rgba(16, 185, 129, 0.6)', borderRadius: 6 }
+        ]);
+
+        renderLineChart('growthChart', trendLabels, trendData);
+
+    } catch (err) {
+        console.error("Organizer Analytics Performance Error:", err);
     }
 };
 
@@ -1208,6 +1398,76 @@ window.subscribeToAnalytics = function() {
         .subscribe();
 };
 
+// --- TOP ATTENDEES LEADERBOARD ---
+window.renderLeaderboard = async function() {
+    const tbody = document.getElementById('leaderboardBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-slate-500"><span class="material-icons-round animate-spin text-blue-500 mr-2">sync</span>Loading...</td></tr>';
+    
+    try {
+        // Get top users by XP
+        const { data: topUsers, error } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, xp, avatar_url')
+            .order('xp', { ascending: false })
+            .limit(10);
+        
+        if (error) throw error;
+        
+        if (!topUsers || topUsers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-slate-500">No users found</td></tr>';
+            return;
+        }
+        
+        // Get attendance counts for these users
+        const userIds = topUsers.map(u => u.id);
+        const { data: attendanceCounts } = await supabase
+            .from('event_registrations')
+            .select('user_id')
+            .in('user_id', userIds)
+            .eq('attended', true);
+        
+        const countMap = {};
+        (attendanceCounts || []).forEach(a => {
+            countMap[a.user_id] = (countMap[a.user_id] || 0) + 1;
+        });
+        
+        const rankBadges = ['🥇', '🥈', '🥉'];
+        
+        tbody.innerHTML = topUsers.map((user, i) => {
+            const badge = i < 3 ? rankBadges[i] : `<span class="text-slate-500 font-mono">#${i + 1}</span>`;
+            const initials = (user.full_name || 'U').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+            const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-amber-500', 'bg-pink-500'];
+            const bgColor = colors[i % colors.length];
+            const attended = countMap[user.id] || 0;
+            
+            return `<tr class="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                <td class="py-3 px-4 text-lg">${badge}</td>
+                <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full ${bgColor} flex items-center justify-center text-xs font-bold text-white">${initials}</div>
+                        <div>
+                            <p class="text-white font-bold text-sm">${user.full_name || 'Unknown'}</p>
+                            <p class="text-slate-500 text-[10px]">${user.email || ''}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="py-3 px-4">
+                    <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg text-xs font-bold">${attended} events</span>
+                </td>
+                <td class="py-3 px-4">
+                    <span class="text-amber-400 font-black text-sm">${user.xp || 0} XP</span>
+                </td>
+            </tr>`;
+        }).join('');
+        
+    } catch (err) {
+        console.error('Leaderboard error:', err);
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-400">Error loading leaderboard</td></tr>';
+    }
+};
+
 window.exportAnalyticsCSV = async function() {
     try {
         const { data: regs } = await supabase.from('event_registrations').select('user_id, attended, created_at, events(title)');
@@ -1251,59 +1511,73 @@ function renderUsers(filter = "") {
     const isSuper = currentUser.type === 'SUPERUSER';
 
     const filtered = users.filter(u => {
-        const matchesSearch = u.name.toLowerCase().includes(filter) ||
-            u.email.toLowerCase().includes(filter) ||
-            u.role.toLowerCase().includes(filter);
+        const matchesSearch = u.name.toLowerCase().includes(filter.toLowerCase()) ||
+            u.email.toLowerCase().includes(filter.toLowerCase()) ||
+            u.role.toLowerCase().includes(filter.toLowerCase());
 
-        // Regular admins only see other admins
-        if (!isSuper) {
-            return matchesSearch && u.role === 'Admin';
-        }
+        if (!isSuper) return matchesSearch && u.role === 'Admin';
         return matchesSearch;
     });
 
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-20 text-center opacity-30"><p class="text-xs font-black uppercase tracking-widest">No users found in registry</p></td></tr>`;
+        return;
+    }
+
     filtered.forEach((u, index) => {
         const isBlocked = u.status === 'Blocked';
-        let actionsHtml = '<div style="display: flex; gap: 6px;">';
-
-        // User Management Actions strictly for SUPERUSER
-        if (currentUser.type === 'SUPERUSER') {
-            actionsHtml += `
-                <button class="action-btn-sm ${isBlocked ? 'approve' : 'block'}" 
-                        onclick="toggleUserBlock('${u.email}')" 
-                        title="${isBlocked ? 'Unblock' : 'Block'}">
-                    <span class="material-icons-round">${isBlocked ? 'check_circle' : 'block'}</span>
-                </button>
-                <button class="action-btn-sm delete" onclick="deleteUser('${u.email}')" title="Delete Permanent">
-                    <span class="material-icons-round">delete</span>
-                </button>
-            `;
-        }
-
-        actionsHtml += '</div>';
-
-        // MASK EMAIL FOR NORMAL ADMINS
-        const displayEmail = (currentUser.type === 'SUPERUSER' || u.email === currentUser.email)
+        const displayEmail = (isSuper || u.email === currentUser.email)
             ? u.email
             : u.email.replace(/(.{2})(.*)(@.*)/, '$1***$3');
 
+        const roleColor = u.role === 'SUPERUSER' ? 'text-amber-400 border-amber-400/20 bg-amber-400/10' : (u.role === 'Admin' ? 'text-blue-400 border-blue-400/20 bg-blue-400/10' : 'text-slate-400 border-white/5 bg-white/5');
+
         tbody.innerHTML += `
-            <tr style="${isBlocked ? 'opacity: 0.6; background: rgba(239,68,68,0.05);' : ''}">
-                <td>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.8rem;">${u.name.charAt(0)}</div>
-                        ${u.name}
+            <tr class="group hover:bg-white/[0.02] transition-all duration-300 ${isBlocked ? 'opacity-40 grayscale-[0.5]' : ''}">
+                <td class="px-8 py-6">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600/20 to-teal-600/20 border border-white/5 flex items-center justify-center text-emerald-400 font-black text-lg shrink-0 shadow-lg">
+                            ${u.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-sm font-black text-white truncate uppercase tracking-wider">${u.name}</h4>
+                            <p class="text-[10px] text-emerald-500/60 font-black uppercase tracking-widest">Identity Verified</p>
+                        </div>
                     </div>
                 </td>
-                <td title="${currentUser.type === 'SUPERUSER' ? '' : 'Hidden for privacy'}">${displayEmail}</td>
-                <td><span class="badge ${u.role === 'Admin' ? 'admin-badge' : 'free'}">${u.role}</span></td>
-                <td>
-                    <span class="badge ${isBlocked ? 'paid' : 'free'}" style="${isBlocked ? 'color: #f87171; border-color: #f87171;' : ''}">
-                        ${u.status || 'Active'}
+                <td class="px-8 py-6">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-300 tracking-wide">${displayEmail}</span>
+                        <span class="text-[9px] text-gray-500 font-black uppercase tracking-widest mt-0.5">Primary Auth Column</span>
+                    </div>
+                </td>
+                <td class="px-8 py-6">
+                    <span class="px-3 py-1.5 rounded-xl border ${roleColor} text-[9px] font-black uppercase tracking-[0.15em] inline-block">
+                        ${u.role}
                     </span>
                 </td>
-                <td>${u.joined ? new Date(u.joined).toLocaleDateString() : 'N/A'}</td>
-                <td>${actionsHtml}</td>
+                <td class="px-8 py-6">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full ${isBlocked ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse'}"></span>
+                        <span class="text-[10px] font-black uppercase tracking-widest ${isBlocked ? 'text-rose-400' : 'text-emerald-400'}">
+                            ${u.status || 'Verified'}
+                        </span>
+                    </div>
+                </td>
+                <td class="px-8 py-6 text-xs font-bold text-slate-500 tabular-nums">
+                    ${u.joined ? new Date(u.joined).toLocaleDateString() : 'INITIAL'}
+                </td>
+                <td class="px-8 py-6 text-right">
+                    <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        ${isSuper ? `
+                        <button onclick="toggleUserBlock('${u.email}')" class="w-9 h-9 rounded-xl ${isBlocked ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'} hover:scale-110 active:scale-95 transition-all flex items-center justify-center shadow-lg border border-white/5">
+                            <span class="material-icons-round text-sm">${isBlocked ? 'verified_user' : 'block'}</span>
+                        </button>
+                        <button onclick="deleteUser('${u.email}')" class="w-9 h-9 rounded-xl bg-gray-500/10 text-gray-400 hover:bg-rose-600 hover:text-white hover:scale-110 active:scale-95 transition-all flex items-center justify-center shadow-lg border border-white/5">
+                            <span class="material-icons-round text-sm">delete_forever</span>
+                        </button>` : `<span class="text-[10px] text-gray-600 font-black uppercase tracking-widest italic py-2 px-3 bg-white/5 rounded-lg border border-white/5">Protected</span>`}
+                    </div>
+                </td>
             </tr>
         `;
     });
@@ -1322,65 +1596,58 @@ function renderSocieties() {
         );
     }
 
+    if (filteredSocieties.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-20 text-center opacity-30 bg-white/[0.02] rounded-[2rem] border border-dashed border-white/10"><span class="material-icons-round text-5xl mb-4">account_balance</span><p class="text-sm font-black uppercase tracking-widest">No organizations provisioned</p></div>`;
+        return;
+    }
+
     filteredSocieties.forEach(soc => {
-        // --- PERMISSION CHECKS ---
-        const canEdit = hasPermission(PERMISSIONS.EDIT_SOCIETIES);
-        const isOwner = (soc.created_by_admin_id === currentUser.uid) || (soc.createdByAdminId === currentUser.uid);
         const isSuper = currentUser.type === 'SUPERUSER';
+        const isOwner = (soc.created_by_admin_id === currentUser.uid) || (soc.createdByAdminId === currentUser.uid);
+        const canEdit = hasPermission(PERMISSIONS.EDIT_SOCIETIES);
         const canDelete = isSuper || (canEdit && isOwner);
 
-        // --- BUTTONS HTML ---
-        let actionsHtml = `
-            <div class="flex items-center gap-3 mt-4 pt-4 border-t border-white/5">
-                ${canEdit ? `
-                    <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600/10 border border-blue-500/30 text-blue-400 hover:bg-blue-600 hover:text-white transition-all text-sm font-bold" onclick="editSociety('${soc.id}')">
-                         <span class="material-icons-round text-sm">edit</span> Edit
-                    </button>` : ''}
-                ${canDelete ? `
-                    <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-red-600/10 border border-red-500/30 text-red-400 hover:bg-red-600 hover:text-white transition-all text-sm font-bold" onclick="deleteSociety('${soc.id}')">
-                         <span class="material-icons-round text-sm">delete</span> Delete
-                    </button>` : ''}
-            </div>
-        `;
+        const bannerUrl = soc.banner_url || soc.bannerUrl || soc.image || 'https://images.unsplash.com/photo-1540317580384-e5d43616b9aa?auto=format&fit=crop&q=80&w=800';
+        const logoUrl = soc.logo_url || soc.logoUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(soc.name) + '&background=6366f1&color=fff';
 
-        // --- PREMIUM CARD LAYOUT (MATCHES SCRIPT.JS) ---
         grid.innerHTML += `
-            <div class="group relative overflow-hidden rounded-2xl bg-[#1e293b] border border-white/5 hover:border-blue-500/30 transition-all duration-300 shadow-xl flex flex-col h-full transform hover:-translate-y-1">
-                <!-- Banner Section -->
-                <div class="relative h-40 w-full overflow-hidden shrink-0">
-                    <img src="${soc.image || '../assets/default_society.png'}" alt="${soc.name}" class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500">
-                    <div class="absolute inset-0 bg-gradient-to-t from-[#1e293b] to-transparent opacity-60"></div>
-                    
-                    <!-- Category badge (Top Right) -->
+            <div class="group relative bg-[#0f172a] rounded-[2rem] border border-white/5 hover:border-amber-500/30 transition-all duration-500 shadow-2xl flex flex-col h-full overflow-hidden hover:-translate-y-2">
+                <div class="h-32 w-full relative overflow-hidden">
+                    <img src="${bannerUrl}" class="w-full h-full object-cover opacity-40 group-hover:scale-110 group-hover:opacity-60 transition-all duration-700" alt="Banner">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] to-transparent"></div>
                     <div class="absolute top-4 right-4">
-                        <span class="inline-block px-3 py-1 bg-black/60 rounded-full border border-white/10 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm">
-                            ${soc.category}
-                        </span>
+                        <span class="px-2 py-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-[8px] font-black text-white uppercase tracking-widest">${soc.category || 'Tech'}</span>
+                    </div>
+                </div>
+
+                <div class="px-6 pb-6 relative flex flex-col flex-1">
+                    <div class="relative -mt-10 mb-4 flex justify-between items-end">
+                        <div class="w-16 h-16 rounded-[1.25rem] bg-[#0f172a] border-4 border-[#0f172a] shadow-2xl overflow-hidden">
+                            <img src="${logoUrl}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
+                            <span class="material-icons-round text-amber-500 text-[10px]">shield</span>
+                            <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest">Verified</span>
+                        </div>
+                    </div>
+
+                    <div class="flex-1">
+                        <h4 class="text-lg font-black text-white tracking-tight uppercase group-hover:text-amber-400 transition-colors">${soc.name}</h4>
+                        <p class="text-xs text-slate-500 font-bold mt-1 line-clamp-2 leading-relaxed">${soc.description || 'Access authorized strategic mission command for this enterprise organization.'}</p>
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-white/5 flex gap-3">
+                        <button onclick="editSociety('${soc.id}')" class="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-black text-slate-300 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2">
+                            <span class="material-icons-round text-sm">settings</span> CONFIGURE
+                        </button>
+                        ${canDelete ? `
+                        <button onclick="deleteSociety('${soc.id}')" class="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-lg">
+                            <span class="material-icons-round text-sm">delete_outline</span>
+                        </button>` : ''}
                     </div>
                 </div>
                 
-                <!-- Content Section -->
-                <div class="p-5 flex flex-col grow relative">
-                    <h3 class="text-lg font-bold text-white mb-1 leading-tight group-hover:text-blue-400 transition-colors">${soc.name}</h3>
-                    <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">
-                         <span class="material-icons-round text-[12px]">groups</span>
-                         ${soc.members || '0'} Members
-                    </div>
-                    
-                    <p class="text-slate-400 text-xs leading-relaxed line-clamp-2 mb-4">
-                        ${soc.description || 'No description provided.'}
-                    </p>
-                    
-                    <div class="mt-auto">
-                        <div class="flex items-center justify-between text-[11px] text-slate-500">
-                            <span class="flex items-center gap-1">
-                                <span class="material-icons-round text-[14px]">link</span>
-                                ${soc.website ? 'Website Linked' : 'No Website'}
-                            </span>
-                        </div>
-                        ${actionsHtml}
-                    </div>
-                </div>
+                <div class="absolute inset-0 border-2 border-amber-500/0 group-hover:border-amber-500/10 rounded-[2rem] pointer-events-none transition-all duration-500"></div>
             </div>
         `;
     });
@@ -1392,72 +1659,77 @@ function renderEvents(tab = 'all') {
     tbody.innerHTML = "";
 
     const isSuper = currentUser.type === 'SUPERUSER';
-
-    // --- OWNERSHIP FILTER: Regular admins only see their own events ---
     let baseEvents = isSuper ? events : events.filter(ev => ev.created_by === currentUser.uid || ev.createdBy === currentUser.uid);
 
     let filtered = baseEvents;
     if (tab === 'pending') filtered = baseEvents.filter(e => e.status === 'Pending');
-    if (tab === 'upcoming') filtered = baseEvents.filter(e => new Date(e.fullDate) >= new Date());
-    if (tab === 'past') filtered = baseEvents.filter(e => new Date(e.fullDate) < new Date());
+    else if (tab === 'upcoming') filtered = baseEvents.filter(e => new Date(e.fullDate) >= new Date());
+    else if (tab === 'past') filtered = baseEvents.filter(e => new Date(e.fullDate) < new Date());
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8; opacity:0.7;">No events found. ${!isSuper ? 'Events you create will appear here.' : ''}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="py-20 text-center"><div class="flex flex-col items-center justify-center opacity-30"><span class="material-icons-round text-5xl mb-4">event_busy</span><p class="text-sm font-black uppercase tracking-widest">No matching deployments found</p></div></td></tr>`;
         return;
     }
 
     filtered.forEach(ev => {
         const isOwner = ev.created_by === currentUser.uid || ev.createdBy === currentUser.uid;
         const canEdit = isSuper || (hasPermission(PERMISSIONS.EDIT_EVENTS) && isOwner);
-        const canDelete = isSuper || (hasPermission(PERMISSIONS.DELETE_EVENTS || PERMISSIONS.EDIT_EVENTS) && isOwner);
+        const canDelete = isSuper || (hasPermission(PERMISSIONS.DELETE_EVENTS) && isOwner);
         const canApprove = isSuper || (hasPermission(PERMISSIONS.EDIT_EVENTS) && isOwner);
 
-        let actionsHtml = '<div style="display: flex; gap: 6px;">';
-
-        // Approve button
-        if (ev.status === 'Pending' && canApprove) {
-            actionsHtml += `
-                <button class="action-btn-sm approve" onclick="approveEvent('${ev.id}')" title="Approve">
-                    <span class="material-icons-round">check</span>
-                </button>
-            `;
-        }
-
-        // Edit button
-        if (canEdit) {
-            actionsHtml += `
-                <button class="action-btn-sm" onclick="editEvent('${ev.id}')" title="Edit">
-                    <span class="material-icons-round">edit</span>
-                </button>
-            `;
-        }
-
-        // Delete button
-        if (canDelete) {
-            actionsHtml += `
-                <button class="action-btn-sm delete" onclick="deleteEvent('${ev.id}')" title="Delete">
-                    <span class="material-icons-round">delete</span>
-                </button>
-            `;
-        }
-
-        actionsHtml += '</div>';
+        const statusColor = ev.status === 'Pending' ? 'text-amber-400 bg-amber-400/10 border-amber-400/20' : 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
 
         tbody.innerHTML += `
-            <tr>
-                <td>
-                    <strong>${ev.name}</strong><br>
-                    <span style="font-size: 0.8rem; color: #94a3b8;">${ev.venue}</span>
+            <tr class="group hover:bg-white/[0.02] transition-all duration-300">
+                <td class="px-8 py-5">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-white/5 flex items-center justify-center text-blue-400 shrink-0">
+                            <span class="material-icons-round">rocket_launch</span>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-sm font-black text-white truncate uppercase tracking-wider">${ev.name}</h4>
+                            <p class="text-[10px] text-gray-500 font-bold truncate flex items-center gap-1">
+                                <span class="material-icons-round text-[12px]">place</span>
+                                ${ev.venue}
+                            </p>
+                        </div>
+                    </div>
                 </td>
-                <td>${ev.society || ev.organizer || 'Unknown'}</td>
-                <td>${ev.date}<br><span style="font-size: 0.8rem;">${ev.time}</span></td>
-                <td>
-                    <span class="badge ${ev.status === 'Pending' ? 'paid' : 'free'}">
-                        ${ev.status || 'Active'}
-                    </span>
-                    ${ev.is_sponsored ? '<span class="badge" style="background: linear-gradient(135deg, #f59e0b, #ea580c); color: white; margin-left: 4px;">⭐ TOP</span>' : ''}
+                <td class="px-8 py-5">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-black text-white tracking-wide uppercase">${ev.society || ev.organizer || 'Unknown'}</span>
+                    </div>
                 </td>
-                <td>${actionsHtml}</td>
+                <td class="px-8 py-5">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-black text-blue-400 tracking-wide">${ev.date}</span>
+                        <span class="text-[10px] text-gray-500 font-bold uppercase">${ev.time}</span>
+                    </div>
+                </td>
+                <td class="px-8 py-5">
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 rounded-full border ${statusColor} text-[9px] font-black uppercase tracking-widest whitespace-nowrap">
+                            ${ev.status || 'Active'}
+                        </span>
+                        ${ev.is_sponsored ? '<span class="px-2 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-black uppercase">Elite</span>' : ''}
+                    </div>
+                </td>
+                <td class="px-8 py-5 text-right">
+                    <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        ${ev.status === 'Pending' && canApprove ? `
+                        <button onclick="approveEvent('${ev.id}')" class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center shadow-lg">
+                            <span class="material-icons-round text-sm">check</span>
+                        </button>` : ''}
+                        ${canEdit ? `
+                        <button onclick="editEvent('${ev.id}')" class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center shadow-lg">
+                            <span class="material-icons-round text-sm">edit</span>
+                        </button>` : ''}
+                        ${canDelete ? `
+                        <button onclick="deleteEvent('${ev.id}')" class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-lg">
+                            <span class="material-icons-round text-sm">delete</span>
+                        </button>` : ''}
+                    </div>
+                </td>
             </tr>
         `;
     });
@@ -1469,50 +1741,105 @@ function renderAdminEvents(tab = 'all') {
     if (!tbody) return;
     tbody.innerHTML = "";
 
-    // Always show only the logged-in admin's own events
     let myEvents = events.filter(ev => ev.created_by === currentUser.uid || ev.createdBy === currentUser.uid);
 
     let filtered = myEvents;
     if (tab === 'pending') filtered = myEvents.filter(e => e.status === 'Pending');
-    if (tab === 'upcoming') filtered = myEvents.filter(e => new Date(e.fullDate) >= new Date());
-    if (tab === 'past') filtered = myEvents.filter(e => new Date(e.fullDate) < new Date());
+    else if (tab === 'upcoming') filtered = myEvents.filter(e => new Date(e.fullDate) >= new Date());
+    else if (tab === 'past') filtered = myEvents.filter(e => new Date(e.fullDate) < new Date());
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8; opacity:0.7;">No events yet. Click "+ Create New Event" to get started.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="py-20 text-center"><div class="flex flex-col items-center justify-center opacity-30"><span class="material-icons-round text-5xl mb-4">analytics</span><p class="text-sm font-black uppercase tracking-widest">No personal deployments found</p></div></td></tr>`;
         return;
     }
 
     filtered.forEach(ev => {
-        const actionsHtml = `
-            <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                <button class="action-btn-sm" onclick="editEvent('${ev.id}')" title="Edit">
-                    <span class="material-icons-round">edit</span>
-                </button>
-                <button class="action-btn-sm delete" onclick="deleteEvent('${ev.id}')" title="Delete">
-                    <span class="material-icons-round">delete</span>
-                </button>
-            </div>
-        `;
+        const isDraft = ev.status === 'Draft';
+        const statusColor = isDraft ? 'text-gray-400 bg-gray-400/10 border-gray-400/20' : (ev.status === 'Pending' ? 'text-amber-400 bg-amber-400/10 border-amber-400/20' : 'text-indigo-400 bg-indigo-400/10 border-indigo-400/20');
 
         tbody.innerHTML += `
-            <tr>
-                <td>
-                    <strong>${ev.name}</strong><br>
-                    <span style="font-size: 0.8rem; color: #94a3b8;">${ev.venue || 'No venue'}</span>
+            <tr class="group hover:bg-white/[0.02] transition-all duration-300">
+                <td class="px-8 py-5">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-white/5 flex items-center justify-center text-indigo-400 shrink-0 shadow-lg">
+                            <span class="material-icons-round">folder_special</span>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-sm font-black text-white truncate uppercase tracking-wider">${ev.name}</h4>
+                            <p class="text-[10px] text-gray-500 font-bold truncate flex items-center gap-1">
+                                <span class="material-icons-round text-[12px]">layers</span>
+                                ${ev.venue || 'TBD'}
+                            </p>
+                        </div>
+                    </div>
                 </td>
-                <td>${ev.date}<br><span style="font-size: 0.8rem;">${ev.time}</span></td>
-                <td><span style="font-size: 0.8rem; color: #94a3b8;">${ev.category || 'General'}</span></td>
-                <td>
-                    <span class="badge ${ev.status === 'Pending' ? 'paid' : 'free'}">
-                        ${ev.status || 'Active'}
+                <td class="px-8 py-5">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-black text-indigo-400 tracking-wide">${ev.date}</span>
+                        <span class="text-[10px] text-gray-500 font-bold uppercase">${ev.time}</span>
+                    </div>
+                </td>
+                <td class="px-8 py-5">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                        ${ev.category || 'Standard'}
                     </span>
-                    ${ev.is_sponsored ? '<span class="badge" style="background: linear-gradient(135deg, #f59e0b, #ea580c); color: white; margin-left: 4px;">⭐ TOP</span>' : ''}
                 </td>
-                <td>${actionsHtml}</td>
+                <td class="px-8 py-5">
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 rounded-full border ${statusColor} text-[9px] font-black uppercase tracking-widest">
+                            ${ev.status || 'Active'}
+                        </span>
+                        ${ev.is_sponsored ? '<span class="material-icons-round text-amber-500 text-sm">verified</span>' : ''}
+                    </div>
+                </td>
+                <td class="px-8 py-5 text-right">
+                    <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="editEvent('${ev.id}')" class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center shadow-lg">
+                            <span class="material-icons-round text-sm">edit_note</span>
+                        </button>
+                        <button onclick="deleteEvent('${ev.id}')" class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-lg">
+                            <span class="material-icons-round text-sm">delete_outline</span>
+                        </button>
+                    </div>
+                </td>
             </tr>
         `;
     });
 }
+
+// TAB FILTERING LOGIC
+window.filterEventTab = function(tab) {
+    const section = document.getElementById('eventsSection');
+    if (!section) return;
+    
+    // Update active state of buttons
+    section.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-white/10', 'text-white');
+        btn.classList.add('text-gray-500');
+        if (btn.getAttribute('onclick').includes(`'${tab}'`)) {
+            btn.classList.add('active', 'bg-white/10', 'text-white');
+            btn.classList.remove('text-gray-500');
+        }
+    });
+    
+    renderEvents(tab);
+};
+
+window.filterAdminEventTab = function(tab) {
+    const section = document.getElementById('adminEventsSection');
+    if (!section) return;
+    
+    section.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-white/10', 'text-white');
+        btn.classList.add('text-gray-500');
+        if (btn.getAttribute('onclick').includes(`'${tab}'`)) {
+            btn.classList.add('active', 'bg-white/10', 'text-white');
+            btn.classList.remove('text-gray-500');
+        }
+    });
+    
+    renderAdminEvents(tab);
+};
 
 // 5. ACTIONS
 
@@ -1714,7 +2041,7 @@ window.deleteEvent = async function (id) {
 // 6. MODALS
 
 // EDIT EVENT
-window.editEvent = function (id) {
+window.editEvent = async function (id) {
     const evToEdit = events.find(e => e.id === id);
     if (!evToEdit) return;
 
@@ -1786,6 +2113,24 @@ window.editEvent = function (id) {
 
     setVal('eventRegLink', ev.link);
     setVal('eventRegDeadline', ev.reg_deadline || ev.regDeadline);
+
+    setVal('eventRegType', ev.registration_type || 'link');
+    if (typeof window.toggleRegTypeFields === 'function') window.toggleRegTypeFields();
+
+    const formFieldsContainer = document.getElementById('formFieldsContainer');
+    if (formFieldsContainer) {
+        formFieldsContainer.innerHTML = '';
+        if (ev.registration_type === 'form') {
+            try {
+                const { data: formRow } = await supabase.from('event_forms').select('form_schema').eq('event_id', ev.id).maybeSingle();
+                if (formRow && formRow.form_schema && formRow.form_schema.fields) {
+                    formRow.form_schema.fields.forEach(f => window.addFormField(f));
+                }
+            } catch (err) {
+                console.error("Failed to fetch form schema:", err);
+            }
+        }
+    }
 
     const toggleFeatured = document.getElementById('toggleFeatured');
     const toggleShare = document.getElementById('toggleShare');
@@ -1881,6 +2226,109 @@ window.editEvent = function (id) {
     renderImagePreviews();
 };
 
+// --- ADMIN MANUAL REGISTRATION PROTOCOL ---
+
+window.showAdminRegistrationModal = async function() {
+    const modal = document.getElementById('adminRegistrationModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.querySelector('div.transform').classList.remove('scale-95', 'opacity-0');
+            modal.querySelector('div.transform').classList.add('scale-100', 'opacity-100');
+        }, 10);
+        
+        const select = document.getElementById('regEventSelect');
+        if (select) {
+            select.innerHTML = '<option value="">Awaiting Selection...</option>';
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('events')
+                    .select('id, name')
+                    .order('created_at', { ascending: false });
+                if (!error && data) {
+                    data.forEach(ev => {
+                        const opt = document.createElement('option');
+                        opt.value = ev.id;
+                        opt.textContent = ev.name;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to load events for registration", err);
+            }
+        }
+    }
+};
+
+window.closeAdminRegistrationModal = function() {
+    const modal = document.getElementById('adminRegistrationModal');
+    if (modal) {
+        modal.querySelector('div.transform').classList.remove('scale-100', 'opacity-100');
+        modal.querySelector('div.transform').classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+            document.getElementById('adminRegistrationForm')?.reset();
+        }, 300);
+    }
+};
+
+window.submitAdminRegistration = async function(event) {
+    event.preventDefault();
+    const eventId = document.getElementById('regEventSelect').value;
+    const name = document.getElementById('regStudentName').value;
+    const rollNo = document.getElementById('regStudentRoll').value;
+    const college = document.getElementById('regStudentCollege').value;
+    const email = document.getElementById('regStudentEmail').value;
+
+    if (!eventId || !name || !rollNo || !college || !email) {
+        alert("Please fill all required mission parameters.");
+        return;
+    }
+
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="material-icons-round animate-spin">sync</span> PROCESSING';
+    submitBtn.disabled = true;
+
+    try {
+        const { data: profile } = await window.supabaseClient
+            .from('profiles')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
+
+        const userId = profile ? profile.id : crypto.randomUUID(); 
+        const ticketId = 'MANUAL-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2,6).toUpperCase();
+
+        const { error: insertErr } = await window.supabaseClient
+            .from('event_registrations')
+            .insert([{
+                event_id: eventId,
+                user_id: userId,
+                user_name: name,
+                user_email: email,
+                user_roll: rollNo,
+                user_college: college,
+                ticket_id: ticketId,
+                status: 'registered',
+                attended: false
+            }]);
+
+        if (insertErr) throw insertErr;
+
+        alert(`Student ${name} successfully registered.\nTicket ID: ${ticketId}`);
+        window.closeAdminRegistrationModal();
+    } catch (err) {
+        console.error("Manual Registration Failed", err);
+        alert("Registration failed: " + (err.message || "Unknown error"));
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+};
+
 window.showAddEventModal = function () {
     const modal = document.getElementById('addEventModal');
     if (modal) {
@@ -1925,6 +2373,12 @@ window.showAddEventModal = function () {
             // Update visibilities
             toggleModeFields();
             togglePriceField();
+            
+            // Reset Form Builder
+            setVal('eventRegType', 'link');
+            if (typeof window.toggleRegTypeFields === 'function') window.toggleRegTypeFields();
+            const formFieldsContainer = document.getElementById('formFieldsContainer');
+            if (formFieldsContainer) formFieldsContainer.innerHTML = '';
         }
     }
 };
@@ -2191,6 +2645,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Add the Registration Toggle helper
+window.toggleRegFields = function() {
+    const regType = document.getElementById('regType').value;
+    const group = document.getElementById('externalRegGroup');
+    if (group) {
+        group.style.display = regType === 'external' ? 'block' : 'none';
+    }
+};
+
+window.submitEventForm = function(status) {
+    const form = document.getElementById('adminEventForm') || document.getElementById('superAdminEventForm');
+    if (!form) return;
+    
+    // Store requested status on the form temporarily
+    form.dataset.requestedStatus = status;
+    
+    // Trigger standard validation and submit event
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+};
+
 function renderImagePreviews() {
     const container = document.getElementById('imagePreviewContainer');
     container.innerHTML = '';
@@ -2392,6 +2866,8 @@ const attachEventFormListener = () => {
 
                 const targetGroup = getVal('eventTargetGroup');
                 const ecosystemTier = getVal('eventEcosystemTier');
+                const regType = getVal('regType') || 'internal';
+                const status = e.target.dataset.requestedStatus || 'published';
 
                 // 9. Additional Settings
                 const moreOptions = {
@@ -2470,10 +2946,12 @@ const attachEventFormListener = () => {
                     is_sponsored: isTopEvent,
                     priority: eventPriority,
                     allow_sharing: allowShare,
-                    link: regLink || null,
+                    link: (document.getElementById('eventRegType')?.value === 'link') ? (regLink || null) : null,
                     meeting_link: meetingLink || null,
                     reg_deadline: regDeadline || null,
-                    status: 'Approved',
+                    status: status,
+                    registration_type: document.getElementById('eventRegType')?.value || 'link',
+                    reg_type: regType,
                     created_by: user.id,
                     agenda: agenda,
                     sponsors: sponsors,
@@ -2485,6 +2963,8 @@ const attachEventFormListener = () => {
                 const submissionId = document.getElementById('editEventId')?.value || editingEventId;
 
                 console.log("Saving Event Data:", eventData);
+                
+                let savedEventId = submissionId;
 
                 if (submissionId) {
                     const { error } = await supabase
@@ -2496,13 +2976,35 @@ const attachEventFormListener = () => {
                     alert('Event Updated Successfully!');
                     logAction(`Updated event: ${name}`, { event_id: submissionId });
                 } else {
-                    const { error } = await supabase
+                    const { data: newEvData, error } = await supabase
                         .from('events')
-                        .insert([eventData]);
+                        .insert([eventData])
+                        .select('id')
+                        .single();
 
                     if (error) throw error;
+                    savedEventId = newEvData.id;
                     alert('Event Published Successfully!');
-                    logAction(`Created event: ${name}`, { event_id: submissionId || 'new' });
+                    logAction(`Created event: ${name}`, { event_id: savedEventId });
+                }
+
+                // Upsert Dynamic Form Schema if registration type is form
+                if (eventData.registration_type === 'form') {
+                    const fields = [...document.querySelectorAll('.form-field-row')].map(row => ({
+                        id: row.dataset.fieldId,
+                        label: row.querySelector('.field-label-input')?.value || 'Field',
+                        type: row.querySelector('.field-type-select')?.value || 'text',
+                        required: row.querySelector('.field-required-checkbox')?.checked || false
+                    }));
+                    
+                    const formSchema = { fields };
+                    
+                    const { data: existingForm } = await supabase.from('event_forms').select('id').eq('event_id', savedEventId).maybeSingle();
+                    if (existingForm) {
+                        await supabase.from('event_forms').update({ form_schema: formSchema, is_active: true }).eq('id', existingForm.id);
+                    } else {
+                        await supabase.from('event_forms').insert([{ event_id: savedEventId, created_by: user.id, form_schema: formSchema, is_active: true }]);
+                    }
                 }
 
                 closeAddEventModal();
@@ -2775,6 +3277,7 @@ function initAdminApp() {
 
     // Load Initial Data
     window.fetchData();
+    window.setupRealtimeAnalytics();
 
     // Initialize Settings Toggles
     const toggleReg = document.getElementById('toggleRegistrations');
@@ -3257,6 +3760,19 @@ window.markAllRead = function () {
     items.forEach(i => i.classList.remove('unread'));
 };
 
+// --- GLOBAL CLICK LISTENER FOR DRAWER AUTO-CLOSE ---
+document.addEventListener('click', (e) => {
+    const drawer = document.getElementById('notificationDrawer');
+    const btn = document.getElementById('notificationBtn'); // Ensure ID matches your bell button
+    
+    // If drawer is open and click was outside both drawer and button
+    if (drawer && drawer.classList.contains('active')) {
+        if (!drawer.contains(e.target) && !btn?.contains(e.target)) {
+            drawer.classList.remove('active');
+        }
+    }
+});
+
 // --- RUN DASHBOARD ---
 // We run this at the very end to ensure all functions (initAdminApp, fetchData) 
 // are defined and attached to window before auth returns.
@@ -3309,7 +3825,39 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- QR SCANNER LOGIC ---
 let html5QrCode = null;
 
+// Populate event dropdown for scanner
+window.populateScannerEvents = async function() {
+    const sel = document.getElementById('scanner-event-select');
+    if (!sel) return;
+    
+    try {
+        const myUserId = currentUser?.id || currentUser?.uid;
+        let query = supabase.from('events').select('id, title, name').order('date', { ascending: false });
+        
+        // If organizer, only show their events
+        if (window.location.pathname.includes('organizer') && myUserId) {
+            query = query.eq('created_by', myUserId);
+        }
+        
+        const { data: events, error } = await query;
+        if (error) throw error;
+        
+        sel.innerHTML = '<option value="">All Events</option>';
+        (events || []).forEach(ev => {
+            const opt = document.createElement('option');
+            opt.value = ev.id;
+            opt.textContent = ev.title || ev.name || 'Untitled Event';
+            sel.appendChild(opt);
+        });
+    } catch (err) {
+        console.error('Error loading scanner events:', err);
+    }
+};
+
 window.startScanner = function() {
+    // Populate events dropdown when scanner starts
+    window.populateScannerEvents();
+    
     const resultsContainer = document.getElementById('qr-reader-results');
     resultsContainer.className = "mt-6 w-full max-w-lg text-center p-4 rounded-xl hidden border";
     resultsContainer.innerHTML = "";
@@ -3322,57 +3870,127 @@ window.startScanner = function() {
         // Stop scanning after a successful scan to prevent multiple hits
         window.stopScanner();
         
-        resultsContainer.className = "mt-6 w-full max-w-lg text-center p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 block";
-        resultsContainer.innerHTML = `<span class="material-icons-round animate-spin text-blue-500 text-3xl">refresh</span><p class="text-blue-400 mt-2 font-bold">Verifying Ticket...</p><p class="text-xs text-slate-500">${decodedText}</p>`;
+        resultsContainer.className = "mt-6 w-full max-w-lg text-center p-8 rounded-[2rem] border-2 border-indigo-500/30 bg-indigo-500/10 block backdrop-blur-xl shadow-2xl overflow-hidden relative";
+        resultsContainer.innerHTML = `
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50"></div>
+            <div class="flex flex-col items-center gap-4">
+                <span class="material-icons-round animate-spin text-indigo-500 text-5xl">sync</span>
+                <div>
+                    <h4 class="text-xl font-black text-white uppercase tracking-tighter">Initiating Validation</h4>
+                    <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-[0.2em] mt-1">Cross-Check with Central Registry...</p>
+                </div>
+                <div class="px-3 py-1 bg-white/5 rounded-lg border border-white/10">
+                    <p class="text-[9px] text-slate-500 font-mono">${decodedText}</p>
+                </div>
+            </div>`;
         
-        // Verify via Supabase
         try {
-            // Check if user is registered for any event today or generally check the registration table
-            const { data, error } = await window.supabase
+            // 1. Fetch the registration and profile details
+            const selectedEventId = document.getElementById('scanner-event-select')?.value;
+            
+            let regQuery = window.supabase
                 .from('event_registrations')
                 .select(`
                     id,
-                    created_at,
-                    events (
-                        id,
-                        title,
-                        name,
-                        start_date
-                    ),
-                    profiles (
-                        full_name,
-                        email
-                    )
+                    event_id,
+                    attended,
+                    events (id, title, name, ecosystem_tier),
+                    profiles (id, full_name, email, xp)
                 `)
-                .eq('user_id', decodedText);
+                .eq('user_id', decodedText)
+                .order('created_at', { ascending: false });
+            
+            // Filter by selected event if one is chosen
+            if (selectedEventId) {
+                regQuery = regQuery.eq('event_id', selectedEventId);
+            }
+            
+            const { data: regs, error: fetchErr } = await regQuery;
 
-            if (error) throw error;
+            if (fetchErr) throw fetchErr;
 
-            if (data && data.length > 0) {
-                // Return any valid registration for simplicity right now
-                const validRegs = data; 
-                if (validRegs.length > 0) {
-                    const reg = validRegs[0];
-                    const eventName = reg.events?.title || reg.events?.name || 'Unknown Event';
-                    const userName = reg.profiles?.full_name || reg.profiles?.email || 'Unknown User';
-                    
-                    resultsContainer.className = "mt-6 w-full max-w-lg text-center p-6 rounded-xl border border-emerald-500/50 bg-emerald-500/10 block";
-                    resultsContainer.innerHTML = `
-                        <span class="material-icons-round text-emerald-500 text-6xl shadow-[0_0_30px_rgba(16,185,129,0.5)] rounded-full mb-2">check_circle</span>
-                        <h4 class="text-2xl font-bold text-emerald-400">ACCESS GRANTED</h4>
-                        <p class="text-white font-medium mt-2 text-lg">${userName}</p>
-                        <p class="text-slate-400 text-sm mt-1">Verified for: <strong>${eventName}</strong></p>
-                        <button onclick="window.startScanner()" class="mt-4 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg">Scan Next Ticket</button>
-                    `;
-                } else {
-                    showScanError("No valid events found for this user today.", decodedText);
-                }
+            if (regs && regs.length > 0) {
+                const reg = regs[0];
+                const eventName = reg.events?.title || reg.events?.name || 'Tactical Mission';
+                const userName = reg.profiles?.full_name || reg.profiles?.email || 'Unauthorized Operator';
+                const currentXP = reg.profiles?.xp || 0;
+                const newXP = currentXP + 100;
+
+                // 2. Mark Attendance and Grant XP
+                const { error: updateErr } = await window.supabase
+                    .from('event_registrations')
+                    .update({ attended: true, status: 'attended' })
+                    .eq('id', reg.id);
+
+                if (updateErr) throw updateErr;
+
+                // Update Profile XP
+                const { error: xpErr } = await window.supabase
+                    .from('profiles')
+                    .update({ xp: newXP })
+                    .eq('id', reg.profiles.id);
+
+                if (xpErr) throw xpErr;
+
+                // 3. Log Activity
+                await logAction(`Verified attendance: ${userName} for ${eventName}`, { 
+                    user_id: reg.profiles.id, 
+                    event_id: reg.events.id,
+                    xp_granted: 100 
+                });
+
+                // 4. Success UI
+                resultsContainer.className = "mt-6 w-full max-w-lg text-center p-10 rounded-[2.5rem] border-2 border-emerald-500/30 bg-emerald-500/10 block backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(16,185,129,0.3)] relative overflow-hidden";
+                resultsContainer.innerHTML = `
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50"></div>
+                    <div class="flex flex-col items-center gap-6">
+                        <div class="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+                            <span class="material-icons-round text-emerald-500 text-5xl">verified</span>
+                        </div>
+                        <div>
+                            <h4 class="text-3xl font-black text-white tracking-tighter uppercase">Access Granted</h4>
+                            <p class="text-[10px] text-emerald-400 font-black uppercase tracking-[0.4em] mt-2">Credentials Authenticated</p>
+                        </div>
+                        
+                        <div class="w-full bg-white/[0.03] border border-white/5 rounded-2xl p-6 space-y-4">
+                            <div class="flex justify-between items-center px-2">
+                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Personnel</span>
+                                <span class="text-xs font-black text-white uppercase">${userName}</span>
+                            </div>
+                            <div class="h-px bg-white/5"></div>
+                            <div class="flex justify-between items-center px-2">
+                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Operation</span>
+                                <span class="text-xs font-black text-blue-400 uppercase">${eventName}</span>
+                            </div>
+                            <div class="h-px bg-white/5"></div>
+                            <div class="flex justify-between items-center px-2">
+                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Reward Package</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-black text-amber-500 tabular-nums">+100</span>
+                                    <span class="text-[9px] font-black text-amber-500/60 uppercase tracking-tighter">XP Earned</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 w-full">
+                            <button onclick="window.generateCertificate('${userName.replace(/'/g, "\\'")}', '${eventName.replace(/'/g, "\\'")}')" 
+                                class="flex-1 px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                                <span class="material-icons-round text-sm">workspace_premium</span> Dispatch Certificate
+                            </button>
+                            <button onclick="window.startScanner()" 
+                                class="flex-1 px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                                <span class="material-icons-round text-sm">leak_add</span> Next Target
+                            </button>
+                        </div>
+                    </div>
+                `;
+
             } else {
-                showScanError("Not Registered", decodedText);
+                showScanError("Personnel not found in registry", decodedText);
             }
         } catch (err) {
             console.error("Scanner DB Error:", err);
-            showScanError("Database Error", decodedText);
+            showScanError(err.message || "Database Integrity Failure", decodedText);
         }
     };
 
@@ -3407,10 +4025,77 @@ window.stopScanner = function() {
         html5QrCode.stop().then(() => {
             document.getElementById('startScanBtn').classList.remove('hidden');
             document.getElementById('stopScanBtn').classList.add('hidden');
-            const resultsContainer = document.getElementById('qr-reader-results');
-            resultsContainer.classList.add('hidden');
+            // Don't hide results automatically so admin can see success/fail
         }).catch(err => {
             console.error("Error stopping scanner:", err);
         });
     }
+};
+
+// --- CERTIFICATE GENERATION ENGINE ---
+window.generateCertificate = function(userName, eventName) {
+    console.log("📜 Dispatching Certificate:", userName, eventName);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [800, 600]
+    });
+
+    // 1. Tactical Border & Background
+    doc.setFillColor(11, 17, 32); // Deep Obsidian
+    doc.rect(0, 0, 800, 600, 'F');
+    
+    doc.setDrawColor(99, 102, 241); // Indigo Border
+    doc.setLineWidth(10);
+    doc.rect(20, 20, 760, 560, 'D');
+
+    // 2. Branding Elements
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(40);
+    doc.text("CERTIFICATE OF COMPLETION", 400, 150, { align: 'center' });
+
+    doc.setTextColor(99, 102, 241);
+    doc.setFontSize(14);
+    doc.text("KIIT EVENTS | TACTICAL RECOGNITION UNIT", 400, 180, { align: 'center' });
+
+    // 3. User & Event Info
+    doc.setTextColor(148, 163, 184); // Slate-400
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'normal');
+    doc.text("THIS DOCUMENT CERTIFIES THAT", 400, 250, { align: 'center' });
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(48);
+    doc.setFont('helvetica', 'bold');
+    doc.text(userName.toUpperCase(), 400, 310, { align: 'center' });
+
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'normal');
+    doc.text("HAS SUCCESSFULLY COMPLETED THE MISSION", 400, 360, { align: 'center' });
+
+    doc.setTextColor(34, 197, 94); // Emerald-500
+    doc.setFontSize(32);
+    doc.setFont('helvetica', 'bold');
+    doc.text(eventName.toUpperCase(), 400, 410, { align: 'center' });
+
+    // 4. Verification Details
+    doc.setTextColor(71, 85, 105); // Slate-600
+    doc.setFontSize(10);
+    const issueDate = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    doc.text(`ISSUED ON: ${issueDate.toUpperCase()}`, 400, 480, { align: 'center' });
+    doc.text(`VERIFICATION HASH: ${Math.random().toString(36).substring(2, 15).toUpperCase()}`, 400, 500, { align: 'center' });
+
+    // 5. Aesthetic Accents
+    doc.setDrawColor(34, 197, 94, 0.2);
+    doc.setLineWidth(1);
+    doc.line(200, 320, 600, 320);
+
+    // Save PDF
+    doc.save(`KIIT_Certificate_${userName.replace(/\s+/g, '_')}.pdf`);
+    
+    // Log Certificate Download
+    logAction(`Generated certificate for ${userName}`, { event: eventName });
 };
